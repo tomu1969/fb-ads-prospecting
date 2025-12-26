@@ -162,13 +162,27 @@ def enrich_all(df):
         results.append(enriched)
         time.sleep(1)  # Rate limit
 
+    # Preserve original scraper names before any updates
+    df['scraper_contact_name'] = df['contact_name'].copy()
+    df['scraper_contact_position'] = df['contact_position'].copy()
+
+    # Add Hunter-specific name fields
+    df['hunter_contact_name'] = [r['contact_name'] for r in results]
+    df['hunter_contact_position'] = [r['contact_position'] for r in results]
+
     # Update dataframe with Hunter data
     df['hunter_emails'] = [r['hunter_emails'] for r in results]
-    df['contact_name'] = [r['contact_name'] for r in results]
-    df['contact_position'] = [r['contact_position'] for r in results]
     df['primary_email'] = [r['primary_email'] for r in results]
     df['email_confidence'] = [r['email_confidence'] for r in results]
     df['email_verified'] = [r['email_verified'] for r in results]
+
+    # Update contact_name only if Hunter found a name, otherwise keep original
+    for idx in range(len(df)):
+        hunter_name = results[idx]['contact_name']
+        if hunter_name:
+            df.at[idx, 'contact_name'] = hunter_name
+            df.at[idx, 'contact_position'] = results[idx]['contact_position']
+        # else: keep original scraper name (already in contact_name)
 
     # Merge phones: existing (from scraper) + Hunter phones
     merged_phones = []

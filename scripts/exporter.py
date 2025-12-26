@@ -42,6 +42,49 @@ def get_first_phone(phones):
     return phone_list[0] if phone_list else ''
 
 
+def is_valid_name(name):
+    """Check if a name value is valid (not empty/null/placeholder)."""
+    if name is None or (isinstance(name, float) and pd.isna(name)):
+        return False
+    name_str = str(name).strip().lower()
+    return name_str not in ['', 'none', 'nan', 'null', 'n/a', 'none none']
+
+
+def get_matched_name(row):
+    """Get the name that corresponds to the email/phone source.
+
+    Priority:
+    1. If primary_email matches pipeline_email, use pipeline_name
+    2. If Hunter found a name, use hunter_contact_name
+    3. Fall back to scraper_contact_name or contact_name
+    """
+    primary_email = str(row.get('primary_email', '')).strip()
+
+    # Check if email came from pipeline enrichment
+    pipeline_email = str(row.get('pipeline_email', '')).strip()
+    if pipeline_email and primary_email and primary_email == pipeline_email:
+        pipeline_name = row.get('pipeline_name', '')
+        if is_valid_name(pipeline_name):
+            return str(pipeline_name).strip()
+
+    # Check if Hunter found a name (associated with primary_email from Hunter)
+    hunter_name = row.get('hunter_contact_name', '')
+    if is_valid_name(hunter_name):
+        return str(hunter_name).strip()
+
+    # Fall back to scraper name (original name from website scraping)
+    scraper_name = row.get('scraper_contact_name', '')
+    if is_valid_name(scraper_name):
+        return str(scraper_name).strip()
+
+    # Last resort: contact_name (which may be Hunter or scraper depending on data)
+    contact_name = row.get('contact_name', '')
+    if is_valid_name(contact_name):
+        return str(contact_name).strip()
+
+    return ''
+
+
 def format_platforms(platforms):
     """Format platforms list as semicolon-separated string."""
     platform_list = parse_list_field(platforms)
@@ -53,7 +96,7 @@ def export_hubspot(df: pd.DataFrame, output_dir: Path) -> Path:
 
     HubSpot column mapping:
     - email: primary_email (unique identifier)
-    - firstname, lastname: parsed from contact_name
+    - firstname, lastname: parsed from matched_name (name that corresponds to email source)
     - company: page_name
     - jobtitle: contact_position
     - website: website_url
@@ -67,8 +110,9 @@ def export_hubspot(df: pd.DataFrame, output_dir: Path) -> Path:
     # Standard HubSpot properties
     hubspot_df['email'] = df['primary_email'].apply(safe_str)
 
-    # Parse contact_name into first/last
-    names = df['contact_name'].apply(split_name)
+    # Get matched name (name that corresponds to the email source) and split into first/last
+    matched_names = df.apply(get_matched_name, axis=1)
+    names = matched_names.apply(split_name)
     hubspot_df['firstname'] = [n[0] for n in names]
     hubspot_df['lastname'] = [n[1] for n in names]
 
@@ -110,15 +154,24 @@ def export_hubspot(df: pd.DataFrame, output_dir: Path) -> Path:
 
 
 def export_csv(df: pd.DataFrame, output_dir: Path) -> Path:
-    """Export full data as CSV (all columns)."""
+    """Export full data as CSV (all columns), including matched_name."""
     output_path = output_dir / 'prospects_final.csv'
+
+    # Add matched_name column (name that corresponds to email source)
+    df = df.copy()
+    df['matched_name'] = df.apply(get_matched_name, axis=1)
+
     df.to_csv(output_path, index=False, encoding='utf-8')
     return output_path
 
 
 def export_excel(df: pd.DataFrame, output_dir: Path) -> Path:
-    """Export full data as Excel."""
+    """Export full data as Excel, including matched_name."""
     output_path = output_dir / 'prospects_final.xlsx'
+
+    # Add matched_name column (name that corresponds to email source)
+    df = df.copy()
+    df['matched_name'] = df.apply(get_matched_name, axis=1)
 
     with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='Prospects')
@@ -137,6 +190,55 @@ def export_excel(df: pd.DataFrame, output_dir: Path) -> Path:
             worksheet.column_dimensions[col_letter].width = min(max_len + 2, 50)
 
     return output_path
+
+
+def export_imessage(df: pd.DataFrame, output_dir: Path) -> dict:
+    """Export iMessage-compatible CSVs split by with/without names.
+
+    Creates two files:
+    - imessage_with_names.csv: Contacts that have a matched name
+    - imessage_without_names.csv: Contacts without a matched name
+
+    Columns: Phone, First Name, Last Name, Email, Company
+    Only includes rows with valid phone numbers.
+    """
+    # Add matched_name if not present
+    df = df.copy()
+    if 'matched_name' not in df.columns:
+        df['matched_name'] = df.apply(get_matched_name, axis=1)
+
+    # Create iMessage-compatible format
+    imessage_df = pd.DataFrame()
+    imessage_df['Phone'] = df['phones'].apply(get_first_phone)
+    names = df['matched_name'].apply(split_name)
+    imessage_df['First Name'] = [n[0] for n in names]
+    imessage_df['Last Name'] = [n[1] for n in names]
+    imessage_df['Email'] = df['primary_email'].apply(safe_str)
+    imessage_df['Company'] = df['page_name'].apply(safe_str)
+
+    # Filter to only rows with phone numbers
+    imessage_df = imessage_df[imessage_df['Phone'] != '']
+
+    # Split by whether they have a name
+    has_name = (imessage_df['First Name'] != '') | (imessage_df['Last Name'] != '')
+    df_with_names = imessage_df[has_name]
+    df_without_names = imessage_df[~has_name]
+
+    # Save files
+    path_with = output_dir / 'imessage_with_names.csv'
+    path_without = output_dir / 'imessage_without_names.csv'
+
+    df_with_names.to_csv(path_with, index=False, encoding='utf-8')
+    df_without_names.to_csv(path_without, index=False, encoding='utf-8')
+
+    return {
+        'iMessage (with names)': path_with,
+        'iMessage (without names)': path_without,
+        'counts': {
+            'with_names': len(df_with_names),
+            'without_names': len(df_without_names)
+        }
+    }
 
 
 def generate_summary_report(df: pd.DataFrame, output_paths: dict) -> None:
@@ -181,7 +283,7 @@ def generate_summary_report(df: pd.DataFrame, output_paths: dict) -> None:
 
 
 def export_all(df: pd.DataFrame, output_dir: str = 'output') -> dict:
-    """Export all formats: HubSpot CSV, full CSV, and Excel."""
+    """Export all formats: HubSpot CSV, full CSV, Excel, and iMessage CSVs."""
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
@@ -191,7 +293,18 @@ def export_all(df: pd.DataFrame, output_dir: str = 'output') -> dict:
         'Excel': export_excel(df, output_path),
     }
 
+    # Export iMessage-compatible CSVs
+    imessage_result = export_imessage(df, output_path)
+    output_paths['iMessage (with names)'] = imessage_result['iMessage (with names)']
+    output_paths['iMessage (without names)'] = imessage_result['iMessage (without names)']
+
     generate_summary_report(df, output_paths)
+
+    # Print iMessage-specific counts
+    counts = imessage_result['counts']
+    print(f"iMessage contacts with names: {counts['with_names']}")
+    print(f"iMessage contacts without names: {counts['without_names']}")
+    print("=" * 50 + "\n")
 
     return output_paths
 
