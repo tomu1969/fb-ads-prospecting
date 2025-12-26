@@ -161,7 +161,7 @@ def export_hubspot(df: pd.DataFrame, output_dir: Path) -> Path:
     hubspot_df['company'] = df['page_name'].apply(safe_str)
     hubspot_df['jobtitle'] = df.get('contact_position', pd.Series([''] * len(df))).apply(safe_str)
     hubspot_df['website'] = df['website_url'].apply(safe_str)
-    hubspot_df['phone'] = df['phones'].apply(get_first_phone)
+    hubspot_df['phone'] = df['phones'].apply(get_first_phone).apply(format_us_phone)
 
     # LinkedIn (custom property)
     if 'linkedin_url' in df.columns:
