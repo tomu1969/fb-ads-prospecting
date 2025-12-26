@@ -42,6 +42,48 @@ def get_first_phone(phones):
     return phone_list[0] if phone_list else ''
 
 
+import re
+
+def format_us_phone(phone):
+    """Format US phone number with +1 country code prefix.
+
+    Handles various formats:
+    - (123) 456-7890 -> +1 (123) 456-7890
+    - 123-456-7890 -> +1 123-456-7890
+    - +1 123-456-7890 -> +1 123-456-7890 (unchanged)
+    - 1-123-456-7890 -> +1 123-456-7890
+
+    Only adds +1 if the number appears to be a US number (10-11 digits).
+    """
+    if not phone:
+        return ''
+
+    phone_str = str(phone).strip()
+
+    # Already has +1 prefix
+    if phone_str.startswith('+1'):
+        return phone_str
+
+    # Extract just the digits
+    digits = re.sub(r'\D', '', phone_str)
+
+    # US numbers have 10 digits, or 11 if they start with 1
+    if len(digits) == 10:
+        # 10-digit US number, add +1 prefix
+        return '+1 ' + phone_str
+    elif len(digits) == 11 and digits.startswith('1'):
+        # 11-digit number starting with 1, format as +1
+        # Remove the leading 1 from the original and add +1
+        # Find where the "1" is and remove it
+        if phone_str.startswith('1'):
+            return '+1 ' + phone_str[1:].lstrip('-. ')
+        else:
+            return '+1 ' + phone_str
+    else:
+        # Not a standard US number, return as-is
+        return phone_str
+
+
 def is_valid_name(name):
     """Check if a name value is valid (not empty/null/placeholder)."""
     if name is None or (isinstance(name, float) and pd.isna(name)):
@@ -209,7 +251,7 @@ def export_imessage(df: pd.DataFrame, output_dir: Path) -> dict:
 
     # Create iMessage-compatible format
     imessage_df = pd.DataFrame()
-    imessage_df['Phone'] = df['phones'].apply(get_first_phone)
+    imessage_df['Phone'] = df['phones'].apply(get_first_phone).apply(format_us_phone)
     names = df['matched_name'].apply(split_name)
     imessage_df['First Name'] = [n[0] for n in names]
     imessage_df['Last Name'] = [n[1] for n in names]
