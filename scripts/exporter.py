@@ -234,6 +234,27 @@ def export_excel(df: pd.DataFrame, output_dir: Path) -> Path:
     return output_path
 
 
+def load_do_not_contact(config_dir: Path) -> set:
+    """Load emails and phones from do_not_contact.csv blacklist."""
+    dnc_path = config_dir / 'do_not_contact.csv'
+    blacklist = set()
+
+    if dnc_path.exists():
+        dnc_df = pd.read_csv(dnc_path)
+        # Add emails to blacklist
+        if 'email' in dnc_df.columns:
+            blacklist.update(dnc_df['email'].dropna().str.lower().tolist())
+        # Add phones to blacklist (normalize by removing non-digits for comparison)
+        if 'phone' in dnc_df.columns:
+            phones = dnc_df['phone'].dropna().tolist()
+            for phone in phones:
+                # Store both original and digits-only version
+                blacklist.add(str(phone).lower())
+                blacklist.add(re.sub(r'\D', '', str(phone)))
+
+    return blacklist
+
+
 def export_imessage(df: pd.DataFrame, output_dir: Path) -> dict:
     """Export iMessage-compatible CSVs split by with/without names.
 
@@ -243,7 +264,13 @@ def export_imessage(df: pd.DataFrame, output_dir: Path) -> dict:
 
     Columns: Phone, First Name, Last Name, Email, Company
     Only includes rows with valid phone numbers.
+    Excludes contacts listed in config/do_not_contact.csv.
     """
+    # Load do-not-contact blacklist
+    config_dir = output_dir.parent / 'config'
+    blacklist = load_do_not_contact(config_dir)
+    excluded_count = 0
+
     # Add matched_name if not present
     df = df.copy()
     if 'matched_name' not in df.columns:
@@ -260,6 +287,18 @@ def export_imessage(df: pd.DataFrame, output_dir: Path) -> dict:
 
     # Filter to only rows with phone numbers
     imessage_df = imessage_df[imessage_df['Phone'] != '']
+
+    # Exclude contacts in do-not-contact list
+    if blacklist:
+        def is_blacklisted(row):
+            email = str(row['Email']).lower()
+            phone = str(row['Phone'])
+            phone_digits = re.sub(r'\D', '', phone)
+            return email in blacklist or phone in blacklist or phone_digits in blacklist
+
+        blacklisted_mask = imessage_df.apply(is_blacklisted, axis=1)
+        excluded_count = blacklisted_mask.sum()
+        imessage_df = imessage_df[~blacklisted_mask]
 
     # Split by whether they have a name
     has_name = (imessage_df['First Name'] != '') | (imessage_df['Last Name'] != '')
@@ -278,7 +317,8 @@ def export_imessage(df: pd.DataFrame, output_dir: Path) -> dict:
         'iMessage (without names)': path_without,
         'counts': {
             'with_names': len(df_with_names),
-            'without_names': len(df_without_names)
+            'without_names': len(df_without_names),
+            'excluded': excluded_count
         }
     }
 
@@ -346,6 +386,8 @@ def export_all(df: pd.DataFrame, output_dir: str = 'output') -> dict:
     counts = imessage_result['counts']
     print(f"iMessage contacts with names: {counts['with_names']}")
     print(f"iMessage contacts without names: {counts['without_names']}")
+    if counts.get('excluded', 0) > 0:
+        print(f"Excluded (do-not-contact): {counts['excluded']}")
     print("=" * 50 + "\n")
 
     return output_paths
