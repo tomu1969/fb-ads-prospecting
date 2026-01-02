@@ -13,13 +13,14 @@ Automated pipeline to convert Facebook Ads Library data into qualified prospects
 ## Pipeline Architecture
 
 ```
-┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
-│ Module 1 │──▶│ Module 2 │──▶│ Module 3 │──▶│Module 3.5│──▶│ Module 4 │──▶│ Module 5 │──▶│ Module 6 │
-│  Loader  │   │ Enricher │   │ Scraper  │   │  Hunter  │   │ Composer │   │ Exporter │   │Validator │
-└──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘
-     │              │              │              │              │              │              │
-  Excel→DF     DuckDuckGo      Website       Hunter.io       OpenAI        CSV/JSON       Quality
-               Search          Scraping      Email API       GPT-4o                        Report
+┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
+│ Module 1 │──▶│ Module 2 │──▶│ Module 3 │──▶│Module 3.5│──▶│ Module 3.6│──▶│Module 3.7│──▶│ Module 4 │──▶│ Module 5 │
+│  Loader  │   │ Enricher │   │ Scraper  │   │  Hunter  │   │   Agent  │   │Instagram │   │ Exporter │   │Validator │
+└──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘
+     │              │              │              │              │              │              │              │
+  Excel→DF     DuckDuckGo      Website       Hunter.io       OpenAI        OpenAI API      HubSpot       Quality
+               Search          Scraping      Email API       Agents        Instagram       CSV           Report
+                                                              (fallback)    Handles
 ```
 
 ---
@@ -117,78 +118,90 @@ hunter_emails[], email_confidence, email_verified
 
 ---
 
-### Module 4: Email Composer (`scripts/composer.py`)
-**Purpose**: Generate personalized outreach emails using AI
+### Module 3.7: Instagram Enricher (`scripts/instagram_enricher.py`)
+**Purpose**: Find and enrich Instagram handles for contacts
 
-**Input**: `processed/03b_hunter.csv`
-**Output**: `processed/04_emails.csv`
+**Input**: `processed/03d_final.csv` (from Module 3.6)
+**Output**: `processed/03d_final.csv` (updated with Instagram handles)
 
 **Functions**:
-- `build_prospect_context(row)` - Compile all data about prospect
-- `generate_email(context)` - Call OpenAI to create personalized email
-- `validate_email_content()` - Check for placeholders, minimum length
+- `enrich_contact_instagram(row)` - Enrich a single contact with Instagram handles
+- `search_personal_instagram()` - Search for personal Instagram handles
+- `search_company_instagram()` - Search for company Instagram handles
+- `scrape_website_for_instagram()` - Scrape website for Instagram links
+- `extract_instagram_handles_from_text()` - Extract handles from text with false positive filtering
+- `is_valid_handle()` - Validate handle format and filter false positives
+- Enhanced search strategies: multi-query search, pattern generation, deep website scraping, cross-platform analysis
 
-**AI Prompt Template**:
-```
-You are writing a cold outreach email for House AI, an AI assistant for real estate agents.
+**Search Strategies**:
+1. **Basic Enrichment**: Website scraping + OpenAI search
+2. **Enhanced Search** (if handles still missing):
+   - Deep website scraping (multiple pages)
+   - Cross-platform analysis (LinkedIn, Facebook)
+   - OpenAI reasoning search
+   - Multi-query web search
+   - Pattern generation and validation
 
-Prospect Info:
-- Contact: {contact_name}, {contact_position}
-- Company: {page_name}
-- Ad Activity: {ad_count} ads running since {first_ad_date}
-- Page Likes: {page_likes}
-- Their Services: {services}
-- Ad Copy Themes: {ad_summary}
+**False Positive Filtering**:
+- Automatically filters CSS/JS keywords (e.g., `@graph`, `@context`, `@type`, `@media`)
+- Validates handle format (must start with `@`, 3-30 characters, valid username pattern)
+- Removes generic Instagram pages (`@explore`, `@accounts`, etc.)
 
-Write a short, personalized email (max 150 words) that:
-1. Addresses the contact by name
-2. References something specific about their business
-3. Connects their ad activity to House AI's value prop
-4. Has a clear, low-friction CTA
+**Output Schema** (updates):
+```
+instagram_handles (JSON array): ["@handle1", "@handle2", "@handle3"]
 ```
 
-**Output Schema** (adds):
-```
-email_subject, email_body, personalization_points[]
-```
+**Flags**:
+- `--all`: Process all contacts (default: test mode with 3 contacts)
+- `--skip-enhanced`: Skip enhanced search (faster, lower coverage)
+
+**Dependencies**: `openai`, `requests`, `beautifulsoup4`, `tqdm`
 
 ---
 
-### Module 5: Exporter (`scripts/exporter.py`)
+### Module 4: Exporter (`scripts/exporter.py`)
 **Purpose**: Export final prospect data in usable formats
 
-**Input**: `processed/04_emails.csv`
+**Input**: `processed/03d_final.csv` (from Module 3.7)
 **Output**:
 - `output/prospects_final.csv`
 - `output/prospects_final.xlsx`
-- `output/email_drafts.json`
+- `output/hubspot_contacts.csv`
 
 **Functions**:
 - `export_csv()` - Full data export
 - `export_excel()` - Formatted Excel with columns
-- `export_email_json()` - Ready for email automation tools
+- `export_hubspot_csv()` - HubSpot-ready import file
 - `generate_summary_report()` - Pipeline statistics
+
+**Note**: Email drafts are now created directly in HubSpot, not exported as JSON.
 
 ---
 
-### Module 6: Validator (`scripts/validator.py`)
+### Module 5: Validator (`scripts/validator.py`)
 **Purpose**: Validate pipeline output quality and data coherence
 
 **Input**: All pipeline output files
 **Output**: Validation report (console)
 
 **Functions**:
-- `check_missing_fields()` - Identify prospects missing email or contact
-- `check_coherence()` - Verify data matches source (ad counts, etc.)
-- `check_email_quality()` - Detect bad patterns (Hi None, placeholders)
-- `check_enrichment_success()` - Report enrichment statistics
+- `check_contact_completeness()` - Identify prospects missing email or contact
+- `check_email_verification()` - Check email verification status
+- `check_phone_coverage()` - Report phone number coverage
+- `check_website_coverage()` - Report website enrichment coverage
+- `check_instagram_handles()` - Validate Instagram handle coverage and format
+- `check_hubspot_export()` - Validate HubSpot export file
 - `generate_report()` - Comprehensive validation report
 
 **Checks Performed**:
 1. Missing email and contact data
-2. Data coherence with source CSV
-3. Email quality (no placeholders, correct pluralization)
-4. Enrichment success rates (websites found, emails verified)
+2. Email verification status
+3. Phone number coverage
+4. Website enrichment coverage
+5. Instagram handle coverage and validation (format, false positives)
+6. HubSpot export file validation
+7. Enrichment success rates (websites found, emails verified)
 
 **Exit Codes**:
 - `0`: All checks passed
@@ -232,9 +245,10 @@ python run_pipeline.py --all --from 3.5
 2. Enricher → Find company websites via search
 3. Scraper → Extract contacts from websites
 4. Hunter → Verify and enrich emails via Hunter.io
-5. Composer → Generate personalized emails with GPT-4o
-6. Exporter → Export to CSV/Excel/JSON
-7. Validator → Quality check and report
+5. Agent Enricher → AI agent fallback enrichment
+6. Instagram Enricher → Find and enrich Instagram handles
+7. Exporter → Export to CSV/Excel/HubSpot CSV
+8. Validator → Quality check and report
 
 ---
 
@@ -248,10 +262,12 @@ fb_ads_library_prospecting/
 │   ├── enricher.py       # Module 2: Find websites
 │   ├── scraper.py        # Module 3: Scrape contacts
 │   ├── hunter.py         # Module 3.5: Hunter.io emails
-│   ├── composer.py       # Module 4: Generate emails
-│   ├── exporter.py       # Module 5: Export outputs
-│   ├── validator.py      # Module 6: Quality check
-│   └── progress.py       # Real-time progress monitor
+│   ├── contact_enricher_pipeline.py  # Module 3.6: AI agent enrichment
+│   ├── instagram_enricher.py  # Module 3.7: Instagram handle enrichment
+│   ├── clean_instagram_handles.py  # Utility: Clean Instagram handles
+│   ├── exporter.py       # Module 4: Export outputs
+│   ├── validator.py      # Module 5: Quality check
+│   └── legacy/           # Archived scripts (composer, etc.)
 ├── input/
 │   └── FB Ad library scraping.xlsx
 ├── processed/
@@ -259,17 +275,25 @@ fb_ads_library_prospecting/
 │   ├── 02_enriched.csv
 │   ├── 03_contacts.csv
 │   ├── 03b_hunter.csv
-│   └── 04_emails.csv
+│   ├── 03c_enriched.csv
+│   ├── 03d_final.csv     # Final data (input for Exporter)
+│   └── legacy/           # Old processed files
 ├── output/
 │   ├── prospects_final.csv
 │   ├── prospects_final.xlsx
-│   └── email_drafts.json
+│   ├── hubspot_contacts.csv
+│   └── legacy/           # Old output files
 ├── config/
-│   ├── settings.yaml
-│   └── website_overrides.csv
+│   ├── website_overrides.csv
+│   ├── manual_contacts.csv
+│   └── do_not_contact.csv
+├── tests/                # Unit and integration tests
+│   ├── test_instagram_enrichment.py
+│   └── test_pipeline_integration.py
 ├── requirements.txt
 ├── .env
-└── README.md
+├── README.md
+└── PRD.md
 ```
 
 ---
@@ -291,28 +315,21 @@ pyyaml>=6.0.0
 
 ---
 
-## Configuration (`config/settings.yaml`)
+## Configuration
 
-```yaml
-search:
-  delay_seconds: 2
-  max_retries: 3
-  keywords: ["real estate", "realtor", "realty"]
-
-scraper:
-  timeout_seconds: 10
-  max_pages_per_site: 5
-  contact_pages: ["/contact", "/about", "/team", "/agents"]
-
-composer:
-  model: "gpt-4o-mini"
-  max_tokens: 500
-  temperature: 0.7
-
-export:
-  include_failed: false
-  date_format: "%Y-%m-%d"
+### Environment Variables (.env)
 ```
+OPENAI_API_KEY=sk-...
+HUNTER_API_KEY=...
+```
+
+### Website Overrides (config/website_overrides.csv)
+Manually specify websites for prospects that can't be found automatically.
+
+### Manual Contacts (config/manual_contacts.csv)
+Add manually researched contacts.
+
+**Note**: Email drafts are now created directly in HubSpot, not generated by the pipeline.
 
 ---
 
@@ -357,25 +374,30 @@ claude "Read PRD.md. Build Module 3 (scraper.py). File: scripts/scraper.py only.
 cd /Users/tomas/Desktop/ai_pbx/fb_ads_library_prospecting
 claude "Read PRD.md. Build Module 3.5 (hunter.py). File: scripts/hunter.py only."
 
-# Terminal 4 - Composer
+# Terminal 4 - Agent Enricher
 cd /Users/tomas/Desktop/ai_pbx/fb_ads_library_prospecting
-claude "Read PRD.md. Build Module 4 (composer.py). File: scripts/composer.py only."
+claude "Read PRD.md. Build Module 3.6 (contact_enricher_pipeline.py). File: scripts/contact_enricher_pipeline.py only."
 
-# Terminal 5 - Exporter
+# Terminal 5 - Instagram Enricher
 cd /Users/tomas/Desktop/ai_pbx/fb_ads_library_prospecting
-claude "Read PRD.md. Build Module 5 (exporter.py). File: scripts/exporter.py only."
+claude "Read PRD.md. Build Module 3.7 (instagram_enricher.py). File: scripts/instagram_enricher.py only."
+
+# Terminal 6 - Exporter
+cd /Users/tomas/Desktop/ai_pbx/fb_ads_library_prospecting
+claude "Read PRD.md. Build Module 4 (exporter.py). File: scripts/exporter.py only."
 ```
 
 ### File Ownership (No Conflicts)
 
 | Terminal | Owns | Never Touch |
 |----------|------|-------------|
-| T1 | `scripts/loader.py` | enricher, scraper, hunter, composer, exporter |
-| T2 | `scripts/enricher.py` | loader, scraper, hunter, composer, exporter |
-| T3 | `scripts/scraper.py` | loader, enricher, hunter, composer, exporter |
-| T3.5 | `scripts/hunter.py` | loader, enricher, scraper, composer, exporter |
-| T4 | `scripts/composer.py` | loader, enricher, scraper, hunter, exporter |
-| T5 | `scripts/exporter.py` | loader, enricher, scraper, hunter, composer |
+| T1 | `scripts/loader.py` | enricher, scraper, hunter, contact_enricher, instagram_enricher, exporter |
+| T2 | `scripts/enricher.py` | loader, scraper, hunter, contact_enricher, instagram_enricher, exporter |
+| T3 | `scripts/scraper.py` | loader, enricher, hunter, contact_enricher, instagram_enricher, exporter |
+| T3.5 | `scripts/hunter.py` | loader, enricher, scraper, contact_enricher, instagram_enricher, exporter |
+| T3.6 | `scripts/contact_enricher_pipeline.py` | loader, enricher, scraper, hunter, instagram_enricher, exporter |
+| T3.7 | `scripts/instagram_enricher.py` | loader, enricher, scraper, hunter, contact_enricher, exporter |
+| T4 | `scripts/exporter.py` | loader, enricher, scraper, hunter, contact_enricher, instagram_enricher |
 
 Shared files (`utils.py`, `main.py`) are built AFTER all modules complete.
 
@@ -406,13 +428,20 @@ contact_name,contact_position,emails,phones,company_description,services,social_
 
 **03b_hunter.csv adds:**
 ```
-hunter_emails,email_confidence,email_verified
+hunter_emails[],email_confidence,email_verified
 ```
 
-**04_emails.csv adds:**
+**03c_enriched.csv adds:**
 ```
-email_subject,email_body,personalization_points
+pipeline_email,pipeline_phone,pipeline_name,pipeline_position,pipeline_confidence,enrichment_stage,enrichment_cost,enrichment_source
 ```
+
+**03d_final.csv adds:**
+```
+instagram_handles (JSON array): ["@handle1", "@handle2", "@handle3"]
+```
+
+**Note**: The `instagram_handles` column contains all Instagram handles (both personal and company) in a single JSON array. False positives are automatically filtered. The `contact_instagram_handle` column was removed and consolidated into `instagram_handles`.
 
 ### Module Test Commands
 
@@ -423,9 +452,11 @@ Each module must include a `if __name__ == "__main__":` block for standalone tes
 python scripts/loader.py      # Creates processed/01_loaded.csv
 python scripts/enricher.py    # Reads 01, creates 02 (test with 3 rows)
 python scripts/scraper.py     # Reads 02, creates 03 (test with 3 rows)
-python scripts/hunter.py      # Reads 03, creates 03b (test with 3 rows)
-python scripts/composer.py    # Reads 03b, creates 04 (test with 3 rows)
-python scripts/exporter.py    # Reads 04, creates output files
+python scripts/hunter.py       # Reads 03, creates 03b (test with 3 rows)
+python scripts/contact_enricher_pipeline.py  # Reads 03b, creates 03c (test with 3 rows)
+python scripts/instagram_enricher.py  # Reads 03d, updates 03d (test with 3 rows)
+python scripts/exporter.py    # Reads 03d, creates output files
+python scripts/validator.py   # Validates all output files
 ```
 
 ---

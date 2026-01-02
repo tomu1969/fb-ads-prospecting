@@ -22,11 +22,12 @@ python run_pipeline.py
 ## Pipeline Overview
 
 ```
-Module 1    Module 2    Module 3    Module 3.5   Module 3.6      Module 4    Module 5
-Loader  →  Enricher →  Scraper  →   Hunter   → Agent Enricher → Exporter → Validator
-  │           │           │            │             │              │           │
-Excel      Search      Scrape      Hunter.io    OpenAI Agents   HubSpot     Quality
-           Websites    Contacts    Emails       (fallback)      CSV         Report
+Module 1    Module 2    Module 3    Module 3.5   Module 3.6      Module 3.7        Module 4    Module 5
+Loader  →  Enricher →  Scraper  →   Hunter   → Agent Enricher → Instagram Enricher → Exporter → Validator
+  │           │           │            │             │                 │              │           │
+Excel      Search      Scrape      Hunter.io    OpenAI Agents      OpenAI API      HubSpot     Quality
+           Websites    Contacts    Emails       (fallback)        Instagram       CSV         Report
+                                                                    Handles
 ```
 
 ## Project Structure
@@ -40,6 +41,8 @@ fb_ads_library_prospecting/
 │   ├── scraper.py            # Module 3: Scrape contacts from websites
 │   ├── hunter.py             # Module 3.5: Hunter.io email/phone enrichment
 │   ├── contact_enricher_pipeline.py  # Module 3.6: AI agent fallback enrichment
+│   ├── instagram_enricher.py # Module 3.7: Instagram handle enrichment
+│   ├── clean_instagram_handles.py  # Utility: Clean and consolidate Instagram handles
 │   ├── exporter.py           # Module 4: Export to HubSpot CSV
 │   ├── validator.py          # Module 5: Quality validation
 │   └── legacy/               # Archived scripts
@@ -65,6 +68,7 @@ python scripts/enricher.py --all
 python scripts/scraper.py --all
 python scripts/hunter.py --all
 python scripts/contact_enricher_pipeline.py --all
+python scripts/instagram_enricher.py --all
 python scripts/exporter.py
 python scripts/validator.py
 ```
@@ -73,6 +77,7 @@ python scripts/validator.py
 ```bash
 python run_pipeline.py --all --from 3.5   # Resume from Hunter
 python run_pipeline.py --all --from 3.6   # Resume from Agent Enricher
+python run_pipeline.py --all --from 3.7   # Resume from Instagram Enricher
 python run_pipeline.py --all --from 4     # Resume from Exporter
 ```
 
@@ -99,6 +104,7 @@ python run_pipeline.py --all --from 4     # Resume from Exporter
 | `fb_page_likes` | Custom: FB Page Likes | Source data |
 | `ad_platforms` | Custom: Ad Platforms | Source data |
 | `email_verified` | Custom: Email Verified | Hunter.io verification |
+| `instagram_handles` | Custom: Instagram Handles | Instagram Enricher (JSON array) |
 
 ## Configuration
 
@@ -122,16 +128,17 @@ page_name,primary_email,contact_name,contact_position
 "Company Name","email@company.com","John Doe","Broker"
 ```
 
-## Current Pipeline Results (December 2025)
+## Current Pipeline Results (January 2026)
 
 | Metric | Count | % |
 |--------|-------|---|
 | Total Prospects | 59 | 100% |
-| Ready for HubSpot (has email) | 48 | 81.4% |
+| Ready for HubSpot (has email) | 49 | 83.1% |
 | Verified emails | 37 | 62.7% |
 | With phone number | 39 | 66.1% |
+| With Instagram handles | 53 | 89.8% |
 | Complete (email + contact + phone) | 23 | 39.0% |
-| Quality score | - | 59.0% |
+| Quality score | - | 61.7% |
 
 ### Enrichment Sources
 
@@ -151,8 +158,12 @@ page_name,primary_email,contact_name,contact_position
 03_contacts.csv    → + emails, phones from website scraping
 03b_hunter.csv     → + primary_email, contact_name, email_verified from Hunter
 03c_enriched.csv   → Agent enrichment results (for unfound contacts)
-03d_final.csv      → Merged final data (input for Exporter)
+03d_final.csv      → Merged final data (input for Instagram Enricher)
+03d_final.csv      → + instagram_handles (JSON array) from Instagram Enricher
+                    → Final data (input for Exporter)
 ```
+
+**Note:** Instagram handles are stored in the `instagram_handles` column as a JSON array format: `["@handle1", "@handle2", "@handle3"]`. Both personal and company handles are consolidated into this single column. False positives (CSS/JS keywords) are automatically filtered out.
 
 ## Troubleshooting
 
@@ -170,13 +181,20 @@ page_name,primary_email,contact_name,contact_position
 - Enricher: Uses 2-second delays between requests
 - Hunter: Uses 1-second delays
 - Agent Enricher: Uses OpenAI API with built-in rate limiting
+- Instagram Enricher: Uses 2-second delays between searches
 - Increase delays in scripts if needed
+
+### Instagram handles not found
+1. Instagram Enricher uses multiple strategies: website scraping, OpenAI search, and enhanced search
+2. Handles are automatically filtered to remove false positives (CSS/JS keywords)
+3. All handles are consolidated into `instagram_handles` column (JSON array format)
+4. Run cleanup script if needed: `python scripts/clean_instagram_handles.py`
 
 ## API Requirements
 
 | Service | Purpose | Free Tier |
 |---------|---------|-----------|
-| OpenAI | Agent enrichment, website analysis | Pay per use |
+| OpenAI | Agent enrichment, website analysis, Instagram search | Pay per use |
 | Hunter.io | Email finding/verification | 25 searches/month |
 | DuckDuckGo | Website search | Unlimited (rate limited) |
 

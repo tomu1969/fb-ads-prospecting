@@ -23,6 +23,7 @@ MODULES = [
     {"num": 3, "name": "Scraper", "script": "scraper.py", "supports_all": True},
     {"num": 3.5, "name": "Hunter", "script": "hunter.py", "supports_all": True},
     {"num": 3.6, "name": "Agent Enricher", "script": "contact_enricher_pipeline.py", "supports_all": True},
+    {"num": 3.7, "name": "Instagram Enricher", "script": "instagram_enricher.py", "supports_all": True},
     # Composer removed - email drafts will be done in HubSpot
     {"num": 4, "name": "Exporter", "script": "exporter.py", "supports_all": False},
     {"num": 5, "name": "Validator", "script": "validator.py", "supports_all": False},

@@ -189,6 +189,77 @@ def check_website_coverage(df):
     return stats, issues
 
 
+def check_instagram_handles(df):
+    """Check Instagram handle coverage and validation."""
+    import json
+    import re
+    
+    # False positives to check for
+    false_positives = {
+        'graph', 'context', 'type', 'todo', 'media', 'import', 'supports',
+        'font', 'keyframes', 'charset', 'next', 'prev', 'return', 'function',
+        'var', 'let', 'const', 'class', 'id', 'div', 'span', 'html', 'body',
+        'head', 'script', 'style', 'link', 'meta', 'title', 'header', 'footer',
+        'nav', 'main', 'section', 'article', 'aside', 'button', 'input', 'form',
+        'img', 'a', 'ul', 'ol', 'li', 'table', 'tr', 'td', 'th', 'thead', 'tbody',
+        'iterator', 'toprimitive', 'fontawesome', 'airops', 'original',
+        'wrapped', 'newrelic', 'wordpress', 'nextdoor', 'linkedin',
+        'p', 'explore', 'accounts', 'direct', 'stories', 'reels', 'www', 'reel'
+    }
+    
+    stats = {
+        'with_handles': 0,
+        'missing': 0,
+        'invalid_format': 0,
+        'false_positives': 0,
+    }
+    missing_list = []
+    invalid_list = []
+    false_positive_list = []
+    
+    for _, row in df.iterrows():
+        page_name = row.get('page_name', 'Unknown')
+        
+        # Check instagram_handles column
+        handles_field = row.get('instagram_handles', '')
+        handles = []
+        
+        if pd.notna(handles_field) and handles_field != '' and handles_field != '[]':
+            try:
+                if isinstance(handles_field, str):
+                    parsed = json.loads(handles_field)
+                else:
+                    parsed = handles_field
+                if isinstance(parsed, list):
+                    handles = parsed
+            except (json.JSONDecodeError, ValueError):
+                pass
+        
+        # Validate handle formats and check for false positives
+        if handles:
+            stats['with_handles'] += 1
+            for handle in handles:
+                handle_str = str(handle).strip()
+                
+                # Check format
+                if not handle_str.startswith('@') or len(handle_str) < 4:  # @ + 3 chars minimum
+                    stats['invalid_format'] += 1
+                    if page_name not in [x.split(' (')[0] for x in invalid_list]:
+                        invalid_list.append(f"{page_name} (invalid: {handle_str})")
+                
+                # Check for false positives
+                username = handle_str.replace('@', '').lower()
+                if username in false_positives:
+                    stats['false_positives'] += 1
+                    if page_name not in [x.split(' (')[0] for x in false_positive_list]:
+                        false_positive_list.append(f"{page_name} (false positive: {handle_str})")
+        else:
+            stats['missing'] += 1
+            missing_list.append(page_name)
+    
+    return stats, missing_list, invalid_list, false_positive_list
+
+
 def check_hubspot_export(data):
     """Validate HubSpot export file."""
     issues = []
@@ -307,8 +378,37 @@ def generate_report(data):
     else:
         print("   No enrichment stage data available")
 
-    # 6. HubSpot Export Validation
-    print("\n6. HUBSPOT EXPORT VALIDATION")
+    # 6. Instagram Handle Coverage
+    print("\n6. INSTAGRAM HANDLE COVERAGE")
+    print("-" * 50)
+    instagram_stats, missing_instagram, invalid_instagram, false_positive_instagram = check_instagram_handles(final_df)
+    
+    with_handles_pct = 100 * instagram_stats['with_handles'] / total if total else 0
+    
+    print(f"   With Instagram handles:         {instagram_stats['with_handles']} ({with_handles_pct:.1f}%)")
+    print(f"   Missing handles:                {instagram_stats['missing']}")
+    
+    if instagram_stats['invalid_format'] > 0:
+        print(f"   Invalid format:                  {instagram_stats['invalid_format']}")
+        if len(invalid_instagram) <= 5:
+            for item in invalid_instagram:
+                print(f"      - {item}")
+    
+    if instagram_stats['false_positives'] > 0:
+        print(f"   False positives found:           {instagram_stats['false_positives']}")
+        if len(false_positive_instagram) <= 5:
+            for item in false_positive_instagram:
+                print(f"      - {item}")
+    
+    if missing_instagram and len(missing_instagram) <= 10:
+        print(f"\n   Prospects without Instagram handles:")
+        for name in missing_instagram[:10]:
+            print(f"      - {name}")
+        if len(missing_instagram) > 10:
+            print(f"      ... and {len(missing_instagram) - 10} more")
+
+    # 7. HubSpot Export Validation
+    print("\n7. HUBSPOT EXPORT VALIDATION")
     print("-" * 50)
     hubspot_issues = check_hubspot_export(data)
 

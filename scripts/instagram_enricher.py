@@ -1,0 +1,705 @@
+"""Instagram Handle Enricher - Unified Module 3.7
+
+Combines basic and enhanced search strategies to find Instagram handles for contacts.
+Runs automatically after Module 3.6 (Agent Enricher) in the pipeline.
+
+Input: processed/03d_final.csv (from Module 3.6)
+Output: processed/03d_final.csv (updated with Instagram handles)
+
+Usage:
+    python instagram_enricher.py           # Test mode (3 contacts)
+    python instagram_enricher.py --all     # Process all contacts
+    python instagram_enricher.py --skip-enhanced  # Skip enhanced search (faster)
+"""
+
+import os
+import sys
+import re
+import json
+import time
+import asyncio
+import pandas as pd
+import requests
+from pathlib import Path
+from tqdm import tqdm
+from dotenv import load_dotenv
+from openai import OpenAI
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin, urlparse
+
+load_dotenv()
+
+# Initialize OpenAI client
+client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+# OpenAI Agents SDK imports (fallback)
+try:
+    from agents import Agent, Runner, WebSearchTool
+    HAS_AGENTS_SDK = True
+except ImportError:
+    HAS_AGENTS_SDK = False
+
+# Pipeline input/output paths
+INPUT_FILE = 'processed/03d_final.csv'
+BACKUP_FILE = 'processed/03d_final_backup.csv'
+
+# Rate limiting
+SEARCH_DELAY = 2.0
+REQUEST_DELAY = 1.0
+
+# Headers for web requests
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+}
+
+
+# =============================================================================
+# UTILITY FUNCTIONS
+# =============================================================================
+
+def has_instagram_handles(row):
+    """Check if a contact has any Instagram handles."""
+    personal = row.get('contact_instagram_handle', '')
+    company = row.get('instagram_handles', '')
+    
+    has_personal = pd.notna(personal) and str(personal).strip() != '' and str(personal).strip() != 'nan'
+    
+    has_company = False
+    if pd.notna(company) and company != '' and company != '[]':
+        try:
+            parsed = json.loads(company) if isinstance(company, str) else company
+            has_company = len(parsed) > 0 if isinstance(parsed, list) else False
+        except:
+            pass
+    
+    return has_personal or has_company
+
+
+# Comprehensive list of false positives (same as clean script)
+FALSE_POSITIVES = {
+    # CSS keywords
+    'graph', 'context', 'type', 'todo', 'media', 'import', 'supports',
+    'font', 'keyframes', 'charset',
+    # HTML/JS keywords
+    'next', 'prev', 'return', 'function', 'var', 'let', 'const', 'class',
+    'id', 'div', 'span', 'html', 'body', 'head', 'script', 'style', 'link',
+    'meta', 'title', 'header', 'footer', 'nav', 'main', 'section', 'article',
+    'aside', 'button', 'input', 'form', 'img', 'a', 'ul', 'ol', 'li',
+    'table', 'tr', 'td', 'th', 'thead', 'tbody',
+    # Framework/library keywords
+    'iterator', 'toprimitive', 'fontawesome', 'airops', 'original',
+    'wrapped', 'newrelic', 'wordpress', 'nextdoor', 'linkedin',
+    # Instagram generic pages
+    'p', 'explore', 'accounts', 'direct', 'stories', 'reels', 'www', 'reel'
+}
+
+
+def is_valid_handle(handle: str) -> bool:
+    """Check if handle is valid Instagram format and not a false positive."""
+    if not handle or not isinstance(handle, str):
+        return False
+    
+    handle = handle.strip()
+    
+    # Must start with @
+    if not handle.startswith('@'):
+        return False
+    
+    # Remove @ for validation
+    username = handle[1:]
+    
+    # Must be 3-30 characters
+    if len(username) < 3 or len(username) > 30:
+        return False
+    
+    # Must match Instagram username pattern
+    pattern = r'^[a-zA-Z][a-zA-Z0-9_.]{2,29}$'
+    if not re.match(pattern, username):
+        return False
+    
+    # Check against false positives
+    if username.lower() in FALSE_POSITIVES:
+        return False
+    
+    return True
+
+
+def extract_instagram_handles_from_text(text: str) -> list:
+    """Extract Instagram handles from text using regex patterns."""
+    if not text:
+        return []
+    
+    handles = set()
+    
+    # Pattern 1: Instagram URLs (most reliable)
+    url_pattern = r'instagram\.com/([a-zA-Z0-9_.]+)/?'
+    for match in re.finditer(url_pattern, text, re.I):
+        handle = match.group(1).lower()
+        handle_with_at = f"@{handle}"
+        if is_valid_handle(handle_with_at):
+            handles.add(handle_with_at)
+    
+    # Pattern 2: @ mentions in text
+    mention_pattern = r'@([a-zA-Z][a-zA-Z0-9_.]{2,29})'
+    for match in re.finditer(mention_pattern, text):
+        handle = match.group(1)
+        handle_with_at = f"@{handle}"
+        if (is_valid_handle(handle_with_at) and 
+            not any(x in handle.lower() for x in ['gmail', 'yahoo', 'hotmail', 'outlook', '.com', '.net', '.org', 'facebook', 'twitter']) and
+            ('_' in handle or '.' in handle or len(handle) > 6)):
+            handles.add(handle_with_at.lower())
+    
+    return list(handles)
+
+
+def parse_instagram_handles_field(value) -> list:
+    """Parse instagram_handles field from CSV."""
+    if pd.isna(value) or value == '' or value == '[]':
+        return []
+    try:
+        if isinstance(value, str):
+            parsed = json.loads(value)
+            if isinstance(parsed, list):
+                return parsed
+    except (json.JSONDecodeError, ValueError):
+        pass
+    return []
+
+
+# =============================================================================
+# WEB SCRAPING FUNCTIONS
+# =============================================================================
+
+def scrape_website(url: str, timeout=10):
+    """Fetch website HTML content."""
+    try:
+        if not url.startswith(("http://", "https://")):
+            url = "https://" + url
+        response = requests.get(url, headers=HEADERS, timeout=timeout, allow_redirects=True)
+        response.raise_for_status()
+        return response.text
+    except requests.RequestException:
+        return None
+
+
+def deep_scrape_website(base_url: str, max_pages=5) -> str:
+    """Scrape multiple pages from a website."""
+    if not base_url or pd.isna(base_url):
+        return ""
+    
+    if not base_url.startswith(("http://", "https://")):
+        base_url = "https://" + base_url
+    
+    all_html = []
+    visited = set()
+    pages_to_check = ['/', '/about', '/about-us', '/team', '/our-team', '/contact', '/contact-us', '/social']
+    
+    for page_path in pages_to_check[:max_pages]:
+        try:
+            url = urljoin(base_url, page_path)
+            if url in visited:
+                continue
+            html = scrape_website(url)
+            if html:
+                all_html.append(html)
+                visited.add(url)
+            time.sleep(REQUEST_DELAY)
+        except Exception:
+            continue
+    
+    return "\n".join(all_html)
+
+
+async def scrape_website_for_instagram(url: str) -> list:
+    """Scrape website directly for Instagram handles."""
+    if not url:
+        return []
+    try:
+        html = deep_scrape_website(url)
+        if html:
+            return extract_instagram_handles_from_text(html)
+    except Exception:
+        pass
+    return []
+
+
+# =============================================================================
+# OPENAI API FUNCTIONS
+# =============================================================================
+
+async def search_with_openai_direct(prompt: str, max_retries=3, delay=2):
+    """Use OpenAI API directly to find Instagram handles."""
+    for attempt in range(max_retries):
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """You are an expert at finding Instagram profiles. 
+Analyze the information and determine the most likely Instagram handle.
+Return ONLY the handle in format @username, or NOT_FOUND if you cannot determine it."""
+                    },
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=300
+            )
+            
+            if response.choices and len(response.choices) > 0:
+                content = response.choices[0].message.content.strip()
+                return content
+            return ""
+        except Exception as e:
+            if attempt < max_retries - 1:
+                await asyncio.sleep(delay * (attempt + 1))
+                continue
+            raise
+    return ""
+
+
+async def generate_search_queries(company_name: str, contact_name: str = "", industry: str = "real estate") -> list:
+    """Use OpenAI to generate multiple search query variations."""
+    prompt = f"""Generate 5-8 specific web search queries to find Instagram handles for:
+
+Company: {company_name}
+Contact: {contact_name or 'N/A'}
+Industry: {industry}
+
+Generate diverse search queries that would help find their Instagram profile.
+Return ONLY a JSON array of query strings, no other text:
+["query1", "query2", "query3", ...]"""
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "You are an expert at generating web search queries. Return only valid JSON arrays."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=300
+        )
+        
+        content = response.choices[0].message.content.strip()
+        json_match = re.search(r'\[.*?\]', content, re.DOTALL)
+        if json_match:
+            queries = json.loads(json_match.group())
+            return queries if isinstance(queries, list) else []
+    except Exception as e:
+        pass
+    
+    # Fallback queries
+    queries = []
+    if company_name:
+        queries.append(f"{company_name} instagram")
+        queries.append(f"{company_name} instagram account")
+    if contact_name:
+        queries.append(f"{contact_name} instagram")
+        if company_name:
+            queries.append(f"{contact_name} {company_name} instagram")
+    return queries[:8]
+
+
+async def generate_handle_patterns(company_name: str, contact_name: str = "") -> list:
+    """Use OpenAI to generate likely Instagram handle patterns."""
+    prompt = f"""Based on this information, suggest likely Instagram handle patterns:
+
+Company: {company_name}
+Contact: {contact_name or 'N/A'}
+
+Generate 5-10 likely Instagram handle patterns following common conventions.
+Return ONLY a JSON array of handle patterns (without @ symbol), no other text:
+["pattern1", "pattern2", "pattern3", ...]"""
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "You are an expert at Instagram handle patterns. Return only valid JSON arrays."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=300
+        )
+        
+        content = response.choices[0].message.content.strip()
+        json_match = re.search(r'\[.*?\]', content, re.DOTALL)
+        if json_match:
+            patterns = json.loads(json_match.group())
+            return [f"@{p}" if not p.startswith('@') else p for p in patterns if isinstance(p, str)]
+    except Exception:
+        pass
+    return []
+
+
+# =============================================================================
+# BASIC ENRICHMENT (Strategy 1)
+# =============================================================================
+
+async def search_personal_instagram(contact_name: str, company_name: str = "", position: str = "") -> str:
+    """Search for personal Instagram handle for a contact person."""
+    if not contact_name or contact_name.strip() == "" or str(contact_name).strip() == 'None None':
+        return ""
+    
+    try:
+        prompt = f"""Find the Instagram handle for this person:
+
+NAME: {contact_name}
+COMPANY: {company_name or 'Unknown'}
+POSITION: {position or 'Unknown'}
+
+Search the web for their Instagram profile. Return ONLY the handle in format @username.
+If no handle is found, return: NOT_FOUND"""
+        
+        output = await search_with_openai_direct(prompt)
+        
+        if not output or "NOT_FOUND" in output:
+            return ""
+        
+        handles = extract_instagram_handles_from_text(output)
+        if handles:
+            return handles[0]
+        
+        if "@" in output:
+            match = re.search(r'@([a-zA-Z][a-zA-Z0-9_.]{2,29})', output)
+            if match:
+                return f"@{match.group(1).lower()}"
+        
+        return ""
+    except Exception as e:
+        return ""
+
+
+async def search_company_instagram(company_name: str, website_url: str = "") -> list:
+    """Search for company Instagram handles."""
+    if not company_name:
+        return []
+    
+    try:
+        prompt = f"""Find the Instagram handle(s) for this company:
+
+COMPANY: {company_name}
+WEBSITE: {website_url or 'Unknown'}
+
+Search the web for their official Instagram profile(s). Return all handles in format @username.
+If no handles are found, return: NOT_FOUND"""
+        
+        output = await search_with_openai_direct(prompt)
+        
+        if not output or "NOT_FOUND" in output:
+            return []
+        
+        handles = extract_instagram_handles_from_text(output)
+        
+        if not handles and "@" in output:
+            matches = re.findall(r'@([a-zA-Z][a-zA-Z0-9_.]{2,29})', output)
+            handles = [f"@{m.lower()}" for m in matches]
+        
+        # Filter false positives
+        false_positives = {
+            'instagram', 'p', 'explore', 'accounts', 'direct', 'stories', 'reels', 'www',
+            'graph', 'context', 'type', 'todo', 'media', 'import', 'supports',
+            'font', 'keyframes', 'next', 'prev', 'wordpress', 'charset', 'iterator',
+            'toprimitive', 'fontawesome', 'airops', 'original', 'wrapped', 'newrelic', 'nextdoor', 'linkedin'
+        }
+        
+        filtered = []
+        for handle in handles:
+            handle_clean = handle.replace('@', '').lower()
+            if (handle_clean not in false_positives and 
+                len(handle_clean) >= 3 and
+                ('_' in handle_clean or '.' in handle_clean or len(handle_clean) > 6)):
+                filtered.append(handle)
+        
+        return list(set(filtered))[:10]
+    except Exception:
+        return []
+
+
+# =============================================================================
+# ENHANCED SEARCH STRATEGIES (for missing handles)
+# =============================================================================
+
+async def strategy_multi_query_search(company_name: str, contact_name: str = "", industry: str = "real estate") -> list:
+    """Enhanced Strategy 1: Multi-query web search."""
+    handles = set()
+    queries = await generate_search_queries(company_name, contact_name, industry)
+    
+    for query in queries[:5]:
+        try:
+            prompt = f"""Search for Instagram handle using this query: "{query}"
+
+Company: {company_name}
+Contact: {contact_name or 'N/A'}
+
+Based on web search results, what is the Instagram handle?
+Return ONLY @username or NOT_FOUND."""
+            
+            result = await search_with_openai_direct(prompt)
+            found_handles = extract_instagram_handles_from_text(result)
+            if found_handles:
+                handles.update(found_handles)
+            await asyncio.sleep(SEARCH_DELAY)
+        except Exception:
+            continue
+    
+    return list(handles)
+
+
+async def strategy_pattern_generation(company_name: str, contact_name: str = "") -> list:
+    """Enhanced Strategy 2: Generate and validate handle patterns."""
+    patterns = await generate_handle_patterns(company_name, contact_name)
+    return [p if p.startswith('@') else f"@{p}" for p in patterns[:10]]
+
+
+async def strategy_deep_website_scrape(website_url: str) -> list:
+    """Enhanced Strategy 3: Deep website scraping."""
+    if not website_url or pd.isna(website_url):
+        return []
+    html = deep_scrape_website(website_url)
+    if html:
+        return extract_instagram_handles_from_text(html)
+    return []
+
+
+async def strategy_cross_platform(linkedin_url: str, social_links: dict) -> list:
+    """Enhanced Strategy 4: Cross-platform analysis."""
+    handles = set()
+    
+    if linkedin_url and pd.notna(linkedin_url):
+        try:
+            html = scrape_website(linkedin_url)
+            if html:
+                handles.update(extract_instagram_handles_from_text(html))
+        except Exception:
+            pass
+    
+    if social_links:
+        try:
+            if isinstance(social_links, str):
+                social_links = json.loads(social_links)
+            if 'facebook' in social_links:
+                try:
+                    html = scrape_website(social_links['facebook'])
+                    if html:
+                        handles.update(extract_instagram_handles_from_text(html))
+                except Exception:
+                    pass
+        except Exception:
+            pass
+    
+    return list(handles)
+
+
+async def strategy_openai_reasoning(company_name: str, contact_name: str = "", 
+                                    company_desc: str = "", website_url: str = "") -> list:
+    """Enhanced Strategy 5: OpenAI-assisted reasoning."""
+    prompt = f"""Based on this information, determine the most likely Instagram handle:
+
+Company: {company_name}
+Contact: {contact_name or 'N/A'}
+Description: {company_desc or 'N/A'}
+Website: {website_url or 'N/A'}
+
+Analyze and suggest the most likely Instagram handle(s). Return ONLY @username or NOT_FOUND."""
+    
+    try:
+        result = await search_with_openai_direct(prompt)
+        handles = extract_instagram_handles_from_text(result)
+        return handles
+    except Exception:
+        return []
+
+
+# =============================================================================
+# MAIN ENRICHMENT FUNCTION
+# =============================================================================
+
+async def enrich_contact_instagram(row, skip_enhanced=False) -> list:
+    """Enrich a single contact with Instagram handles. Returns list of all handles."""
+    page_name = row.get('page_name', '')
+    contact_name = row.get('contact_name', '') or row.get('pipeline_name', '')
+    contact_position = row.get('contact_position', '') or row.get('pipeline_position', '')
+    website_url = row.get('website_url', '')
+    linkedin_url = row.get('linkedin_url', '')
+    company_desc = str(row.get('company_description', ''))[:200]
+    social_links = row.get('social_links', {})
+    existing_handles = parse_instagram_handles_field(row.get('instagram_handles', ''))
+    
+    all_handles = set(existing_handles)  # Start with existing handles
+    
+    # BASIC ENRICHMENT: Website scraping
+    if website_url and pd.notna(website_url):
+        try:
+            website_handles = await scrape_website_for_instagram(str(website_url))
+            # Filter and add valid handles
+            for handle in website_handles:
+                if is_valid_handle(handle):
+                    all_handles.add(handle.lower())
+        except Exception:
+            pass
+    
+    # BASIC ENRICHMENT: Personal handle search
+    if contact_name and pd.notna(contact_name) and str(contact_name).strip() and str(contact_name).strip() != 'None None':
+        try:
+            personal = await search_personal_instagram(str(contact_name), page_name, str(contact_position) if contact_position else '')
+            if personal and is_valid_handle(personal):
+                all_handles.add(personal.lower())
+        except Exception:
+            pass
+    
+    # BASIC ENRICHMENT: Company handle search
+    if not all_handles or len(all_handles) == 0:
+        try:
+            company_handles = await search_company_instagram(str(page_name), str(website_url) if website_url and pd.notna(website_url) else '')
+            for handle in company_handles:
+                if is_valid_handle(handle):
+                    all_handles.add(handle.lower())
+        except Exception:
+            pass
+    
+    # ENHANCED SEARCH: Only if still missing and not skipped
+    if not skip_enhanced and len(all_handles) == 0:
+        # Try enhanced strategies
+        strategies = [
+            lambda: strategy_deep_website_scrape(website_url),
+            lambda: strategy_cross_platform(linkedin_url, social_links),
+            lambda: strategy_openai_reasoning(page_name, contact_name, company_desc, website_url),
+            lambda: strategy_multi_query_search(page_name, contact_name, "real estate"),
+            lambda: strategy_pattern_generation(page_name, contact_name),
+        ]
+        
+        for strategy in strategies:
+            try:
+                handles = await strategy()
+                for handle in handles:
+                    if is_valid_handle(handle):
+                        all_handles.add(handle.lower())
+                await asyncio.sleep(1)
+            except Exception:
+                continue
+    
+    # Return sorted list, limit to 20 handles
+    return sorted(list(all_handles))[:20]
+
+
+# =============================================================================
+# MAIN PROCESSING
+# =============================================================================
+
+async def enrich_instagram_handles(df: pd.DataFrame, run_all: bool = False, skip_enhanced: bool = False) -> pd.DataFrame:
+    """Enrich DataFrame with Instagram handles."""
+    
+    # Create backup
+    if os.path.exists(INPUT_FILE):
+        import shutil
+        shutil.copy2(INPUT_FILE, BACKUP_FILE)
+        print(f"Created backup: {BACKUP_FILE}")
+    
+    # Ensure instagram_handles column exists
+    if 'instagram_handles' not in df.columns:
+        df['instagram_handles'] = '[]'
+    
+    # Determine which rows to process
+    if run_all:
+        rows_to_process = df
+        print(f"\nProcessing all {len(rows_to_process)} contacts...")
+    else:
+        rows_to_process = df.head(3)
+        print(f"\nTest mode: Processing first {len(rows_to_process)} contacts...")
+        print("(Use --all to process all contacts)")
+    
+    # Process each row
+    found_count = 0
+    for pos, (idx, row) in enumerate(tqdm(rows_to_process.iterrows(), total=len(rows_to_process), desc="Enriching Instagram handles")):
+        page_name = row.get('page_name', '')
+        print(f"\n  [{pos + 1}/{len(rows_to_process)}] {page_name}")
+        
+        try:
+            handles = await enrich_contact_instagram(row, skip_enhanced=skip_enhanced)
+            
+            # Update instagram_handles column with all handles
+            if handles:
+                existing = parse_instagram_handles_field(df.loc[idx, 'instagram_handles'])
+                # Merge and deduplicate (case-insensitive)
+                combined = list(set([h.lower() for h in existing + handles]))
+                df.loc[idx, 'instagram_handles'] = json.dumps(sorted(combined))
+                if len(combined) > len(existing):
+                    found_count += 1
+                print(f"    ✓ Found {len(handles)} new handle(s), total: {len(combined)}")
+            else:
+                print(f"    - No handles found")
+            
+            await asyncio.sleep(SEARCH_DELAY)
+        except Exception as e:
+            print(f"    ✗ Error: {str(e)[:100]}")
+            continue
+    
+    return df, found_count
+
+
+# =============================================================================
+# MAIN
+# =============================================================================
+
+async def main():
+    """Main function to run Instagram handle enrichment."""
+    
+    print(f"\n{'='*60}")
+    print("MODULE 3.7: INSTAGRAM HANDLE ENRICHER")
+    print(f"{'='*60}")
+    
+    # Load input file
+    print(f"\nLoading: {INPUT_FILE}")
+    
+    if not os.path.exists(INPUT_FILE):
+        print(f"Error: {INPUT_FILE} not found")
+        print("Make sure Module 3.6 (Agent Enricher) has run first.")
+        return 1
+    
+    df = pd.read_csv(INPUT_FILE)
+    print(f"Loaded {len(df)} contacts")
+    
+    # Check for existing Instagram data
+    if 'instagram_handles' in df.columns:
+        existing_handles = df['instagram_handles'].apply(parse_instagram_handles_field).apply(len).gt(0).sum()
+        total_handles = df['instagram_handles'].apply(parse_instagram_handles_field).apply(len).sum()
+        print(f"Existing handles: {existing_handles}/{len(df)} contacts ({total_handles} total handles)")
+    
+    # Determine run mode
+    run_all = '--all' in sys.argv
+    skip_enhanced = '--skip-enhanced' in sys.argv
+    
+    # Process contacts
+    enriched_df, found_count = await enrich_instagram_handles(df, run_all=run_all, skip_enhanced=skip_enhanced)
+    
+    # Save updated CSV
+    print(f"\nSaving updated data to: {INPUT_FILE}")
+    enriched_df.to_csv(INPUT_FILE, index=False)
+    
+    # Print summary
+    print("\n" + "=" * 60)
+    print("ENRICHMENT SUMMARY")
+    print("=" * 60)
+    
+    # Instagram handles summary
+    if 'instagram_handles' in enriched_df.columns:
+        handles_count = enriched_df['instagram_handles'].apply(parse_instagram_handles_field).apply(len)
+        contacts_with_handles = (handles_count > 0).sum()
+        total_handles = handles_count.sum()
+        print(f"\nInstagram handles:")
+        print(f"  Contacts with handles: {contacts_with_handles}/{len(enriched_df)} ({contacts_with_handles/len(enriched_df)*100:.1f}%)")
+        print(f"  Total handles: {total_handles}")
+        print(f"  Average handles per contact: {total_handles/len(enriched_df):.1f}")
+    
+    print(f"\nNew handles found in this run: {found_count}")
+    print(f"Backup saved to: {BACKUP_FILE}")
+    print(f"Updated file: {INPUT_FILE}")
+    
+    return 0
+
+
+if __name__ == '__main__':
+    exit_code = asyncio.run(main())
+    sys.exit(exit_code)
