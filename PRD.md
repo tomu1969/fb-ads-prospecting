@@ -13,14 +13,14 @@ Automated pipeline to convert Facebook Ads Library data into qualified prospects
 ## Pipeline Architecture
 
 ```
+Module 1        Module 2        Module 3       Module 3.5     Module 3.6    Module 3.7     Module 4        Module 5
 ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
-│ Module 1 │──▶│ Module 2 │──▶│ Module 3 │──▶│Module 3.5│──▶│ Module 3.6│──▶│Module 3.7│──▶│ Module 4 │──▶│ Module 5 │
-│  Loader  │   │ Enricher │   │ Scraper  │   │  Hunter  │   │   Agent  │   │Instagram │   │ Exporter │   │Validator │
+│  Loader  │──▶│ Enricher │──▶│ Scraper  │──▶│  Hunter  │──▶│  Agent   │──▶│Instagram │──▶│ Exporter │──▶│ Validator│
 └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘
      │              │              │              │              │              │              │              │
   Excel→DF     DuckDuckGo      Website       Hunter.io       OpenAI        OpenAI API      HubSpot       Quality
-               Search          Scraping      Email API       Agents        Instagram       CSV           Report
-                                                              (fallback)    Handles
+               Search          Scraping      Email API        Agents        Instagram       CSV          Report
+                                                              (fallback)     Handles
 ```
 
 ---
