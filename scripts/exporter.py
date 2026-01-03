@@ -1,8 +1,14 @@
 """Module 4: Exporter - Export enriched contacts to HubSpot-compatible format"""
 
 import ast
+import os
+import sys
 from pathlib import Path
 import pandas as pd
+
+# Import run ID utilities
+sys.path.insert(0, str(Path(__file__).parent))
+from utils.run_id import get_run_id_from_env, get_versioned_filename, create_latest_symlink
 
 
 def parse_list_field(value):
@@ -133,7 +139,13 @@ def format_platforms(platforms):
     return ';'.join(platform_list) if platform_list else ''
 
 
-def export_hubspot(df: pd.DataFrame, output_dir: Path) -> Path:
+def format_instagram_handles(value):
+    """Convert instagram_handles from JSON array to comma-separated string."""
+    handles = parse_list_field(value)
+    return ', '.join(handles) if handles else ''
+
+
+def export_hubspot(df: pd.DataFrame, output_dir: Path, run_id: str = None) -> Path:
     """Export HubSpot-compatible CSV with mapped columns.
 
     HubSpot column mapping:
@@ -145,7 +157,12 @@ def export_hubspot(df: pd.DataFrame, output_dir: Path) -> Path:
     - phone: first phone from phones array
     - Custom properties: fb_ad_count, fb_page_likes, ad_platforms, etc.
     """
-    output_path = output_dir / 'hubspot_contacts.csv'
+    base_name = 'hubspot_contacts.csv'
+    if run_id:
+        filename = get_versioned_filename(base_name, run_id)
+    else:
+        filename = base_name
+    output_path = output_dir / filename
 
     hubspot_df = pd.DataFrame()
 
@@ -166,6 +183,10 @@ def export_hubspot(df: pd.DataFrame, output_dir: Path) -> Path:
     # LinkedIn (custom property)
     if 'linkedin_url' in df.columns:
         hubspot_df['linkedin_url'] = df['linkedin_url'].apply(safe_str)
+
+    # Instagram handles (custom property)
+    if 'instagram_handles' in df.columns:
+        hubspot_df['instagram_handles'] = df['instagram_handles'].apply(format_instagram_handles)
 
     # Custom properties for FB ads data
     hubspot_df['fb_ad_count'] = df['ad_count'].fillna(0).astype(int)
@@ -195,25 +216,43 @@ def export_hubspot(df: pd.DataFrame, output_dir: Path) -> Path:
     return output_path
 
 
-def export_csv(df: pd.DataFrame, output_dir: Path) -> Path:
+def export_csv(df: pd.DataFrame, output_dir: Path, run_id: str = None) -> Path:
     """Export full data as CSV (all columns), including matched_name."""
-    output_path = output_dir / 'prospects_final.csv'
+    base_name = 'prospects_final.csv'
+    if run_id:
+        filename = get_versioned_filename(base_name, run_id)
+    else:
+        filename = base_name
+    output_path = output_dir / filename
 
     # Add matched_name column (name that corresponds to email source)
     df = df.copy()
     df['matched_name'] = df.apply(get_matched_name, axis=1)
+
+    # Format instagram_handles as comma-separated string
+    if 'instagram_handles' in df.columns:
+        df['instagram_handles'] = df['instagram_handles'].apply(format_instagram_handles)
 
     df.to_csv(output_path, index=False, encoding='utf-8')
     return output_path
 
 
-def export_excel(df: pd.DataFrame, output_dir: Path) -> Path:
+def export_excel(df: pd.DataFrame, output_dir: Path, run_id: str = None) -> Path:
     """Export full data as Excel, including matched_name."""
-    output_path = output_dir / 'prospects_final.xlsx'
+    base_name = 'prospects_final.xlsx'
+    if run_id:
+        filename = get_versioned_filename(base_name, run_id)
+    else:
+        filename = base_name
+    output_path = output_dir / filename
 
     # Add matched_name column (name that corresponds to email source)
     df = df.copy()
     df['matched_name'] = df.apply(get_matched_name, axis=1)
+
+    # Format instagram_handles as comma-separated string
+    if 'instagram_handles' in df.columns:
+        df['instagram_handles'] = df['instagram_handles'].apply(format_instagram_handles)
 
     with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='Prospects')
@@ -255,7 +294,7 @@ def load_do_not_contact(config_dir: Path) -> set:
     return blacklist
 
 
-def export_imessage(df: pd.DataFrame, output_dir: Path) -> dict:
+def export_imessage(df: pd.DataFrame, output_dir: Path, run_id: str = None) -> dict:
     """Export iMessage-compatible CSVs split by with/without names.
 
     Creates two files:
@@ -305,9 +344,19 @@ def export_imessage(df: pd.DataFrame, output_dir: Path) -> dict:
     df_with_names = imessage_df[has_name]
     df_without_names = imessage_df[~has_name]
 
-    # Save files
-    path_with = output_dir / 'imessage_with_names.csv'
-    path_without = output_dir / 'imessage_without_names.csv'
+    # Save files with versioned names
+    base_with = 'imessage_with_names.csv'
+    base_without = 'imessage_without_names.csv'
+    
+    if run_id:
+        filename_with = get_versioned_filename(base_with, run_id)
+        filename_without = get_versioned_filename(base_without, run_id)
+    else:
+        filename_with = base_with
+        filename_without = base_without
+    
+    path_with = output_dir / filename_with
+    path_without = output_dir / filename_without
 
     df_with_names.to_csv(path_with, index=False, encoding='utf-8')
     df_without_names.to_csv(path_without, index=False, encoding='utf-8')
@@ -365,30 +414,34 @@ def generate_summary_report(df: pd.DataFrame, output_paths: dict) -> None:
 
 
 def export_all(df: pd.DataFrame, output_dir: str = 'output') -> dict:
-    """Export all formats: HubSpot CSV, full CSV, Excel, and iMessage CSVs."""
+    """Export all formats: HubSpot CSV, full CSV, and Excel."""
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
+    # Get run ID
+    run_id = get_run_id_from_env()
+    
     output_paths = {
-        'HubSpot': export_hubspot(df, output_path),
-        'CSV': export_csv(df, output_path),
-        'Excel': export_excel(df, output_path),
+        'HubSpot': export_hubspot(df, output_path, run_id),
+        'CSV': export_csv(df, output_path, run_id),
+        'Excel': export_excel(df, output_path, run_id),
     }
 
-    # Export iMessage-compatible CSVs
-    imessage_result = export_imessage(df, output_path)
-    output_paths['iMessage (with names)'] = imessage_result['iMessage (with names)']
-    output_paths['iMessage (without names)'] = imessage_result['iMessage (without names)']
-
     generate_summary_report(df, output_paths)
-
-    # Print iMessage-specific counts
-    counts = imessage_result['counts']
-    print(f"iMessage contacts with names: {counts['with_names']}")
-    print(f"iMessage contacts without names: {counts['without_names']}")
-    if counts.get('excluded', 0) > 0:
-        print(f"Excluded (do-not-contact): {counts['excluded']}")
-    print("=" * 50 + "\n")
+    
+    # Create latest symlinks for all output files
+    if run_id:
+        base_files = {
+            'HubSpot': 'hubspot_contacts.csv',
+            'CSV': 'prospects_final.csv',
+            'Excel': 'prospects_final.xlsx',
+        }
+        
+        for key, base_name in base_files.items():
+            if key in output_paths:
+                latest_path = create_latest_symlink(Path(output_paths[key]), base_name)
+                if latest_path:
+                    pass  # Symlink created silently
 
     return output_paths
 

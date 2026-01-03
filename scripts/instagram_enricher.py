@@ -10,6 +10,7 @@ Usage:
     python instagram_enricher.py           # Test mode (3 contacts)
     python instagram_enricher.py --all     # Process all contacts
     python instagram_enricher.py --skip-enhanced  # Skip enhanced search (faster)
+    python instagram_enricher.py --verify  # Verify handles exist (slower, filters invalid handles)
 """
 
 import os
@@ -27,6 +28,10 @@ from openai import OpenAI
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 
+# Import run ID utilities
+sys.path.insert(0, str(Path(__file__).parent))
+from utils.run_id import get_run_id_from_env, get_versioned_filename, create_latest_symlink
+
 load_dotenv()
 
 # Initialize OpenAI client
@@ -40,11 +45,15 @@ except ImportError:
     HAS_AGENTS_SDK = False
 
 # Pipeline input/output paths
+BASE_DIR = Path(__file__).parent.parent
 INPUT_FILE = 'processed/03d_final.csv'
 BACKUP_FILE = 'processed/03d_final_backup.csv'
 
 # Rate limiting
-SEARCH_DELAY = 2.0
+SEARCH_DELAY = 1.0  # Reduced from 2.0 for better performance
+
+# Caching for website scraping (avoid re-scraping same URLs)
+_website_cache = {}
 REQUEST_DELAY = 1.0
 
 # Headers for web requests
@@ -150,6 +159,66 @@ def extract_instagram_handles_from_text(text: str) -> list:
             handles.add(handle_with_at.lower())
     
     return list(handles)
+
+
+def verify_instagram_handle(handle: str, timeout: int = 10) -> dict:
+    """Verify if Instagram handle exists by checking page title.
+    
+    Note: Instagram's anti-bot measures may serve generic pages to automated requests,
+    making verification less reliable. This function works best when Instagram serves
+    proper HTML content.
+    
+    Returns:
+        dict with 'exists' (bool), 'status_code' (int), 'error' (str or None), 'page_title' (str)
+    """
+    # Remove @ if present
+    username = handle.replace('@', '').strip()
+    if not username:
+        return {'exists': False, 'error': 'Empty username', 'status_code': None, 'page_title': ''}
+    
+    url = f"https://www.instagram.com/{username}/"
+    
+    try:
+        # Use GET request to check page content
+        response = requests.get(url, headers=HEADERS, timeout=timeout, allow_redirects=True)
+        
+        # Check status code first
+        if response.status_code != 200:
+            return {
+                'exists': False,
+                'status_code': response.status_code,
+                'error': None,
+                'page_title': ''
+            }
+        
+        # Instagram returns 200 even for unavailable profiles, so check page title
+        # Valid profiles have descriptive titles like "Name (@username) • Instagram photos and videos"
+        # Invalid/unavailable profiles just have "Instagram" as the title
+        try:
+            soup = BeautifulSoup(response.text, 'html.parser')
+        except Exception as e:
+            return {'exists': False, 'status_code': response.status_code, 'error': f'Parse error: {str(e)[:50]}', 'page_title': ''}
+        
+        # Check page title (most reliable indicator when Instagram serves proper HTML)
+        page_title_tag = soup.find('title')
+        page_title = page_title_tag.text.strip() if page_title_tag else ''
+        
+        # Profile exists if title is not just "Instagram" and has substantial content with bullet
+        # Note: Instagram's anti-bot may serve generic pages, so this may not always work
+        exists = page_title != 'Instagram' and len(page_title) > 15 and '•' in page_title
+        
+        return {
+            'exists': exists,
+            'status_code': response.status_code,
+            'error': None,
+            'page_title': page_title
+        }
+    except requests.Timeout:
+        return {'exists': False, 'status_code': None, 'error': 'Timeout', 'page_title': ''}
+    except requests.RequestException as e:
+        return {'exists': False, 'status_code': None, 'error': str(e)[:50], 'page_title': ''}
+    except Exception as e:
+        return {'exists': False, 'status_code': None, 'error': f'Unexpected error: {str(e)[:50]}', 'page_title': ''}
 
 
 def parse_instagram_handles_field(value) -> list:
@@ -516,8 +585,14 @@ Analyze and suggest the most likely Instagram handle(s). Return ONLY @username o
 # MAIN ENRICHMENT FUNCTION
 # =============================================================================
 
-async def enrich_contact_instagram(row, skip_enhanced=False) -> list:
-    """Enrich a single contact with Instagram handles. Returns list of all handles."""
+async def enrich_contact_instagram(row, skip_enhanced=False, verify_handles=False) -> list:
+    """Enrich a single contact with Instagram handles. Returns list of all handles.
+    
+    Args:
+        row: DataFrame row with contact data
+        skip_enhanced: If True, skip enhanced search strategies
+        verify_handles: If True, verify handles exist via HTTP requests (slower but more accurate)
+    """
     page_name = row.get('page_name', '')
     contact_name = row.get('contact_name', '') or row.get('pipeline_name', '')
     contact_position = row.get('contact_position', '') or row.get('pipeline_position', '')
@@ -527,18 +602,28 @@ async def enrich_contact_instagram(row, skip_enhanced=False) -> list:
     social_links = row.get('social_links', {})
     existing_handles = parse_instagram_handles_field(row.get('instagram_handles', ''))
     
+    # Early exit: If contact already has valid handles and skip_enhanced is True, skip processing
+    if skip_enhanced and existing_handles and len(existing_handles) > 0:
+        valid_existing = [h for h in existing_handles if is_valid_handle(h)]
+        if valid_existing:
+            return sorted([h.lower() for h in valid_existing])[:20]
+    
     all_handles = set(existing_handles)  # Start with existing handles
     
-    # BASIC ENRICHMENT: Website scraping
+    # BASIC ENRICHMENT: Website scraping (with caching)
     if website_url and pd.notna(website_url):
         try:
-            website_handles = await scrape_website_for_instagram(str(website_url))
+            website_handles = await scrape_website_for_instagram(str(website_url), use_cache=True)
             # Filter and add valid handles
             for handle in website_handles:
                 if is_valid_handle(handle):
                     all_handles.add(handle.lower())
         except Exception:
             pass
+    
+    # Early exit optimization: If we found handles from website, skip expensive searches
+    if len(all_handles) > len(existing_handles) and skip_enhanced:
+        return sorted(list(all_handles))[:20]
     
     # BASIC ENRICHMENT: Personal handle search
     if contact_name and pd.notna(contact_name) and str(contact_name).strip() and str(contact_name).strip() != 'None None':
@@ -549,8 +634,8 @@ async def enrich_contact_instagram(row, skip_enhanced=False) -> list:
         except Exception:
             pass
     
-    # BASIC ENRICHMENT: Company handle search
-    if not all_handles or len(all_handles) == 0:
+    # BASIC ENRICHMENT: Company handle search (only if no handles found yet)
+    if len(all_handles) == len(existing_handles):
         try:
             company_handles = await search_company_instagram(str(page_name), str(website_url) if website_url and pd.notna(website_url) else '')
             for handle in company_handles:
@@ -560,14 +645,12 @@ async def enrich_contact_instagram(row, skip_enhanced=False) -> list:
             pass
     
     # ENHANCED SEARCH: Only if still missing and not skipped
-    if not skip_enhanced and len(all_handles) == 0:
-        # Try enhanced strategies
+    if not skip_enhanced and len(all_handles) == len(existing_handles):
+        # Try enhanced strategies (limit to 3 most effective ones)
         strategies = [
             lambda: strategy_deep_website_scrape(website_url),
-            lambda: strategy_cross_platform(linkedin_url, social_links),
             lambda: strategy_openai_reasoning(page_name, contact_name, company_desc, website_url),
             lambda: strategy_multi_query_search(page_name, contact_name, "real estate"),
-            lambda: strategy_pattern_generation(page_name, contact_name),
         ]
         
         for strategy in strategies:
@@ -576,20 +659,49 @@ async def enrich_contact_instagram(row, skip_enhanced=False) -> list:
                 for handle in handles:
                     if is_valid_handle(handle):
                         all_handles.add(handle.lower())
-                await asyncio.sleep(1)
+                # Early exit if we found handles
+                if len(all_handles) > len(existing_handles):
+                    break
+                await asyncio.sleep(0.5)  # Reduced delay
             except Exception:
                 continue
     
-    # Return sorted list, limit to 20 handles
-    return sorted(list(all_handles))[:20]
+    # Verify handles if requested (note: Instagram's anti-bot measures may limit effectiveness)
+    handles_list = sorted(list(all_handles))[:20]
+    
+    if verify_handles:
+        verified_handles = []
+        for handle in handles_list:
+            # Verify the handle exists
+            verification = verify_instagram_handle(handle)
+            if verification['exists']:
+                verified_handles.append(handle)
+            elif verification.get('error'):
+                # If there's an error (timeout, etc.), include it anyway (better to include than exclude on error)
+                verified_handles.append(handle)
+            # If exists=False and no error, skip it (profile unavailable)
+            
+            # Rate limiting between verifications
+            await asyncio.sleep(1.5)
+        
+        return verified_handles
+    else:
+        return handles_list
 
 
 # =============================================================================
 # MAIN PROCESSING
 # =============================================================================
 
-async def enrich_instagram_handles(df: pd.DataFrame, run_all: bool = False, skip_enhanced: bool = False) -> pd.DataFrame:
-    """Enrich DataFrame with Instagram handles."""
+async def enrich_instagram_handles(df: pd.DataFrame, run_all: bool = False, skip_enhanced: bool = False, verify_handles: bool = False) -> pd.DataFrame:
+    """Enrich DataFrame with Instagram handles.
+    
+    Args:
+        df: DataFrame with contact data
+        run_all: If True, process all rows; if False, process first 3 (test mode)
+        skip_enhanced: If True, skip enhanced search strategies
+        verify_handles: If True, verify handles exist via HTTP requests (slower but filters invalid handles)
+    """
     
     # Create backup
     if os.path.exists(INPUT_FILE):
@@ -617,7 +729,7 @@ async def enrich_instagram_handles(df: pd.DataFrame, run_all: bool = False, skip
         print(f"\n  [{pos + 1}/{len(rows_to_process)}] {page_name}")
         
         try:
-            handles = await enrich_contact_instagram(row, skip_enhanced=skip_enhanced)
+            handles = await enrich_contact_instagram(row, skip_enhanced=skip_enhanced, verify_handles=verify_handles)
             
             # Update instagram_handles column with all handles
             if handles:
@@ -650,15 +762,30 @@ async def main():
     print("MODULE 3.7: INSTAGRAM HANDLE ENRICHER")
     print(f"{'='*60}")
     
-    # Load input file
-    print(f"\nLoading: {INPUT_FILE}")
+    # Get versioned input file
+    run_id = get_run_id_from_env()
+    base_name = "03d_final.csv"
     
-    if not os.path.exists(INPUT_FILE):
-        print(f"Error: {INPUT_FILE} not found")
+    if run_id:
+        input_name = get_versioned_filename(base_name, run_id)
+        input_file = BASE_DIR / "processed" / input_name
+    else:
+        input_file = BASE_DIR / INPUT_FILE
+    
+    # Also try latest symlink if versioned file doesn't exist
+    if not input_file.exists():
+        latest_input = BASE_DIR / "processed" / base_name
+        if latest_input.exists() or latest_input.is_symlink():
+            input_file = latest_input
+    
+    print(f"\nLoading: {input_file}")
+    
+    if not input_file.exists():
+        print(f"Error: {input_file} not found")
         print("Make sure Module 3.6 (Agent Enricher) has run first.")
         return 1
     
-    df = pd.read_csv(INPUT_FILE)
+    df = pd.read_csv(input_file)
     print(f"Loaded {len(df)} contacts")
     
     # Check for existing Instagram data
@@ -672,11 +799,24 @@ async def main():
     skip_enhanced = '--skip-enhanced' in sys.argv
     
     # Process contacts
-    enriched_df, found_count = await enrich_instagram_handles(df, run_all=run_all, skip_enhanced=skip_enhanced)
+    # Check for --verify flag
+    verify_handles = "--verify" in sys.argv
     
-    # Save updated CSV
-    print(f"\nSaving updated data to: {INPUT_FILE}")
-    enriched_df.to_csv(INPUT_FILE, index=False)
+    enriched_df, found_count = await enrich_instagram_handles(df, run_all=run_all, skip_enhanced=skip_enhanced, verify_handles=verify_handles)
+    
+    if verify_handles:
+        print("\n⚠️  Note: Handle verification enabled. This will be slower due to HTTP requests.")
+        print("   Instagram's anti-bot measures may limit verification effectiveness.")
+    
+    # Save updated CSV to versioned file
+    print(f"\nSaving updated data to: {input_file}")
+    enriched_df.to_csv(input_file, index=False)
+    
+    # Create latest symlink
+    if run_id:
+        latest_path = create_latest_symlink(input_file, base_name)
+        if latest_path:
+            print(f"✓ Latest symlink: {latest_path}")
     
     # Print summary
     print("\n" + "=" * 60)

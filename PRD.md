@@ -1,12 +1,14 @@
-# PRD: Facebook Ads Library Prospecting Pipeline
+# PRD: Prospecting Pipeline
 
 ## Overview
-Automated pipeline to convert Facebook Ads Library data into qualified prospects with personalized outreach emails for House AI assistant.
+Automated pipeline to convert lead data from any source into qualified prospects with verified contact information, ready for HubSpot import. The pipeline is input-agnostic, supporting CSV, Excel, JSON, and TSV formats with AI-powered field mapping. Originally designed for Facebook Ads Library data, but now accepts any lead source.
 
 ## Input Data
-- **Source**: `/fb_ads_library_prospecting/input/FB Ad library scraping.xlsx`
-- **Records**: 150 advertisers
-- **Key fields**: `page_name`, `text`, `page_likes`, `ad_category`, `is_active`, `start_date`, `platforms`
+- **Default Source**: `/fb_ads_library_prospecting/input/FB Ad library scraping.xlsx`
+- **Supported Formats**: CSV, Excel (.xlsx, .xls), JSON, TSV
+- **Custom Input**: Use `--input` flag to specify any file format
+- **Records**: Variable (depends on input file)
+- **Key fields**: `page_name` (required), plus optional fields that can be mapped
 
 ---
 
@@ -16,32 +18,70 @@ Automated pipeline to convert Facebook Ads Library data into qualified prospects
 Module 1        Module 2        Module 3       Module 3.5     Module 3.6    Module 3.7     Module 4        Module 5
 ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
 │  Loader  │──▶│ Enricher │──▶│ Scraper  │──▶│  Hunter  │──▶│  Agent   │──▶│Instagram │──▶│ Exporter │──▶│ Validator│
+│  Smart   │   │          │   │          │   │          │   │          │   │          │   │          │   │          │
+│ Adapter  │   │          │   │          │   │          │   │          │   │          │   │          │   │          │
 └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘
      │              │              │              │              │              │              │              │
-  Excel→DF     DuckDuckGo      Website       Hunter.io       OpenAI        OpenAI API      HubSpot       Quality
-               Search          Scraping      Email API        Agents        Instagram       CSV          Report
-                                                              (fallback)     Handles
+Any Format    DuckDuckGo      Website       Hunter.io       OpenAI        OpenAI API      HubSpot       Quality
+(CSV/Excel/   Search          Scraping      Email API        Agents        Instagram       CSV          Report
+ JSON/TSV)                                                               (fallback)     Handles
++ OpenAI
+Mapping
 ```
 
 ---
 
 ## Module Specifications
 
-### Module 1: Data Loader (`scripts/loader.py`)
-**Purpose**: Load and normalize input Excel data
+### Module 1: Smart Input Adapter (`scripts/loader.py`)
+**Purpose**: Load and normalize input data from any file format (CSV, Excel, JSON, TSV) with AI-powered field mapping
 
-**Input**: `input/FB Ad library scraping.xlsx`
+**Input**: Any file format (CSV, Excel, JSON, TSV) via `--input` flag, or default `input/FB Ad library scraping.xlsx`
 **Output**: `processed/01_loaded.csv`
 
+**Features**:
+- **Auto-detection**: Automatically detects file format (CSV, Excel, JSON, TSV)
+- **AI-powered mapping**: Uses OpenAI GPT-4o to analyze file structure and suggest field mappings
+- **Interactive verification**: CLI prompts to confirm or correct AI suggestions
+- **Mapping reuse**: Saves mappings to `config/field_mappings/` for future imports
+- **Backwards compatible**: Automatically detects FB Ads Library format and uses legacy loader
+
 **Functions**:
-- `load_excel()` - Read Excel file into DataFrame
-- `normalize_page_names()` - Clean company names (remove emojis, special chars)
-- `deduplicate()` - Group by page_name, aggregate ad stats
-- `filter_relevant()` - Keep only HOUSING category or real estate keywords
+- `detect_file_format()` - Auto-detect file format from extension
+- `load_file()` - Load file with encoding detection (CSV) or format-specific loader
+- `analyze_schema_with_openai()` - Use OpenAI to suggest field mappings
+- `interactive_field_mapping()` - CLI prompts for user verification
+- `transform_to_pipeline_schema()` - Transform user's file to pipeline schema
+- `save_mapping()` / `load_mapping()` - Save/load field mappings for reuse
+- `check_fb_ads_format()` - Detect FB Ads Library format for backwards compatibility
+- `load_fb_ads_format()` - Use legacy loader for FB Ads Library files
+
+**Required Field Mapping**:
+- `page_name` (company/business name) - **REQUIRED**
+
+**Optional Field Mappings**:
+- `ad_count` - Number of ads/entries (default: 1)
+- `total_page_likes` - Social media metrics (default: 0)
+- `ad_texts` - Marketing text or descriptions (default: [""])
+- `platforms` - Platforms where content appears (default: ["UNKNOWN"])
+- `is_active` - Active status (default: True)
+- `first_ad_date` - Date of first appearance (default: today)
 
 **Output Schema**:
 ```
 page_name, ad_count, total_page_likes, ad_texts[], platforms[], is_active, first_ad_date
+```
+
+**Usage**:
+```bash
+# Interactive mapping (first time)
+python scripts/loader.py --input my_leads.csv
+
+# Uses saved mapping (subsequent runs)
+python scripts/loader.py --input my_leads.csv
+
+# Via pipeline
+python run_pipeline.py --input my_leads.csv --all
 ```
 
 ---
@@ -131,6 +171,7 @@ hunter_emails[], email_confidence, email_verified
 - `scrape_website_for_instagram()` - Scrape website for Instagram links
 - `extract_instagram_handles_from_text()` - Extract handles from text with false positive filtering
 - `is_valid_handle()` - Validate handle format and filter false positives
+- `verify_instagram_handle()` - Verify if handle exists via HTTP request (checks page title)
 - Enhanced search strategies: multi-query search, pattern generation, deep website scraping, cross-platform analysis
 
 **Search Strategies**:
@@ -147,14 +188,23 @@ hunter_emails[], email_confidence, email_verified
 - Validates handle format (must start with `@`, 3-30 characters, valid username pattern)
 - Removes generic Instagram pages (`@explore`, `@accounts`, etc.)
 
+**Handle Verification** (`--verify` flag):
+- Verifies handles exist by checking Instagram profile page titles
+- Filters out handles that return "Profile isn't available" errors
+- Adds ~1.5 seconds per handle (significant slowdown)
+- **Limitation**: Instagram's anti-bot measures may serve generic pages, limiting verification effectiveness
+- Handles with verification errors are included to avoid false negatives
+
 **Output Schema** (updates):
 ```
-instagram_handles (JSON array): ["@handle1", "@handle2", "@handle3"]
+instagram_handles (JSON array internally): ["@handle1", "@handle2", "@handle3"]
+Note: Exported as comma-separated strings in output files: "@handle1, @handle2, @handle3"
 ```
 
 **Flags**:
 - `--all`: Process all contacts (default: test mode with 3 contacts)
 - `--skip-enhanced`: Skip enhanced search (faster, lower coverage)
+- `--verify`: Verify handles exist via HTTP requests (slower, filters invalid handles)
 
 **Dependencies**: `openai`, `requests`, `beautifulsoup4`, `tqdm`
 
@@ -164,18 +214,21 @@ instagram_handles (JSON array): ["@handle1", "@handle2", "@handle3"]
 **Purpose**: Export final prospect data in usable formats
 
 **Input**: `processed/03d_final.csv` (from Module 3.7)
-**Output**:
-- `output/prospects_final.csv`
-- `output/prospects_final.xlsx`
-- `output/hubspot_contacts.csv`
+**Output** (3 files total, plus versioned copies):
+- `output/prospects_final.csv` - Complete prospect data (all columns, comma-separated format)
+- `output/prospects_final.xlsx` - Excel version with formatting
+- `output/hubspot_contacts.csv` - HubSpot-ready import file (includes instagram_handles as comma-separated)
 
 **Functions**:
-- `export_csv()` - Full data export
-- `export_excel()` - Formatted Excel with columns
-- `export_hubspot_csv()` - HubSpot-ready import file
+- `export_csv()` - Full data export (formats instagram_handles as comma-separated)
+- `export_excel()` - Formatted Excel with columns (formats instagram_handles as comma-separated)
+- `export_hubspot()` - HubSpot-ready import file (includes instagram_handles column)
 - `generate_summary_report()` - Pipeline statistics
 
-**Note**: Email drafts are now created directly in HubSpot, not exported as JSON.
+**Output Format Notes**:
+- `instagram_handles` column is formatted as comma-separated strings in all exports (e.g., `"@handle1, @handle2"`)
+- All exports include the `instagram_handles` column (previously missing from HubSpot CSV)
+- Email drafts are now created directly in HubSpot, not exported as JSON
 
 ---
 
@@ -233,15 +286,19 @@ python scripts/progress.py
 # Test mode (3 rows) - quick validation
 python run_pipeline.py
 
-# Full run (all rows)
+# Full run (all rows) with default input
 python run_pipeline.py --all
+
+# Full run with custom input file
+python run_pipeline.py --input path/to/your/file.csv --all
 
 # Resume from specific module
 python run_pipeline.py --all --from 3.5
+python run_pipeline.py --input my_leads.csv --all --from 3.5
 ```
 
 **Pipeline Sequence**:
-1. Loader → Load and normalize Excel data
+1. Loader → Load and normalize data (any format) with AI-powered field mapping
 2. Enricher → Find company websites via search
 3. Scraper → Extract contacts from websites
 4. Hunter → Verify and enrich emails via Hunter.io
@@ -258,7 +315,7 @@ python run_pipeline.py --all --from 3.5
 fb_ads_library_prospecting/
 ├── run_pipeline.py       # Main orchestrator
 ├── scripts/
-│   ├── loader.py         # Module 1: Load Excel
+│   ├── loader.py         # Module 1: Smart input adapter (any format)
 │   ├── enricher.py       # Module 2: Find websites
 │   ├── scraper.py        # Module 3: Scrape contacts
 │   ├── hunter.py         # Module 3.5: Hunter.io emails
@@ -267,9 +324,9 @@ fb_ads_library_prospecting/
 │   ├── clean_instagram_handles.py  # Utility: Clean Instagram handles
 │   ├── exporter.py       # Module 4: Export outputs
 │   ├── validator.py      # Module 5: Quality check
-│   └── legacy/           # Archived scripts (composer, etc.)
+│   └── legacy/           # Archived scripts (composer, loader_fb_ads.py, etc.)
 ├── input/
-│   └── FB Ad library scraping.xlsx
+│   └── FB Ad library scraping.xlsx  # Default input (any format supported)
 ├── processed/
 │   ├── 01_loaded.csv
 │   ├── 02_enriched.csv
@@ -286,7 +343,8 @@ fb_ads_library_prospecting/
 ├── config/
 │   ├── website_overrides.csv
 │   ├── manual_contacts.csv
-│   └── do_not_contact.csv
+│   ├── do_not_contact.csv
+│   └── field_mappings/    # Saved field mapping configurations (JSON)
 ├── tests/                # Unit and integration tests
 │   ├── test_instagram_enrichment.py
 │   └── test_pipeline_integration.py
@@ -449,7 +507,8 @@ Each module must include a `if __name__ == "__main__":` block for standalone tes
 
 ```bash
 # Test each module independently
-python scripts/loader.py      # Creates processed/01_loaded.csv
+python scripts/loader.py                    # Creates processed/01_loaded.csv (default input)
+python scripts/loader.py --input my_file.csv  # Interactive mapping for custom input
 python scripts/enricher.py    # Reads 01, creates 02 (test with 3 rows)
 python scripts/scraper.py     # Reads 02, creates 03 (test with 3 rows)
 python scripts/hunter.py       # Reads 03, creates 03b (test with 3 rows)
