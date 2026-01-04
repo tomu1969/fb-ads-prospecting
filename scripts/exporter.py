@@ -167,7 +167,7 @@ def export_hubspot(df: pd.DataFrame, output_dir: Path, run_id: str = None) -> Pa
     hubspot_df = pd.DataFrame()
 
     # Standard HubSpot properties
-    hubspot_df['email'] = df['primary_email'].apply(safe_str)
+    hubspot_df['email'] = df['primary_email'].apply(safe_str) if 'primary_email' in df.columns else ''
 
     # Get matched name (name that corresponds to the email source) and split into first/last
     matched_names = df.apply(get_matched_name, axis=1)
@@ -177,8 +177,8 @@ def export_hubspot(df: pd.DataFrame, output_dir: Path, run_id: str = None) -> Pa
 
     hubspot_df['company'] = df['page_name'].apply(safe_str)
     hubspot_df['jobtitle'] = df.get('contact_position', pd.Series([''] * len(df))).apply(safe_str)
-    hubspot_df['website'] = df['website_url'].apply(safe_str)
-    hubspot_df['phone'] = df['phones'].apply(get_first_phone).apply(format_us_phone)
+    hubspot_df['website'] = df['website_url'].apply(safe_str) if 'website_url' in df.columns else ''
+    hubspot_df['phone'] = df['phones'].apply(get_first_phone).apply(format_us_phone) if 'phones' in df.columns else ''
 
     # LinkedIn (custom property)
     if 'linkedin_url' in df.columns:
@@ -189,9 +189,9 @@ def export_hubspot(df: pd.DataFrame, output_dir: Path, run_id: str = None) -> Pa
         hubspot_df['instagram_handles'] = df['instagram_handles'].apply(format_instagram_handles)
 
     # Custom properties for FB ads data
-    hubspot_df['fb_ad_count'] = df['ad_count'].fillna(0).astype(int)
-    hubspot_df['fb_page_likes'] = df['total_page_likes'].fillna(0).astype(int)
-    hubspot_df['ad_platforms'] = df['platforms'].apply(format_platforms)
+    hubspot_df['fb_ad_count'] = df['ad_count'].fillna(0).astype(int) if 'ad_count' in df.columns else 0
+    hubspot_df['fb_page_likes'] = df['total_page_likes'].fillna(0).astype(int) if 'total_page_likes' in df.columns else 0
+    hubspot_df['ad_platforms'] = df['platforms'].apply(format_platforms) if 'platforms' in df.columns else ''
 
     if 'first_ad_date' in df.columns:
         hubspot_df['first_ad_date'] = df['first_ad_date'].apply(safe_str)
@@ -201,9 +201,12 @@ def export_hubspot(df: pd.DataFrame, output_dir: Path, run_id: str = None) -> Pa
         hubspot_df['services'] = df['services'].apply(lambda x: ';'.join(parse_list_field(x)) if x else '')
 
     # Email verification status
-    hubspot_df['email_verified'] = df['email_verified'].apply(
-        lambda x: 'true' if x in [True, 'valid', 'accept_all'] else 'false' if pd.notna(x) else ''
-    )
+    if 'email_verified' in df.columns:
+        hubspot_df['email_verified'] = df['email_verified'].apply(
+            lambda x: 'true' if x in [True, 'valid', 'accept_all'] else 'false' if pd.notna(x) else ''
+        )
+    else:
+        hubspot_df['email_verified'] = ''
 
     # Enrichment source (for tracking)
     if 'enrichment_stage' in df.columns:
@@ -317,12 +320,12 @@ def export_imessage(df: pd.DataFrame, output_dir: Path, run_id: str = None) -> d
 
     # Create iMessage-compatible format
     imessage_df = pd.DataFrame()
-    imessage_df['Phone'] = df['phones'].apply(get_first_phone).apply(format_us_phone)
+    imessage_df['Phone'] = df['phones'].apply(get_first_phone).apply(format_us_phone) if 'phones' in df.columns else ''
     names = df['matched_name'].apply(split_name)
     imessage_df['First Name'] = [n[0] for n in names]
     imessage_df['Last Name'] = [n[1] for n in names]
-    imessage_df['Email'] = df['primary_email'].apply(safe_str)
-    imessage_df['Company'] = df['page_name'].apply(safe_str)
+    imessage_df['Email'] = df['primary_email'].apply(safe_str) if 'primary_email' in df.columns else ''
+    imessage_df['Company'] = df['page_name'].apply(safe_str) if 'page_name' in df.columns else ''
 
     # Filter to only rows with phone numbers
     imessage_df = imessage_df[imessage_df['Phone'] != '']
@@ -375,6 +378,13 @@ def export_imessage(df: pd.DataFrame, output_dir: Path, run_id: str = None) -> d
 def generate_summary_report(df: pd.DataFrame, output_paths: dict) -> None:
     """Print summary report of exported data."""
     total = len(df)
+    if total == 0:
+        print("\n" + "=" * 50)
+        print("PIPELINE EXPORT SUMMARY")
+        print("=" * 50)
+        print("No data to export.")
+        print("=" * 50 + "\n")
+        return
 
     # Count verified emails
     with_verified_email = 0
@@ -384,19 +394,25 @@ def generate_summary_report(df: pd.DataFrame, output_paths: dict) -> None:
         ).sum()
 
     # Count contacts with any email
-    with_email = df['primary_email'].apply(
-        lambda x: bool(x) and '@' in str(x)
-    ).sum() if 'primary_email' in df.columns else 0
+    with_email = 0
+    if 'primary_email' in df.columns:
+        with_email = df['primary_email'].apply(
+            lambda x: bool(x) and '@' in str(x)
+        ).sum()
 
     # Count contacts with phone
-    with_phone = df['phones'].apply(
-        lambda x: bool(parse_list_field(x))
-    ).sum() if 'phones' in df.columns else 0
+    with_phone = 0
+    if 'phones' in df.columns:
+        with_phone = df['phones'].apply(
+            lambda x: bool(parse_list_field(x))
+        ).sum()
 
     # Count contacts with name
-    with_contact = df['contact_name'].apply(
-        lambda x: bool(x) and str(x).lower() not in ['none', 'nan', 'none none', '']
-    ).sum() if 'contact_name' in df.columns else 0
+    with_contact = 0
+    if 'contact_name' in df.columns:
+        with_contact = df['contact_name'].apply(
+            lambda x: bool(x) and str(x).lower() not in ['none', 'nan', 'none none', '']
+        ).sum()
 
     print("\n" + "=" * 50)
     print("PIPELINE EXPORT SUMMARY")
