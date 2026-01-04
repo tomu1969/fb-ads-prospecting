@@ -1,0 +1,16 @@
+{
+  "source_file": "hubspot_leads.csv",
+  "source_path": "/Users/tomas/Desktop/fb-ads-prospecting/input/hubspot_leads.csv",
+  "file_format": "csv",
+  "created_date": "2026-01-02T18:50:09.288298",
+  "pipeline_version": "3.7",
+  "field_mappings": {
+    "page_name": "Empresa",
+    "ad_count": null,
+    "total_page_likes": null,
+    "ad_texts": null,
+    "platforms": null,
+    "is_active": null,
+    "first_ad_date": null
+  }
+}

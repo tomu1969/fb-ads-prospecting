@@ -6,15 +6,22 @@ Input: processed/01_loaded.csv
 Output: processed/02_enriched.csv (adds: website_url, search_confidence, linkedin_url)
 """
 
+import os
 import time
 import re
 from pathlib import Path
 from urllib.parse import urlparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import pandas as pd
 import requests
 from ddgs import DDGS  # Use newer ddgs package
 from tqdm import tqdm
+
+# Import run ID utilities
+import sys
+sys.path.insert(0, str(Path(__file__).parent))
+from utils.run_id import get_run_id_from_env, get_versioned_filename, create_latest_symlink
 
 # Manual override file path - create this CSV to override DuckDuckGo results
 # Format: page_name,website_url
@@ -36,7 +43,7 @@ EXCLUDED_DOMAINS = [
     'bing.com', 'duckduckgo.com',
 ]
 
-RATE_LIMIT_SECONDS = 2
+RATE_LIMIT_SECONDS = 0.5  # Reduced from 2s for faster processing
 REQUEST_TIMEOUT = 5
 MAX_SEARCH_RESULTS = 10
 
@@ -51,16 +58,25 @@ if OVERRIDE_FILE.exists():
     except Exception as e:
         print(f"Warning: Could not load overrides: {e}")
 
+# Cache for search results (avoid re-searching same companies)
+_search_cache = {}
+
 
 def search_company(page_name: str) -> dict:
     """Search DuckDuckGo for company website and LinkedIn."""
     result = {'website_url': '', 'search_confidence': 0.0, 'linkedin_url': ''}
+
+    # Check cache first
+    cache_key = page_name.strip().lower()
+    if cache_key in _search_cache:
+        return _search_cache[cache_key].copy()
 
     # Check for manual override first
     override_key = page_name.strip().lower()
     if override_key in _overrides:
         result['website_url'] = _overrides[override_key]
         result['search_confidence'] = 1.0
+        _search_cache[cache_key] = result.copy()
         return result
 
     # Extract key words for more targeted queries
@@ -83,7 +99,7 @@ def search_company(page_name: str) -> dict:
                 try:
                     search_results = list(ddgs.text(query, region='us-en', max_results=5))
                     all_results.extend(search_results)
-                    time.sleep(0.2)  # Small delay between queries
+                    time.sleep(0.1)  # Reduced delay between queries
                 except Exception:
                     continue
 
@@ -102,6 +118,8 @@ def search_company(page_name: str) -> dict:
     except Exception as e:
         print(f"Search error for '{page_name}': {e}")
 
+    # Cache result
+    _search_cache[cache_key] = result.copy()
     return result
 
 
@@ -205,28 +223,95 @@ def enrich_all(df: pd.DataFrame) -> pd.DataFrame:
     df['search_confidence'] = 0.0
     df['linkedin_url'] = ''
 
-    for idx in tqdm(df.index, desc="Enriching companies"):
+    # Parallel processing with ThreadPoolExecutor
+    BATCH_SIZE = 10  # Process 10 companies concurrently
+
+    def process_company(idx):
+        """Process a single company and return results."""
         page_name = df.at[idx, 'page_name']
         if not page_name:
-            continue
-
+            return idx, {'website_url': '', 'search_confidence': 0.0, 'linkedin_url': ''}
         result = search_company(page_name)
-        df.at[idx, 'website_url'] = result['website_url']
-        df.at[idx, 'search_confidence'] = result['search_confidence']
-        df.at[idx, 'linkedin_url'] = result['linkedin_url']
+        time.sleep(RATE_LIMIT_SECONDS)  # Rate limit per request
+        return idx, result
 
-        time.sleep(RATE_LIMIT_SECONDS)
+    # Process in parallel
+    with ThreadPoolExecutor(max_workers=BATCH_SIZE) as executor:
+        futures = {executor.submit(process_company, idx): idx for idx in df.index}
+
+        for future in tqdm(as_completed(futures), total=len(futures), desc="Enriching companies"):
+            idx, result = future.result()
+            df.at[idx, 'website_url'] = result['website_url']
+            df.at[idx, 'search_confidence'] = result['search_confidence']
+            df.at[idx, 'linkedin_url'] = result['linkedin_url']
 
     return df
 
 
 if __name__ == "__main__":
     import sys
+    import os
+    import json
+    
+    # Check if module should run based on enrichment config
+    from utils.enrichment_config import should_run_module
+    if not should_run_module("enricher"):
+        print("=== Enricher Module ===")
+        print("⏭️  SKIPPED: Website enrichment not selected in configuration")
+        print("   Copying input file to output to maintain pipeline continuity...")
+        
+        base_path = Path(__file__).parent.parent
+        run_id = get_run_id_from_env()
+        base_input = "01_loaded.csv"
+        base_output = "02_enriched.csv"
+        
+        if run_id:
+            input_name = get_versioned_filename(base_input, run_id)
+            output_name = get_versioned_filename(base_output, run_id)
+        else:
+            input_name = base_input
+            output_name = base_output
+        
+        input_file = base_path / "processed" / input_name
+        output_file = base_path / "processed" / output_name
+        
+        if not input_file.exists():
+            latest_input = base_path / "processed" / base_input
+            if latest_input.exists() or latest_input.is_symlink():
+                input_file = latest_input
+        
+        if input_file.exists():
+            import shutil
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(input_file, output_file)
+            if run_id:
+                create_latest_symlink(output_file, base_output)
+            print(f"✓ Copied {input_file} to {output_file}")
+        exit(0)
 
     run_all = "--all" in sys.argv
     base_path = Path(__file__).parent.parent
-    input_file = base_path / "processed" / "01_loaded.csv"
-    output_file = base_path / "processed" / "02_enriched.csv"
+    # Get versioned filenames
+    run_id = get_run_id_from_env()
+    base_input = "01_loaded.csv"
+    base_output = "02_enriched.csv"
+    
+    if run_id:
+        input_name = get_versioned_filename(base_input, run_id)
+        output_name = get_versioned_filename(base_output, run_id)
+    else:
+        # Fallback to default names
+        input_name = base_input
+        output_name = base_output
+    
+    input_file = base_path / "processed" / input_name
+    output_file = base_path / "processed" / output_name
+    
+    # Also try latest symlink if versioned file doesn't exist
+    if not input_file.exists():
+        latest_input = base_path / "processed" / base_input
+        if latest_input.exists() or latest_input.is_symlink():
+            input_file = latest_input
 
     print(f"=== Enricher Module {'Full Run' if run_all else 'Test'} ===\n")
     print(f"Loading: {input_file}")
@@ -246,6 +331,12 @@ if __name__ == "__main__":
 
     output_file.parent.mkdir(parents=True, exist_ok=True)
     df_enriched.to_csv(output_file, index=False, encoding='utf-8')
+    
+    # Create latest symlink
+    if run_id:
+        latest_path = create_latest_symlink(output_file, base_output)
+        if latest_path:
+            print(f"✓ Latest symlink: {latest_path}")
     print(f"Saved: {output_file}")
 
     # Show results

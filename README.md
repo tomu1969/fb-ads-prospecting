@@ -50,6 +50,8 @@ fb_ads_library_prospecting/
 │   ├── clean_instagram_handles.py  # Utility: Clean and consolidate Instagram handles
 │   ├── exporter.py           # Module 4: Export to HubSpot CSV
 │   ├── validator.py          # Module 5: Quality validation
+│   ├── apify_dm_sender.py    # Instagram DM sender via Apify
+│   ├── manychat_sender.py    # Instagram DM sender via ManyChat
 │   └── legacy/               # Archived scripts (including loader_fb_ads.py)
 ├── input/                    # Source files (CSV, Excel, JSON, TSV)
 ├── processed/                # Intermediate CSV files
@@ -255,6 +257,40 @@ The pipeline processes any input file format and enriches prospects with contact
    - **Note**: Verification is slower (~1.5s per handle) and may be limited by Instagram's anti-bot measures
 5. Run cleanup script if needed: `python scripts/clean_instagram_handles.py`
 
+## Instagram Outreach
+
+After the pipeline completes, you can send Instagram DMs to prospects using the Apify-based sender:
+
+```bash
+# Preview messages (dry run)
+python scripts/apify_dm_sender.py \
+  --csv output/prospects_final.csv \
+  --message "Hey {contact_name} — quick question about {company_name}..." \
+  --dry-run
+
+# Send to all contacts
+python scripts/apify_dm_sender.py \
+  --csv output/prospects_final.csv \
+  --message "Hey {contact_name} — quick question about {company_name}..."
+
+# Exclude already-contacted handles
+python scripts/apify_dm_sender.py \
+  --csv output/prospects_final.csv \
+  --message "Your message here" \
+  --exclude handle1 handle2
+```
+
+**Required Environment Variables:**
+```
+APIFY_API_KEY=apify_api_...
+INSTAGRAM_SESSION_ID=...  # From browser cookies
+```
+
+**Message Template Variables:**
+- `{contact_name}` - Contact's first name (defaults to "there")
+- `{company_name}` - Company/page name
+- `{instagram_handle}` - Instagram handle
+
 ## API Requirements
 
 | Service | Purpose | Free Tier |
@@ -262,6 +298,7 @@ The pipeline processes any input file format and enriches prospects with contact
 | OpenAI | Agent enrichment, website analysis, Instagram search | Pay per use |
 | Hunter.io | Email finding/verification | 25 searches/month |
 | DuckDuckGo | Website search | Unlimited (rate limited) |
+| Apify | Instagram DM sending | Pay per use |
 
 ## License
 

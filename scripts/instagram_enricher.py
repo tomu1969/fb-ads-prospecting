@@ -1,15 +1,18 @@
-"""Instagram Handle Enricher - Unified Module 3.7
+"""Instagram Handle Enricher - Unified Module 3.7 (OPTIMIZED)
 
 Combines basic and enhanced search strategies to find Instagram handles for contacts.
 Runs automatically after Module 3.6 (Agent Enricher) in the pipeline.
+
+OPTIMIZED: Fast mode is now the default (~1 min for 59 contacts with Groq).
+Uses: cache check → Apify API → website scrape (2 pages) → Groq LLM reasoning
 
 Input: processed/03d_final.csv (from Module 3.6)
 Output: processed/03d_final.csv (updated with Instagram handles)
 
 Usage:
-    python instagram_enricher.py           # Test mode (3 contacts)
-    python instagram_enricher.py --all     # Process all contacts
-    python instagram_enricher.py --skip-enhanced  # Skip enhanced search (faster)
+    python instagram_enricher.py           # Test mode (3 contacts, fast mode)
+    python instagram_enricher.py --all     # Process all contacts (fast mode)
+    python instagram_enricher.py --all --full  # Full comprehensive search (slower)
     python instagram_enricher.py --verify  # Verify handles exist (slower, filters invalid handles)
 """
 
@@ -31,11 +34,37 @@ from urllib.parse import urljoin, urlparse
 # Import run ID utilities
 sys.path.insert(0, str(Path(__file__).parent))
 from utils.run_id import get_run_id_from_env, get_versioned_filename, create_latest_symlink
+from utils.redis_cache import get_cached_handles, cache_handles, is_redis_available
+from utils.instagram_apis import search_apify_instagram, is_paid_api_enabled
 
 load_dotenv()
 
-# Initialize OpenAI client
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+# Initialize LLM clients (Groq preferred, OpenAI as fallback)
+GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+
+# Try to initialize Groq client (10-20x faster)
+groq_client = None
+if GROQ_API_KEY:
+    try:
+        from groq import Groq
+        groq_client = Groq(api_key=GROQ_API_KEY)
+    except ImportError:
+        print("⚠️  Groq library not installed. Install with: pip install groq")
+    except Exception as e:
+        print(f"⚠️  Failed to initialize Groq client: {e}")
+
+# Initialize OpenAI client as fallback
+openai_client = None
+if OPENAI_API_KEY:
+    try:
+        openai_client = OpenAI(api_key=OPENAI_API_KEY)
+    except Exception as e:
+        print(f"⚠️  Failed to initialize OpenAI client: {e}")
+
+# Use Groq if available, otherwise fall back to OpenAI
+llm_client = groq_client if groq_client else openai_client
+llm_provider = "groq" if groq_client else "openai"
 
 # OpenAI Agents SDK imports (fallback)
 try:
@@ -49,12 +78,12 @@ BASE_DIR = Path(__file__).parent.parent
 INPUT_FILE = 'processed/03d_final.csv'
 BACKUP_FILE = 'processed/03d_final_backup.csv'
 
-# Rate limiting
-SEARCH_DELAY = 1.0  # Reduced from 2.0 for better performance
+# Rate limiting (reduced for Groq's higher rate limits)
+SEARCH_DELAY = 0.1 if groq_client else 1.0  # Groq handles rate limiting better
 
 # Caching for website scraping (avoid re-scraping same URLs)
 _website_cache = {}
-REQUEST_DELAY = 1.0
+REQUEST_DELAY = 0.2  # Reduced from 1.0 for faster scraping
 
 # Headers for web requests
 HEADERS = {
@@ -251,18 +280,23 @@ def scrape_website(url: str, timeout=10):
         return None
 
 
-def deep_scrape_website(base_url: str, max_pages=5) -> str:
-    """Scrape multiple pages from a website."""
+def deep_scrape_website(base_url: str, max_pages=2) -> str:
+    """Scrape multiple pages from a website.
+
+    OPTIMIZED: Only scrape homepage + about page by default (was 5 pages).
+    Instagram handles are typically on the homepage or about page.
+    """
     if not base_url or pd.isna(base_url):
         return ""
-    
+
     if not base_url.startswith(("http://", "https://")):
         base_url = "https://" + base_url
-    
+
     all_html = []
     visited = set()
-    pages_to_check = ['/', '/about', '/about-us', '/team', '/our-team', '/contact', '/contact-us', '/social']
-    
+    # OPTIMIZED: Reduced from 8 pages to 4 most likely pages
+    pages_to_check = ['/', '/about', '/contact', '/about-us']
+
     for page_path in pages_to_check[:max_pages]:
         try:
             url = urljoin(base_url, page_path)
@@ -272,48 +306,83 @@ def deep_scrape_website(base_url: str, max_pages=5) -> str:
             if html:
                 all_html.append(html)
                 visited.add(url)
+                # OPTIMIZATION: If we found Instagram link on homepage, skip other pages
+                if page_path == '/' and 'instagram.com' in html.lower():
+                    break
             time.sleep(REQUEST_DELAY)
         except Exception:
             continue
-    
+
     return "\n".join(all_html)
 
 
-async def scrape_website_for_instagram(url: str) -> list:
-    """Scrape website directly for Instagram handles."""
+async def scrape_website_for_instagram(url: str, use_cache: bool = True) -> list:
+    """Scrape website directly for Instagram handles (with caching)."""
     if not url:
         return []
+    
+    # Check cache first if enabled
+    if use_cache and is_redis_available():
+        cached = get_cached_handles("", url)
+        if cached:
+            return cached
+    
     try:
         html = deep_scrape_website(url)
         if html:
-            return extract_instagram_handles_from_text(html)
+            handles = extract_instagram_handles_from_text(html)
+            # Cache results if Redis is available
+            if use_cache and is_redis_available() and handles:
+                cache_handles("", url, handles)
+            return handles
     except Exception:
         pass
     return []
 
 
 # =============================================================================
-# OPENAI API FUNCTIONS
+# LLM API FUNCTIONS (Groq or OpenAI)
 # =============================================================================
 
-async def search_with_openai_direct(prompt: str, max_retries=3, delay=2):
-    """Use OpenAI API directly to find Instagram handles."""
+async def search_with_llm(prompt: str, max_retries=3, delay=0.2):
+    """Use LLM (Groq preferred, OpenAI fallback) to find Instagram handles."""
+    if not llm_client:
+        return ""
+    
     for attempt in range(max_retries):
         try:
-            response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": """You are an expert at finding Instagram profiles. 
+            if llm_provider == "groq":
+                # Groq API (10-20x faster)
+                response = groq_client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",  # Fast and accurate (updated from deprecated llama-3.1)
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": """You are an expert at finding Instagram profiles. 
 Analyze the information and determine the most likely Instagram handle.
 Return ONLY the handle in format @username, or NOT_FOUND if you cannot determine it."""
-                    },
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.3,
-                max_tokens=300
-            )
+                        },
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.3,
+                    max_tokens=300
+                )
+            else:
+                # OpenAI API (fallback)
+                response = openai_client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": """You are an expert at finding Instagram profiles. 
+Analyze the information and determine the most likely Instagram handle.
+Return ONLY the handle in format @username, or NOT_FOUND if you cannot determine it."""
+                        },
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.3,
+                    max_tokens=300
+                )
             
             if response.choices and len(response.choices) > 0:
                 content = response.choices[0].message.content.strip()
@@ -323,12 +392,45 @@ Return ONLY the handle in format @username, or NOT_FOUND if you cannot determine
             if attempt < max_retries - 1:
                 await asyncio.sleep(delay * (attempt + 1))
                 continue
+            # If Groq fails and OpenAI is available, try OpenAI
+            if llm_provider == "groq" and openai_client and attempt == max_retries - 1:
+                try:
+                    response = openai_client.chat.completions.create(
+                        model="gpt-4o",
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": """You are an expert at finding Instagram profiles. 
+Analyze the information and determine the most likely Instagram handle.
+Return ONLY the handle in format @username, or NOT_FOUND if you cannot determine it."""
+                            },
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=0.3,
+                        max_tokens=300
+                    )
+                    if response.choices and len(response.choices) > 0:
+                        return response.choices[0].message.content.strip()
+                except Exception:
+                    pass
             raise
     return ""
 
 
 async def generate_search_queries(company_name: str, contact_name: str = "", industry: str = "real estate") -> list:
-    """Use OpenAI to generate multiple search query variations."""
+    """Use LLM to generate multiple search query variations."""
+    if not llm_client:
+        # Fallback queries
+        queries = []
+        if company_name:
+            queries.append(f"{company_name} instagram")
+            queries.append(f"{company_name} instagram account")
+        if contact_name:
+            queries.append(f"{contact_name} instagram")
+            if company_name:
+                queries.append(f"{contact_name} {company_name} instagram")
+        return queries[:8]
+    
     prompt = f"""Generate 5-8 specific web search queries to find Instagram handles for:
 
 Company: {company_name}
@@ -340,15 +442,26 @@ Return ONLY a JSON array of query strings, no other text:
 ["query1", "query2", "query3", ...]"""
 
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "You are an expert at generating web search queries. Return only valid JSON arrays."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7,
-            max_tokens=300
-        )
+        if llm_provider == "groq":
+            response = groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": "You are an expert at generating web search queries. Return only valid JSON arrays."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=300
+            )
+        else:
+            response = openai_client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "You are an expert at generating web search queries. Return only valid JSON arrays."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=300
+            )
         
         content = response.choices[0].message.content.strip()
         json_match = re.search(r'\[.*?\]', content, re.DOTALL)
@@ -371,7 +484,10 @@ Return ONLY a JSON array of query strings, no other text:
 
 
 async def generate_handle_patterns(company_name: str, contact_name: str = "") -> list:
-    """Use OpenAI to generate likely Instagram handle patterns."""
+    """Use LLM to generate likely Instagram handle patterns."""
+    if not llm_client:
+        return []
+    
     prompt = f"""Based on this information, suggest likely Instagram handle patterns:
 
 Company: {company_name}
@@ -382,15 +498,26 @@ Return ONLY a JSON array of handle patterns (without @ symbol), no other text:
 ["pattern1", "pattern2", "pattern3", ...]"""
 
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "You are an expert at Instagram handle patterns. Return only valid JSON arrays."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7,
-            max_tokens=300
-        )
+        if llm_provider == "groq":
+            response = groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": "You are an expert at Instagram handle patterns. Return only valid JSON arrays."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=300
+            )
+        else:
+            response = openai_client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "You are an expert at Instagram handle patterns. Return only valid JSON arrays."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=300
+            )
         
         content = response.choices[0].message.content.strip()
         json_match = re.search(r'\[.*?\]', content, re.DOTALL)
@@ -421,7 +548,7 @@ POSITION: {position or 'Unknown'}
 Search the web for their Instagram profile. Return ONLY the handle in format @username.
 If no handle is found, return: NOT_FOUND"""
         
-        output = await search_with_openai_direct(prompt)
+        output = await search_with_llm(prompt)
         
         if not output or "NOT_FOUND" in output:
             return ""
@@ -454,7 +581,7 @@ WEBSITE: {website_url or 'Unknown'}
 Search the web for their official Instagram profile(s). Return all handles in format @username.
 If no handles are found, return: NOT_FOUND"""
         
-        output = await search_with_openai_direct(prompt)
+        output = await search_with_llm(prompt)
         
         if not output or "NOT_FOUND" in output:
             return []
@@ -505,7 +632,7 @@ Contact: {contact_name or 'N/A'}
 Based on web search results, what is the Instagram handle?
 Return ONLY @username or NOT_FOUND."""
             
-            result = await search_with_openai_direct(prompt)
+            result = await search_with_llm(prompt)
             found_handles = extract_instagram_handles_from_text(result)
             if found_handles:
                 handles.update(found_handles)
@@ -563,7 +690,7 @@ async def strategy_cross_platform(linkedin_url: str, social_links: dict) -> list
 
 async def strategy_openai_reasoning(company_name: str, contact_name: str = "", 
                                     company_desc: str = "", website_url: str = "") -> list:
-    """Enhanced Strategy 5: OpenAI-assisted reasoning."""
+    """Enhanced Strategy 5: LLM-assisted reasoning (Groq or OpenAI)."""
     prompt = f"""Based on this information, determine the most likely Instagram handle:
 
 Company: {company_name}
@@ -574,7 +701,7 @@ Website: {website_url or 'N/A'}
 Analyze and suggest the most likely Instagram handle(s). Return ONLY @username or NOT_FOUND."""
     
     try:
-        result = await search_with_openai_direct(prompt)
+        result = await search_with_llm(prompt)
         handles = extract_instagram_handles_from_text(result)
         return handles
     except Exception:
@@ -602,6 +729,14 @@ async def enrich_contact_instagram(row, skip_enhanced=False, verify_handles=Fals
     social_links = row.get('social_links', {})
     existing_handles = parse_instagram_handles_field(row.get('instagram_handles', ''))
     
+    # OPTIMIZED ORDER: Fastest first, early exit on success
+    
+    # 1. Check Redis cache (0s) - FASTEST
+    if is_redis_available():
+        cached_handles = get_cached_handles(page_name, website_url)
+        if cached_handles:
+            return sorted([h.lower() for h in cached_handles])[:20]
+    
     # Early exit: If contact already has valid handles and skip_enhanced is True, skip processing
     if skip_enhanced and existing_handles and len(existing_handles) > 0:
         valid_existing = [h for h in existing_handles if is_valid_handle(h)]
@@ -610,7 +745,24 @@ async def enrich_contact_instagram(row, skip_enhanced=False, verify_handles=Fals
     
     all_handles = set(existing_handles)  # Start with existing handles
     
-    # BASIC ENRICHMENT: Website scraping (with caching)
+    # 2. Check paid API if enabled (0.5s) - FAST
+    if is_paid_api_enabled():
+        try:
+            paid_handles = await search_apify_instagram(page_name, website_url)
+            for handle in paid_handles:
+                if is_valid_handle(handle):
+                    all_handles.add(handle.lower())
+            # Early exit if found via paid API
+            if len(all_handles) > len(existing_handles):
+                handles_list = sorted(list(all_handles))[:20]
+                # Cache results
+                if is_redis_available():
+                    cache_handles(page_name, website_url, handles_list)
+                return handles_list
+        except Exception:
+            pass
+    
+    # 3. Website scraping with cache (0-2s) - FAST
     if website_url and pd.notna(website_url):
         try:
             website_handles = await scrape_website_for_instagram(str(website_url), use_cache=True)
@@ -618,24 +770,58 @@ async def enrich_contact_instagram(row, skip_enhanced=False, verify_handles=Fals
             for handle in website_handles:
                 if is_valid_handle(handle):
                     all_handles.add(handle.lower())
+            # Early exit if found
+            if len(all_handles) > len(existing_handles) and skip_enhanced:
+                handles_list = sorted(list(all_handles))[:20]
+                if is_redis_available():
+                    cache_handles(page_name, website_url, handles_list)
+                return handles_list
         except Exception:
             pass
     
-    # Early exit optimization: If we found handles from website, skip expensive searches
-    if len(all_handles) > len(existing_handles) and skip_enhanced:
-        return sorted(list(all_handles))[:20]
+    # 4. Groq LLM reasoning (0.2s) - FAST
+    if llm_client:
+        try:
+            prompt = f"""Based on this information, determine the most likely Instagram handle:
+
+Company: {page_name}
+Contact: {contact_name or 'N/A'}
+Description: {company_desc or 'N/A'}
+Website: {website_url or 'N/A'}
+
+Analyze and suggest the most likely Instagram handle(s). Return ONLY @username or NOT_FOUND."""
+            result = await search_with_llm(prompt)
+            handles = extract_instagram_handles_from_text(result)
+            for handle in handles:
+                if is_valid_handle(handle):
+                    all_handles.add(handle.lower())
+            # Early exit if found
+            if len(all_handles) > len(existing_handles):
+                handles_list = sorted(list(all_handles))[:20]
+                if is_redis_available():
+                    cache_handles(page_name, website_url, handles_list)
+                return handles_list
+        except Exception:
+            pass
     
-    # BASIC ENRICHMENT: Personal handle search
-    if contact_name and pd.notna(contact_name) and str(contact_name).strip() and str(contact_name).strip() != 'None None':
+    # FAST MODE EXIT: If skip_enhanced and we found handles, return early
+    if skip_enhanced and len(all_handles) > len(existing_handles):
+        handles_list = sorted(list(all_handles))[:20]
+        if is_redis_available():
+            cache_handles(page_name, website_url, handles_list)
+        return handles_list
+
+    # 5. Personal handle search (2-3s) - MEDIUM (skip in fast mode)
+    if not skip_enhanced and contact_name and pd.notna(contact_name) and str(contact_name).strip() and str(contact_name).strip() != 'None None':
         try:
             personal = await search_personal_instagram(str(contact_name), page_name, str(contact_position) if contact_position else '')
             if personal and is_valid_handle(personal):
                 all_handles.add(personal.lower())
         except Exception:
             pass
-    
-    # BASIC ENRICHMENT: Company handle search (only if no handles found yet)
-    if len(all_handles) == len(existing_handles):
+
+    # 6. Company handle search (2-3s) - MEDIUM (skip in fast mode)
+    if not skip_enhanced and len(all_handles) == len(existing_handles):
         try:
             company_handles = await search_company_instagram(str(page_name), str(website_url) if website_url and pd.notna(website_url) else '')
             for handle in company_handles:
@@ -643,8 +829,8 @@ async def enrich_contact_instagram(row, skip_enhanced=False, verify_handles=Fals
                     all_handles.add(handle.lower())
         except Exception:
             pass
-    
-    # ENHANCED SEARCH: Only if still missing and not skipped
+
+    # 7. ENHANCED SEARCH: Only if still missing and not skipped (4-8s) - SLOW
     if not skip_enhanced and len(all_handles) == len(existing_handles):
         # Try enhanced strategies (limit to 3 most effective ones)
         strategies = [
@@ -662,13 +848,16 @@ async def enrich_contact_instagram(row, skip_enhanced=False, verify_handles=Fals
                 # Early exit if we found handles
                 if len(all_handles) > len(existing_handles):
                     break
-                await asyncio.sleep(0.5)  # Reduced delay
+                await asyncio.sleep(0.1)  # Reduced delay for Groq
             except Exception:
                 continue
     
-    # Verify handles if requested (note: Instagram's anti-bot measures may limit effectiveness)
+    # Cache results before returning
     handles_list = sorted(list(all_handles))[:20]
+    if is_redis_available() and handles_list:
+        cache_handles(page_name, website_url, handles_list)
     
+    # Verify handles if requested (note: Instagram's anti-bot measures may limit effectiveness)
     if verify_handles:
         verified_handles = []
         for handle in handles_list:
@@ -722,31 +911,54 @@ async def enrich_instagram_handles(df: pd.DataFrame, run_all: bool = False, skip
         print(f"\nTest mode: Processing first {len(rows_to_process)} contacts...")
         print("(Use --all to process all contacts)")
     
-    # Process each row
+    # Process in parallel batches for better performance
+    # Increased to 20 for Groq's higher rate limits (30k RPM vs OpenAI's 500 RPM)
+    BATCH_SIZE = 20 if groq_client else 3  # Process 20 contacts concurrently with Groq, 3 with OpenAI
     found_count = 0
-    for pos, (idx, row) in enumerate(tqdm(rows_to_process.iterrows(), total=len(rows_to_process), desc="Enriching Instagram handles")):
-        page_name = row.get('page_name', '')
-        print(f"\n  [{pos + 1}/{len(rows_to_process)}] {page_name}")
-        
-        try:
-            handles = await enrich_contact_instagram(row, skip_enhanced=skip_enhanced, verify_handles=verify_handles)
+    
+    rows_list = list(rows_to_process.iterrows())
+    
+    # Process in batches with per-contact progress tracking
+    with tqdm(total=len(rows_list), desc="Enriching Instagram handles") as pbar:
+        for batch_start in range(0, len(rows_list), BATCH_SIZE):
+            batch = rows_list[batch_start:batch_start + BATCH_SIZE]
             
-            # Update instagram_handles column with all handles
-            if handles:
-                existing = parse_instagram_handles_field(df.loc[idx, 'instagram_handles'])
-                # Merge and deduplicate (case-insensitive)
-                combined = list(set([h.lower() for h in existing + handles]))
-                df.loc[idx, 'instagram_handles'] = json.dumps(sorted(combined))
-                if len(combined) > len(existing):
-                    found_count += 1
-                print(f"    ✓ Found {len(handles)} new handle(s), total: {len(combined)}")
-            else:
-                print(f"    - No handles found")
+            # Process batch concurrently
+            batch_tasks = [
+                enrich_contact_instagram(row, skip_enhanced=skip_enhanced, verify_handles=verify_handles)
+                for idx, row in batch
+            ]
+            batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
             
-            await asyncio.sleep(SEARCH_DELAY)
-        except Exception as e:
-            print(f"    ✗ Error: {str(e)[:100]}")
-            continue
+            # Update DataFrame with results
+            for (idx, row), handles in zip(batch, batch_results):
+                page_name = row.get('page_name', '')
+                pos = batch_start + batch.index((idx, row)) + 1
+                print(f"\n  [{pos}/{len(rows_list)}] {page_name}")
+                
+                if isinstance(handles, Exception):
+                    print(f"    ✗ Error: {str(handles)[:100]}")
+                    pbar.update(1)
+                    continue
+                
+                # Update instagram_handles column with all handles
+                if handles:
+                    existing = parse_instagram_handles_field(df.loc[idx, 'instagram_handles'])
+                    # Merge and deduplicate (case-insensitive)
+                    combined = list(set([h.lower() for h in existing + handles]))
+                    df.loc[idx, 'instagram_handles'] = json.dumps(sorted(combined))
+                    if len(combined) > len(existing):
+                        found_count += 1
+                    print(f"    ✓ Found {len(handles)} new handle(s), total: {len(combined)}")
+                else:
+                    print(f"    - No handles found")
+                
+                pbar.update(1)
+            
+            # Small delay between batches to avoid rate limits (only if needed)
+            if batch_start + BATCH_SIZE < len(rows_list):
+                # Groq handles rate limiting better, so minimal delay
+                await asyncio.sleep(SEARCH_DELAY)
     
     return df, found_count
 
@@ -758,9 +970,35 @@ async def enrich_instagram_handles(df: pd.DataFrame, run_all: bool = False, skip
 async def main():
     """Main function to run Instagram handle enrichment."""
     
+    # Check if module should run based on enrichment config
+    from utils.enrichment_config import should_run_module
+    if not should_run_module("instagram_enricher"):
+        print(f"\n{'='*60}")
+        print("MODULE 3.7: INSTAGRAM HANDLE ENRICHER")
+        print(f"{'='*60}")
+        print("⏭️  SKIPPED: Instagram handle enrichment not selected in configuration")
+        print("   No changes made to input file.")
+        return 0
+    
     print(f"\n{'='*60}")
     print("MODULE 3.7: INSTAGRAM HANDLE ENRICHER")
     print(f"{'='*60}")
+    
+    # Show optimization status
+    if groq_client:
+        print(f"⚡ Using Groq LLM (10-20x faster than OpenAI)")
+    elif openai_client:
+        print(f"⚠️  Using OpenAI (slower). Set GROQ_API_KEY for faster performance.")
+    else:
+        print(f"⚠️  No LLM client available. Set GROQ_API_KEY or OPENAI_API_KEY.")
+    
+    if is_redis_available():
+        print(f"✓ Redis caching enabled")
+    else:
+        print(f"ℹ️  Redis caching disabled (optional for faster re-runs)")
+    
+    if is_paid_api_enabled():
+        print(f"✓ Paid Instagram API enabled")
     
     # Get versioned input file
     run_id = get_run_id_from_env()
@@ -796,8 +1034,16 @@ async def main():
     
     # Determine run mode
     run_all = '--all' in sys.argv
-    skip_enhanced = '--skip-enhanced' in sys.argv
-    
+    # OPTIMIZED: Fast mode is now the default (skip slow searches)
+    # Use --full for comprehensive search (slow but more thorough)
+    skip_enhanced = '--full' not in sys.argv  # Default to fast mode
+
+    if skip_enhanced:
+        print("⚡ Fast mode: Using quick methods only (cache, website scrape, LLM reasoning)")
+        print("   Use --full for comprehensive search (slower but more thorough)")
+    else:
+        print("🔍 Full mode: Using all search methods (slower)")
+
     # Process contacts
     # Check for --verify flag
     verify_handles = "--verify" in sys.argv

@@ -49,9 +49,57 @@ load_dotenv()
 HUNTER_API_KEY = os.getenv('HUNTER_API_KEY')
 
 # Pipeline input/output paths
-INPUT_FILE = 'processed/03b_hunter.csv'
-OUTPUT_ENRICHED = 'processed/03c_enriched.csv'
-OUTPUT_FINAL = 'processed/03d_final.csv'
+# Import run ID utilities
+import os
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent))
+from utils.run_id import get_run_id_from_env, get_versioned_filename, create_latest_symlink
+
+def get_input_file():
+    """Get versioned input file path."""
+    run_id = get_run_id_from_env()
+    base_input = "03b_hunter.csv"
+    
+    if run_id:
+        input_name = get_versioned_filename(base_input, run_id)
+    else:
+        input_name = base_input
+    
+    base_path = Path(__file__).parent.parent
+    input_file = base_path / "processed" / input_name
+    
+    # Also try latest symlink if versioned file doesn't exist
+    if not input_file.exists():
+        latest_input = base_path / "processed" / base_input
+        if latest_input.exists() or latest_input.is_symlink():
+            input_file = latest_input
+    
+    return str(input_file)
+
+def get_output_files():
+    """Get versioned output file paths."""
+    run_id = get_run_id_from_env()
+    base_enriched = "03c_enriched.csv"
+    base_final = "03d_final.csv"
+    
+    base_path = Path(__file__).parent.parent
+    
+    if run_id:
+        enriched_name = get_versioned_filename(base_enriched, run_id)
+        final_name = get_versioned_filename(base_final, run_id)
+    else:
+        enriched_name = base_enriched
+        final_name = base_final
+    
+    output_enriched = base_path / "processed" / enriched_name
+    output_final = base_path / "processed" / final_name
+    
+    return str(output_enriched), str(output_final), base_enriched, base_final
+
+INPUT_FILE = None  # Will be set dynamically
+OUTPUT_ENRICHED = None  # Will be set dynamically
+OUTPUT_FINAL = None  # Will be set dynamically
 
 # Cost tracking (estimates based on GPT-4o pricing)
 COST_V2_1_RUN = 0.03  # Per strategy run
@@ -67,8 +115,8 @@ def get_contacts_to_enrich(df: pd.DataFrame) -> pd.DataFrame:
     """Get contacts where Hunter found no verified email.
 
     Filters for:
-    - primary_email is empty/NaN
-    - email_verified is False/NaN
+    - primary_email is empty/NaN or invalid
+    - email_verified is False/NaN (or email doesn't look valid)
     - Has a valid website_url (search_confidence > 0.3)
 
     Returns DataFrame of contacts needing enrichment.
@@ -83,6 +131,17 @@ def get_contacts_to_enrich(df: pd.DataFrame) -> pd.DataFrame:
         )
     else:
         mask = df['primary_email'].isna() | (df['primary_email'] == '')
+    
+    # Also check if email looks valid (has @ and reasonable length)
+    def is_valid_email(email):
+        if pd.isna(email) or not email:
+            return False
+        email_str = str(email).strip()
+        return '@' in email_str and len(email_str) > 5
+    
+    # Exclude rows with valid-looking emails
+    valid_email_mask = df['primary_email'].apply(is_valid_email)
+    mask = mask & ~valid_email_mask
 
     # Also require a website to search
     has_website = ~df['website_url'].isna() & (df['website_url'] != '')
@@ -491,7 +550,8 @@ async def stage_v2_1(company_name: str, website_url: str) -> dict:
 
             print(f"      → Hunter: {hunter['status']} (score: {hunter['score']}), continuing...")
 
-        await asyncio.sleep(1)
+        # Reduced delay
+        await asyncio.sleep(0.5)
 
     # Return best result if no valid email found
     if best_result:
@@ -579,7 +639,7 @@ reasoning_agent = Agent(
 )
 
 
-async def stage_v3_1(company_name: str, website_url: str, v2_evidence: dict, max_iterations: int = 5) -> dict:
+async def stage_v3_1(company_name: str, website_url: str, v2_evidence: dict, max_iterations: int = 3) -> dict:
     """Run v3.1 two-agent loop until Hunter validates.
 
     Passes v2.1 evidence to reasoning agent so it doesn't repeat failed strategies.
@@ -684,7 +744,9 @@ Respond with JSON: name, email, position, confidence, source, queries_tried, evi
 
             print(f"        → Hunter: {hunter['status']}, continuing...")
 
-        await asyncio.sleep(1)
+        # Reduced delay - only sleep if we didn't find a valid email
+        if not execution.get('email') or not hunter.get('is_deliverable'):
+            await asyncio.sleep(0.5)  # Reduced from 1.0
 
     # Return best result
     if best_result:
@@ -786,6 +848,32 @@ async def main():
     - --all: Full run - process all contacts needing enrichment
     - --specific: Use manual_contacts.csv for testing
     """
+    
+    # Set input/output files first (before any logic that uses them)
+    global INPUT_FILE, OUTPUT_ENRICHED, OUTPUT_FINAL
+    INPUT_FILE = get_input_file()
+    OUTPUT_ENRICHED, OUTPUT_FINAL, base_enriched, base_final = get_output_files()
+    
+    # Check if module should run based on enrichment config
+    from utils.enrichment_config import should_run_module
+    if not should_run_module("contact_enricher"):
+        print(f"\n{'='*60}")
+        print("MODULE 3.6: AGENT ENRICHER (Pipeline v4)")
+        print(f"{'='*60}")
+        print("⏭️  SKIPPED: Email enrichment not selected in configuration")
+        print("   Copying input file to output to maintain pipeline continuity...")
+        
+        if os.path.exists(INPUT_FILE):
+            import shutil
+            shutil.copy2(INPUT_FILE, OUTPUT_FINAL)
+            run_id = get_run_id_from_env()
+            if run_id:
+                create_latest_symlink(Path(OUTPUT_FINAL), base_final)
+            print(f"✓ Copied {INPUT_FILE} to {OUTPUT_FINAL}")
+            return pd.read_csv(INPUT_FILE)
+        else:
+            print(f"Error: {INPUT_FILE} not found")
+            return None
 
     print(f"\n{'='*60}")
     print("MODULE 3.6: AGENT ENRICHER (Pipeline v4)")
@@ -835,12 +923,28 @@ async def main():
         print(f"Copied {INPUT_FILE} to {OUTPUT_FINAL}")
         return df
 
-    # Process each company
+    # Process companies in parallel batches for better performance
+    # Increased from 3 for faster processing (OpenAI has 500 RPM limit)
+    BATCH_SIZE = 10
+    
     results = []
-    for idx, row in tqdm(test_df.iterrows(), total=len(test_df), desc="Pipeline enrichment"):
-        result = await enrich_contact(row['page_name'], row.get('website_url', ''))
-        results.append(result)
-        await asyncio.sleep(2)
+    test_list = list(test_df.iterrows())
+    
+    # Process in batches
+    for batch_start in tqdm(range(0, len(test_list), BATCH_SIZE), desc="Pipeline enrichment"):
+        batch = test_list[batch_start:batch_start + BATCH_SIZE]
+        
+        # Process batch concurrently
+        batch_tasks = [
+            enrich_contact(row['page_name'], row.get('website_url', ''))
+            for idx, row in batch
+        ]
+        batch_results = await asyncio.gather(*batch_tasks)
+        results.extend(batch_results)
+        
+        # Small delay between batches to avoid rate limits
+        if batch_start + BATCH_SIZE < len(test_list):
+            await asyncio.sleep(0.3)  # Reduced from 1.0s
 
     # Save enrichment results
     results_df = pd.DataFrame(results)
@@ -851,6 +955,13 @@ async def main():
     print(f"\nMerging results with Hunter data...")
     merged_df = merge_results(df, results_df)
     merged_df.to_csv(OUTPUT_FINAL, index=False)
+    
+    # Create latest symlink for final
+    run_id = get_run_id_from_env()
+    if run_id:
+        latest_path = create_latest_symlink(Path(OUTPUT_FINAL), base_final)
+        if latest_path:
+            print(f"✓ Latest symlink (final): {latest_path}")
     print(f"Saved merged results to: {OUTPUT_FINAL}")
 
     # Print summary

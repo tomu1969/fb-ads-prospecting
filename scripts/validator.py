@@ -61,6 +61,137 @@ def load_data():
     return data
 
 
+def is_invalid_company_name(name):
+    """Check if company name is invalid (too short, special chars only, etc.)."""
+    if pd.isna(name) or not name:
+        return True
+    name_str = str(name).strip()
+    # Single character or just special characters
+    if len(name_str) <= 1:
+        return True
+    # Only special characters (no alphanumeric)
+    if not any(c.isalnum() for c in name_str):
+        return True
+    return False
+
+
+def compare_input_output(data):
+    """Compare input file with output to show value added by pipeline."""
+    source_df = data.get('source')
+    final_df = data.get('final')
+    
+    if source_df is None or final_df is None:
+        return None
+    
+    # Get input fields (from source)
+    input_fields = set(source_df.columns.tolist())
+    
+    # Get output fields (from final)
+    output_fields = set(final_df.columns.tolist())
+    
+    # Fields added by pipeline
+    added_fields = output_fields - input_fields
+    
+    # Calculate enrichment rates for key fields
+    enrichment_stats = {
+        'website_url': {'found': 0, 'preserved': 0, 'added': 0, 'total': len(final_df), 'source': 'Enricher'},
+        'contact_name': {'found': 0, 'preserved': 0, 'added': 0, 'total': len(final_df), 'source': 'Scraper/Hunter'},
+        'primary_email': {'found': 0, 'preserved': 0, 'added': 0, 'total': len(final_df), 'source': 'Hunter/Agent'},
+        'phones': {'found': 0, 'preserved': 0, 'added': 0, 'total': len(final_df), 'source': 'Scraper/Hunter'},
+        'instagram_handles': {'found': 0, 'preserved': 0, 'added': 0, 'total': len(final_df), 'source': 'Instagram Enricher'},
+        'company_description': {'found': 0, 'preserved': 0, 'added': 0, 'total': len(final_df), 'source': 'Scraper'},
+    }
+    
+    # Check source file for preserved fields
+    source_has_email = 'primary_email' in source_df.columns if source_df is not None else False
+    source_has_phones = 'phones' in source_df.columns if source_df is not None else False
+    source_has_contact = 'contact_name' in source_df.columns if source_df is not None else False
+    
+    # Count invalid company names
+    invalid_names = []
+    valid_count = 0
+    
+    for idx, row in final_df.iterrows():
+        page_name = row.get('page_name', '')
+        
+        # Check if company name is invalid
+        is_invalid = is_invalid_company_name(page_name)
+        if is_invalid:
+            invalid_names.append(page_name)
+        else:
+            valid_count += 1
+        
+        # Check enrichment fields and track preserved vs added
+        if pd.notna(row.get('website_url')) and str(row.get('website_url', '')).strip():
+            enrichment_stats['website_url']['found'] += 1
+            # Website is always added (not in source)
+            enrichment_stats['website_url']['added'] += 1
+        
+        contact_name = str(row.get('contact_name', '')).strip()
+        bad_names = ['none', 'none none', 'nan', 'null', 'n/a', '']
+        if contact_name and contact_name.lower() not in bad_names:
+            enrichment_stats['contact_name']['found'] += 1
+            # Check if it was in source
+            if source_has_contact and idx < len(source_df):
+                source_contact = str(source_df.iloc[idx].get('contact_name', '')).strip()
+                if source_contact and source_contact.lower() not in bad_names:
+                    enrichment_stats['contact_name']['preserved'] += 1
+                else:
+                    enrichment_stats['contact_name']['added'] += 1
+            else:
+                enrichment_stats['contact_name']['added'] += 1
+        
+        primary_email = str(row.get('primary_email', '')).strip()
+        if primary_email and '@' in primary_email:
+            enrichment_stats['primary_email']['found'] += 1
+            # Check if it was in source
+            if source_has_email and idx < len(source_df):
+                source_email = str(source_df.iloc[idx].get('primary_email', '')).strip()
+                if source_email and '@' in source_email:
+                    enrichment_stats['primary_email']['preserved'] += 1
+                else:
+                    enrichment_stats['primary_email']['added'] += 1
+            else:
+                enrichment_stats['primary_email']['added'] += 1
+        
+        phones = parse_list_field(row.get('phones', []))
+        if phones:
+            enrichment_stats['phones']['found'] += 1
+            # Check if it was in source
+            if source_has_phones and idx < len(source_df):
+                source_phones = parse_list_field(source_df.iloc[idx].get('phones', []))
+                if source_phones:
+                    enrichment_stats['phones']['preserved'] += 1
+                else:
+                    enrichment_stats['phones']['added'] += 1
+            else:
+                enrichment_stats['phones']['added'] += 1
+        
+        instagram_handles = parse_list_field(row.get('instagram_handles', []))
+        if instagram_handles:
+            enrichment_stats['instagram_handles']['found'] += 1
+            # Instagram handles are always added (not in source)
+            enrichment_stats['instagram_handles']['added'] += 1
+        
+        if pd.notna(row.get('company_description')) and str(row.get('company_description', '')).strip():
+            enrichment_stats['company_description']['found'] += 1
+            # Company description is always added (not in source)
+            enrichment_stats['company_description']['added'] += 1
+    
+    return {
+        'input_fields': sorted(list(input_fields)),
+        'output_fields': sorted(list(output_fields)),
+        'added_fields': sorted(list(added_fields)),
+        'input_field_count': len(input_fields),
+        'output_field_count': len(output_fields),
+        'added_field_count': len(added_fields),
+        'enrichment_stats': enrichment_stats,
+        'invalid_names': invalid_names,
+        'valid_count': valid_count,
+        'total_count': len(final_df)
+    }
+
+
 def check_contact_completeness(df):
     """Check for missing contact names, emails, and phones."""
     issues = {
@@ -301,6 +432,47 @@ def generate_report(data):
 
     total = len(final_df)
 
+    # 0. Input vs Output Comparison
+    print("\n0. INPUT vs OUTPUT COMPARISON")
+    print("-" * 50)
+    comparison = compare_input_output(data)
+    
+    if comparison:
+        print(f"   Input Fields ({comparison['input_field_count']}): {', '.join(comparison['input_fields'][:5])}")
+        if len(comparison['input_fields']) > 5:
+            print(f"      ... and {len(comparison['input_fields']) - 5} more")
+        
+        print(f"   Output Fields ({comparison['output_field_count']}): {comparison['input_field_count']} original + {comparison['added_field_count']} added")
+        print(f"   Fields Added by Pipeline: {comparison['added_field_count']}")
+        
+        print(f"\n   Data Quality:")
+        print(f"   - Valid company names: {comparison['valid_count']}/{comparison['total_count']} ({100*comparison['valid_count']/comparison['total_count']:.1f}%)")
+        if comparison['invalid_names']:
+            print(f"   - Invalid company names: {len(comparison['invalid_names'])}")
+            for name in comparison['invalid_names'][:3]:
+                print(f"      - '{name}' (cannot be enriched)")
+            if len(comparison['invalid_names']) > 3:
+                print(f"      ... and {len(comparison['invalid_names']) - 3} more")
+        
+        print(f"\n   Enrichment Breakdown:")
+        for field, stats in comparison['enrichment_stats'].items():
+            rate = 100 * stats['found'] / stats['total'] if stats['total'] > 0 else 0
+            preserved = stats.get('preserved', 0)
+            added = stats.get('added', stats['found'])
+            
+            if preserved > 0:
+                print(f"   - {field.replace('_', ' ').title()}: {stats['found']}/{stats['total']} ({rate:.1f}%) - {preserved} preserved, {added} added by {stats['source']}")
+            else:
+                print(f"   - {field.replace('_', ' ').title()}: {stats['found']}/{stats['total']} ({rate:.1f}%) - {added} added by {stats['source']}")
+        
+        print(f"\n   Value Added:")
+        print(f"   - Started with: {comparison['input_field_count']} fields per contact")
+        print(f"   - Ended with: {comparison['output_field_count']} fields per contact")
+        enrichment_rate = 100 * comparison['valid_count'] / comparison['total_count'] if comparison['total_count'] > 0 else 0
+        print(f"   - Enrichment rate: {enrichment_rate:.1f}% ({comparison['valid_count']}/{comparison['total_count']} contacts with valid data)")
+    else:
+        print("   Could not compare input/output (missing source or final data)")
+
     # 1. Contact Completeness Check
     print("\n1. CONTACT COMPLETENESS")
     print("-" * 50)
@@ -420,7 +592,36 @@ def generate_report(data):
         hubspot_count = len(data.get('hubspot', []))
         print(f"   HubSpot export valid: {hubspot_count} contacts ready for import")
 
-    # 7. Summary
+    # 8. Pipeline Performance
+    print("\n8. PIPELINE PERFORMANCE")
+    print("-" * 50)
+    print("   Performance metrics:")
+    print(f"   - Total contacts processed: {total}")
+    if comparison:
+        valid_for_enrichment = comparison['valid_count']
+        invalid_count = len(comparison['invalid_names'])
+        print(f"   - Contacts with valid data: {valid_for_enrichment}")
+        print(f"   - Contacts with invalid data: {invalid_count}")
+        if total > 0:
+            # Website rate calculated against total (websites can be found even for invalid names)
+            website_rate = 100 * (comparison['enrichment_stats']['website_url']['found'] / total)
+            # Email/contact rates calculated against total contacts (shows overall success rate)
+            email_rate = 100 * (comparison['enrichment_stats']['primary_email']['found'] / total)
+            contact_rate = 100 * (comparison['enrichment_stats']['contact_name']['found'] / total)
+            print(f"   - Website discovery rate: {website_rate:.1f}% ({comparison['enrichment_stats']['website_url']['found']}/{total} contacts)")
+            print(f"   - Email discovery rate: {email_rate:.1f}% ({comparison['enrichment_stats']['primary_email']['found']}/{total} contacts)")
+            print(f"   - Contact name discovery rate: {contact_rate:.1f}% ({comparison['enrichment_stats']['contact_name']['found']}/{total} contacts)")
+            if valid_for_enrichment > 0 and valid_for_enrichment < total:
+                # Also show rates for valid contacts only if there are invalid ones
+                valid_email_rate = 100 * (comparison['enrichment_stats']['primary_email']['found'] / valid_for_enrichment)
+                valid_contact_rate = 100 * (comparison['enrichment_stats']['contact_name']['found'] / valid_for_enrichment)
+                print(f"   - Email discovery rate (valid contacts only): {valid_email_rate:.1f}% ({comparison['enrichment_stats']['primary_email']['found']}/{valid_for_enrichment} valid contacts)")
+                print(f"   - Contact name discovery rate (valid contacts only): {valid_contact_rate:.1f}% ({comparison['enrichment_stats']['contact_name']['found']}/{valid_for_enrichment} valid contacts)")
+        if invalid_count > 0:
+            print(f"   - Note: {invalid_count} contacts skipped due to invalid company names")
+    print("   Note: Module-level timing requires pipeline execution logs")
+
+    # Summary
     print("\n" + "=" * 70)
     print("SUMMARY")
     print("=" * 70)
@@ -450,6 +651,9 @@ def generate_report(data):
             print(f"   - {issue}")
 
     print("\n   Recommendations:")
+    if comparison and comparison['invalid_names']:
+        print(f"   - {len(comparison['invalid_names'])} contacts have invalid company names - clean input data")
+        print("   - Invalid company names cannot be enriched (e.g., '-', '.', single characters)")
     if issues['no_email']:
         print("   - Manual research needed for prospects without email")
     if phone_stats['no_phone'] > total * 0.3:

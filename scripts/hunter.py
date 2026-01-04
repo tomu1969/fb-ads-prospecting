@@ -5,9 +5,14 @@ import sys
 import time
 import pandas as pd
 import requests
+from pathlib import Path
 from urllib.parse import urlparse
 from dotenv import load_dotenv
 from tqdm import tqdm
+
+# Import run ID utilities
+sys.path.insert(0, str(Path(__file__).parent))
+from utils.run_id import get_run_id_from_env, get_versioned_filename, create_latest_symlink
 
 load_dotenv()
 
@@ -156,11 +161,35 @@ def merge_phones(existing_phones, hunter_phones, contact_phone):
 def enrich_all(df):
     """Enrich all rows with Hunter data."""
     results = []
+    skipped_count = 0
 
     for idx, row in tqdm(df.iterrows(), total=len(df), desc="Hunter enrichment"):
+        # Check if email already exists and is valid
+        existing_email = str(row.get('primary_email', '')).strip()
+        has_valid_email = existing_email and '@' in existing_email and len(existing_email) > 5
+        
+        if has_valid_email:
+            # Skip Hunter enrichment, preserve existing data
+            skipped_count += 1
+            results.append({
+                'primary_email': existing_email,
+                'email_confidence': row.get('email_confidence', 100.0),
+                'email_verified': row.get('email_verified', 'not_checked'),
+                'hunter_emails': row.get('hunter_emails', '[]'),
+                'contact_name': row.get('contact_name', ''),
+                'contact_position': row.get('contact_position', ''),
+                'hunter_phones': [],
+                'contact_phone': ''
+            })
+            continue
+        
+        # Enrich if email is missing or invalid
         enriched = enrich_row(row)
         results.append(enriched)
-        time.sleep(1)  # Rate limit
+        time.sleep(0.3)  # Reduced rate limit for faster processing
+    
+    if skipped_count > 0:
+        print(f"\n  ⚡ Skipped Hunter enrichment for {skipped_count} contacts (email already exists)")
 
     # Preserve original scraper names before any updates
     df['scraper_contact_name'] = df['contact_name'].copy()
@@ -176,12 +205,18 @@ def enrich_all(df):
     df['email_confidence'] = [r['email_confidence'] for r in results]
     df['email_verified'] = [r['email_verified'] for r in results]
 
+    # Ensure contact_name and contact_position are object type to avoid FutureWarning
+    if 'contact_name' in df.columns:
+        df['contact_name'] = df['contact_name'].astype('object')
+    if 'contact_position' in df.columns:
+        df['contact_position'] = df['contact_position'].astype('object')
+    
     # Update contact_name only if Hunter found a name, otherwise keep original
     for idx in range(len(df)):
         hunter_name = results[idx]['contact_name']
         if hunter_name:
-            df.at[idx, 'contact_name'] = hunter_name
-            df.at[idx, 'contact_position'] = results[idx]['contact_position']
+            df.at[idx, 'contact_name'] = str(hunter_name) if hunter_name else ''
+            df.at[idx, 'contact_position'] = str(results[idx]['contact_position']) if results[idx]['contact_position'] else ''
         # else: keep original scraper name (already in contact_name)
 
     # Merge phones: existing (from scraper) + Hunter phones
@@ -233,16 +268,81 @@ def merge_manual_contacts(df):
 
             # Always update contact name if manual has one and current is empty
             if manual.get('contact_name') and (pd.isna(row.get('contact_name')) or not row.get('contact_name')):
-                df.at[idx, 'contact_name'] = manual['contact_name']
-                df.at[idx, 'contact_position'] = manual.get('contact_position', '')
+                # Ensure columns are object type
+                if 'contact_name' in df.columns:
+                    df['contact_name'] = df['contact_name'].astype('object')
+                if 'contact_position' in df.columns:
+                    df['contact_position'] = df['contact_position'].astype('object')
+                df.at[idx, 'contact_name'] = str(manual['contact_name'])
+                df.at[idx, 'contact_position'] = str(manual.get('contact_position', ''))
 
     print(f"Merged {updated} manual contacts")
     return df
 
 
 if __name__ == '__main__':
-    input_path = 'processed/03_contacts.csv'
-    output_path = 'processed/03b_hunter.csv'
+    import shutil
+    
+    # Check if module should run based on enrichment config
+    from utils.enrichment_config import should_run_module
+    if not should_run_module("hunter"):
+        print("=== Hunter Module ===")
+        print("⏭️  SKIPPED: Email enrichment not selected in configuration")
+        print("   Copying input file to output to maintain pipeline continuity...")
+        
+        run_id = get_run_id_from_env()
+        base_input = "03_contacts.csv"
+        base_output = "03b_hunter.csv"
+        
+        if run_id:
+            input_name = get_versioned_filename(base_input, run_id)
+            output_name = get_versioned_filename(base_output, run_id)
+        else:
+            input_name = base_input
+            output_name = base_output
+        
+        base_path = Path(__file__).parent.parent
+        input_path = base_path / "processed" / input_name
+        output_path = base_path / "processed" / output_name
+        
+        if not input_path.exists():
+            latest_input = base_path / "processed" / base_input
+            if latest_input.exists() or latest_input.is_symlink():
+                input_path = latest_input
+        
+        if input_path.exists():
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(input_path, output_path)
+            if run_id:
+                create_latest_symlink(output_path, base_output)
+            print(f"✓ Copied {input_path} to {output_path}")
+        exit(0)
+    
+    # Get versioned filenames
+    run_id = get_run_id_from_env()
+    base_input = "03_contacts.csv"
+    base_output = "03b_hunter.csv"
+    
+    if run_id:
+        input_name = get_versioned_filename(base_input, run_id)
+        output_name = get_versioned_filename(base_output, run_id)
+    else:
+        # Fallback to default names
+        input_name = base_input
+        output_name = base_output
+    
+    base_path = Path(__file__).parent.parent
+    input_path = base_path / "processed" / input_name
+    output_path = base_path / "processed" / output_name
+    
+    # Also try latest symlink if versioned file doesn't exist
+    if not input_path.exists():
+        latest_input = base_path / "processed" / base_input
+        if latest_input.exists() or latest_input.is_symlink():
+            input_path = latest_input
+    
+    input_path = str(input_path)
+    output_path = str(output_path)
 
     print(f"Loading: {input_path}")
     df = pd.read_csv(input_path)
@@ -260,6 +360,12 @@ if __name__ == '__main__':
 
     df.to_csv(output_path, index=False)
     print(f"\nSaved: {output_path}")
+    
+    # Create latest symlink
+    if run_id:
+        latest_path = create_latest_symlink(Path(output_path), base_output)
+        if latest_path:
+            print(f"✓ Latest symlink: {latest_path}")
 
     # Show results
     print("\nResults:")

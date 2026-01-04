@@ -1,20 +1,27 @@
 """Module 3: Contact Scraper - Extract contact information from websites."""
 
+import os
 import re
 import time
 import json
 import sys
+from pathlib import Path
 from urllib.parse import urljoin, urlparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
+# Import run ID utilities
+sys.path.insert(0, str(Path(__file__).parent))
+from utils.run_id import get_run_id_from_env, get_versioned_filename, create_latest_symlink
+
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 }
 TIMEOUT = 10
-REQUEST_DELAY = 1.5
+REQUEST_DELAY = 0.5  # Reduced from 1.5s for faster processing
 CONTACT_PATHS = ["/contact", "/about", "/team", "/agents", "/about-us", "/our-team", "/contact-us"]
 
 
@@ -429,35 +436,145 @@ def scrape_contact(url):
     return result
 
 
-def scrape_all(df):
-    """Scrape contact information for all rows in DataFrame."""
-    new_cols = {
-        "contact_name": [],
-        "contact_position": [],
-        "emails": [],
-        "phones": [],
-        "company_description": [],
-        "services": [],
-        "social_links": [],
-        "instagram_handles": [],
-        "team_members": [],
+def process_row(idx_row_tuple):
+    """Process a single row for parallel scraping."""
+    idx, row = idx_row_tuple
+    url = row.get("website_url", "")
+    
+    # Check if contact data already exists
+    existing_contact_name = str(row.get("contact_name", "")).strip()
+    existing_phones = row.get("phones", "[]")
+    
+    # Check if we have valid existing data
+    bad_names = ['none', 'none none', 'nan', 'null', 'n/a', '']
+    has_contact = existing_contact_name.lower() not in bad_names if existing_contact_name else False
+    
+    # Parse existing phones
+    try:
+        if isinstance(existing_phones, str):
+            existing_phones_list = json.loads(existing_phones) if existing_phones else []
+        else:
+            existing_phones_list = existing_phones if isinstance(existing_phones, list) else []
+        has_phones = len(existing_phones_list) > 0
+    except:
+        existing_phones_list = []
+        has_phones = False
+    
+    # Skip scraping if we already have contact name and phones
+    if has_contact and has_phones:
+        return {
+            'idx': idx,
+            'skipped': True,
+            'contact_name': existing_contact_name,
+            'contact_position': row.get("contact_position", ""),
+            'emails': row.get("emails", "[]"),
+            'phones': json.dumps(existing_phones_list) if isinstance(existing_phones_list, list) else existing_phones,
+            'company_description': row.get("company_description", ""),
+            'services': row.get("services", "[]"),
+            'social_links': row.get("social_links", "{}"),
+            'instagram_handles': row.get("instagram_handles", "[]"),
+            'team_members': row.get("team_members", "[]"),
+        }
+    
+    # Scrape if data is missing
+    contact_data = scrape_contact(url)
+
+    # Merge with existing data (preserve existing if scraping found nothing)
+    # Merge emails
+    existing_emails = row.get("emails", "[]")
+    try:
+        existing_emails_list = json.loads(existing_emails) if isinstance(existing_emails, str) else existing_emails
+    except:
+        existing_emails_list = []
+    merged_emails = list(set(existing_emails_list + contact_data["emails"]))
+    
+    # Merge phones
+    merged_phones = list(set(existing_phones_list + contact_data["phones"]))
+    
+    return {
+        'idx': idx,
+        'skipped': False,
+        'contact_name': contact_data["contact_name"] if contact_data["contact_name"] else existing_contact_name,
+        'contact_position': contact_data["contact_position"] if contact_data["contact_position"] else row.get("contact_position", ""),
+        'emails': json.dumps(merged_emails),
+        'phones': json.dumps(merged_phones),
+        'company_description': contact_data["company_description"],
+        'services': json.dumps(contact_data["services"]),
+        'social_links': json.dumps(contact_data["social_links"]),
+        'instagram_handles': json.dumps(contact_data["instagram_handles"]),
+        'team_members': json.dumps(contact_data["team_members"]),
     }
 
-    for _, row in tqdm(df.iterrows(), total=len(df), desc="Scraping contacts"):
-        url = row.get("website_url", "")
-        contact_data = scrape_contact(url)
 
-        new_cols["contact_name"].append(contact_data["contact_name"])
-        new_cols["contact_position"].append(contact_data["contact_position"])
-        new_cols["emails"].append(json.dumps(contact_data["emails"]))
-        new_cols["phones"].append(json.dumps(contact_data["phones"]))
-        new_cols["company_description"].append(contact_data["company_description"])
-        new_cols["services"].append(json.dumps(contact_data["services"]))
-        new_cols["social_links"].append(json.dumps(contact_data["social_links"]))
-        new_cols["instagram_handles"].append(json.dumps(contact_data["instagram_handles"]))
-        new_cols["team_members"].append(json.dumps(contact_data["team_members"]))
+def scrape_all(df):
+    """Scrape contact information for all rows in DataFrame using parallel processing."""
+    # Initialize columns if they don't exist
+    for col in ["contact_name", "contact_position", "emails", "phones", "company_description", 
+                "services", "social_links", "instagram_handles", "team_members"]:
+        if col not in df.columns:
+            if col in ["emails", "phones", "services", "social_links", "instagram_handles", "team_members"]:
+                df[col] = "[]"
+            else:
+                df[col] = ""
+    
+    new_cols = {
+        "contact_name": [""] * len(df),
+        "contact_position": [""] * len(df),
+        "emails": ["[]"] * len(df),
+        "phones": ["[]"] * len(df),
+        "company_description": [""] * len(df),
+        "services": ["[]"] * len(df),
+        "social_links": ["{}"] * len(df),
+        "instagram_handles": ["[]"] * len(df),
+        "team_members": ["[]"] * len(df),
+    }
 
-        time.sleep(REQUEST_DELAY)
+    skipped_count = 0
+    BATCH_SIZE = 10  # Increased from 3 for faster processing
+    
+    # Process rows in parallel batches
+    # Create list of (position, idx, row) tuples to preserve order
+    rows_list = [(pos, idx, row) for pos, (idx, row) in enumerate(df.iterrows())]
+    
+    # Create index mapping from DataFrame index to position
+    idx_to_pos = {idx: pos for pos, (idx, row) in enumerate(df.iterrows())}
+    
+    with ThreadPoolExecutor(max_workers=BATCH_SIZE) as executor:
+        # Submit all tasks - pass (idx, row) tuple to process_row
+        future_to_pos = {executor.submit(process_row, (idx, row)): pos 
+                         for pos, idx, row in rows_list}
+        
+        # Process completed tasks with progress bar
+        for future in tqdm(as_completed(future_to_pos), total=len(rows_list), desc="Scraping contacts"):
+            try:
+                result = future.result()
+                # Get DataFrame index from result
+                df_idx = result['idx']
+                # Get position in our list
+                pos = idx_to_pos.get(df_idx, future_to_pos[future])
+                
+                if result['skipped']:
+                    skipped_count += 1
+                
+                # Update columns with results using position
+                new_cols["contact_name"][pos] = result['contact_name']
+                new_cols["contact_position"][pos] = result['contact_position']
+                new_cols["emails"][pos] = result['emails']
+                new_cols["phones"][pos] = result['phones']
+                new_cols["company_description"][pos] = result['company_description']
+                new_cols["services"][pos] = result['services']
+                new_cols["social_links"][pos] = result['social_links']
+                new_cols["instagram_handles"][pos] = result['instagram_handles']
+                new_cols["team_members"][pos] = result['team_members']
+                
+                # Small delay to avoid overwhelming servers
+                time.sleep(REQUEST_DELAY / BATCH_SIZE)
+            except Exception as e:
+                pos = future_to_pos[future]
+                print(f"\n  ⚠️  Error processing row at position {pos}: {e}")
+    
+    if skipped_count > 0:
+        print(f"\n  ⚡ Skipped scraping for {skipped_count} contacts (data already exists)")
 
     for col, values in new_cols.items():
         df[col] = values
@@ -467,10 +584,68 @@ def scrape_all(df):
 
 if __name__ == "__main__":
     import os
+    import shutil
+    
+    # Check if module should run based on enrichment config
+    from utils.enrichment_config import should_run_module
+    if not should_run_module("scraper"):
+        print("=== Scraper Module ===")
+        print("⏭️  SKIPPED: Phone/contact name enrichment not selected in configuration")
+        print("   Copying input file to output to maintain pipeline continuity...")
+        
+        base_dir = Path(__file__).parent.parent
+        run_id = get_run_id_from_env()
+        base_input = "02_enriched.csv"
+        base_output = "03_contacts.csv"
+        
+        if run_id:
+            input_name = get_versioned_filename(base_input, run_id)
+            output_name = get_versioned_filename(base_output, run_id)
+        else:
+            input_name = base_input
+            output_name = base_output
+        
+        input_file = base_dir / "processed" / input_name
+        output_file = base_dir / "processed" / output_name
+        
+        if not input_file.exists():
+            latest_input = base_dir / "processed" / base_input
+            if latest_input.exists() or latest_input.is_symlink():
+                input_file = latest_input
+        
+        if input_file.exists():
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(input_file, output_file)
+            if run_id:
+                create_latest_symlink(output_file, base_output)
+            print(f"✓ Copied {input_file} to {output_file}")
+        exit(0)
 
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    input_file = os.path.join(base_dir, "processed", "02_enriched.csv")
-    output_file = os.path.join(base_dir, "processed", "03_contacts.csv")
+    base_dir = Path(__file__).parent.parent
+    # Get versioned filenames
+    run_id = get_run_id_from_env()
+    base_input = "02_enriched.csv"
+    base_output = "03_contacts.csv"
+    
+    if run_id:
+        input_name = get_versioned_filename(base_input, run_id)
+        output_name = get_versioned_filename(base_output, run_id)
+    else:
+        # Fallback to default names
+        input_name = base_input
+        output_name = base_output
+    
+    input_file = base_dir / "processed" / input_name
+    output_file = base_dir / "processed" / output_name
+    
+    # Also try latest symlink if versioned file doesn't exist
+    if not input_file.exists():
+        latest_input = base_dir / "processed" / base_input
+        if latest_input.exists() or latest_input.is_symlink():
+            input_file = latest_input
+    
+    input_file = str(input_file)
+    output_file = str(output_file)
 
     if not os.path.exists(input_file):
         print(f"Input file not found: {input_file}")
@@ -504,6 +679,13 @@ if __name__ == "__main__":
 
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
     df.to_csv(output_file, index=False)
+    
+    # Create latest symlink (run_id already retrieved above)
+    if run_id:
+        latest_path = create_latest_symlink(Path(output_file), base_output)
+        if latest_path:
+            print(f"✓ Latest symlink: {latest_path}")
+    
     print(f"Saved {len(df)} rows to {output_file}")
 
     print("\nSample output:")
