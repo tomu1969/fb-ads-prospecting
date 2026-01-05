@@ -16,6 +16,7 @@ from fb_ads_scraper import (
     filter_duplicates,
     update_history,
     convert_to_pipeline_format,
+    get_ad_text,
     load_history,
     save_history,
     apply_housing_workaround,
@@ -275,19 +276,51 @@ class TestUpdateHistory:
         assert updated['searches'][0]['location'] == 'Florida, US'
 
 
+class TestGetAdText:
+    """Tests for get_ad_text function."""
+
+    def test_primary_text_field(self):
+        """Test extraction from primary 'text' field."""
+        ad = {'text': 'This is the ad text'}
+        assert get_ad_text(ad) == 'This is the ad text'
+
+    def test_fallback_to_title(self):
+        """Test fallback to 'title' when 'text' is empty."""
+        ad = {'title': 'Ad Title Here'}
+        assert get_ad_text(ad) == 'Ad Title Here'
+
+    def test_fallback_to_legacy_fields(self):
+        """Test fallback to legacy field names."""
+        ad = {'ad_creative_body': 'Legacy ad text'}
+        assert get_ad_text(ad) == 'Legacy ad text'
+
+        ad2 = {'adCreativeBody': 'CamelCase ad text'}
+        assert get_ad_text(ad2) == 'CamelCase ad text'
+
+    def test_empty_returns_empty(self):
+        """Test empty ad returns empty string."""
+        assert get_ad_text({}) == ''
+        assert get_ad_text({'text': ''}) == ''
+        assert get_ad_text({'text': None}) == ''
+
+
 class TestConvertToPipelineFormat:
     """Tests for convert_to_pipeline_format function."""
 
     def test_basic_conversion(self):
-        """Test basic conversion to pipeline format."""
+        """Test basic conversion to pipeline format with actual Apify field names."""
         ads = [
             {
                 'page_id': '123',
                 'page_name': 'Test Company',
-                'ad_creative_body': 'Check out our services!',
+                'text': 'Check out our services!',
+                'title': 'Great Offer',
                 'platforms': ['facebook', 'instagram'],
                 'is_active': True,
-                'ad_delivery_start_time': '2024-01-15',
+                'start_date': '2024-01-15',
+                'page_likes': 5000,
+                'page_url': 'https://facebook.com/testcompany',
+                'page_category': 'Business',
             }
         ]
 
@@ -297,6 +330,8 @@ class TestConvertToPipelineFormat:
         assert df.iloc[0]['page_name'] == 'Test Company'
         assert df.iloc[0]['ad_count'] == 1
         assert df.iloc[0]['is_active'] == True
+        assert df.iloc[0]['page_likes'] == 5000
+        assert 'Check out our services!' in df.iloc[0]['text']
 
     def test_required_columns(self):
         """Test all required columns are present."""
@@ -304,16 +339,16 @@ class TestConvertToPipelineFormat:
 
         df = convert_to_pipeline_format(ads)
 
-        required_cols = ['page_name', 'ad_count', 'ad_texts', 'platforms', 'is_active', 'first_ad_date']
+        required_cols = ['page_name', 'ad_count', 'ad_texts', 'text', 'platforms', 'is_active', 'start_date', 'page_likes']
         for col in required_cols:
             assert col in df.columns, f"Missing required column: {col}"
 
     def test_multiple_ads_same_advertiser(self):
         """Test grouping multiple ads from same advertiser."""
         ads = [
-            {'page_id': '123', 'page_name': 'Company A', 'ad_creative_body': 'Ad 1'},
-            {'page_id': '123', 'page_name': 'Company A', 'ad_creative_body': 'Ad 2'},
-            {'page_id': '123', 'page_name': 'Company A', 'ad_creative_body': 'Ad 3'},
+            {'page_id': '123', 'page_name': 'Company A', 'text': 'Ad 1'},
+            {'page_id': '123', 'page_name': 'Company A', 'text': 'Ad 2'},
+            {'page_id': '123', 'page_name': 'Company A', 'text': 'Ad 3'},
         ]
 
         df = convert_to_pipeline_format(ads)
@@ -335,12 +370,12 @@ class TestConvertToPipelineFormat:
         assert len(df) == 2
 
     def test_alternate_field_names(self):
-        """Test handling of alternate field names."""
+        """Test handling of alternate field names (legacy support)."""
         ads = [
             {
                 'pageId': '123',
                 'pageName': 'Test Company',
-                'adCreativeBody': 'Ad text here',
+                'adCreativeBody': 'Ad text here',  # Legacy field name
                 'publisherPlatform': 'facebook',
                 'isActive': True,
             }
@@ -350,6 +385,8 @@ class TestConvertToPipelineFormat:
 
         assert len(df) == 1
         assert df.iloc[0]['page_name'] == 'Test Company'
+        # Should still extract text from legacy field
+        assert 'Ad text here' in df.iloc[0]['text']
 
     def test_platforms_json_format(self):
         """Test platforms are stored as JSON."""
@@ -365,12 +402,35 @@ class TestConvertToPipelineFormat:
 
     def test_ad_texts_limit(self):
         """Test ad texts are limited to 10."""
-        ads = [{'page_id': '123', 'page_name': 'Test', 'ad_creative_body': f'Ad {i}'} for i in range(15)]
+        ads = [{'page_id': '123', 'page_name': 'Test', 'text': f'Ad {i}'} for i in range(15)]
 
         df = convert_to_pipeline_format(ads)
 
         ad_texts = json.loads(df.iloc[0]['ad_texts'])
         assert len(ad_texts) <= 10
+
+    def test_page_likes_extraction(self):
+        """Test page likes are correctly extracted."""
+        ads = [
+            {'page_id': '123', 'page_name': 'Test', 'page_likes': 15000},
+            {'page_id': '123', 'page_name': 'Test', 'page_likes': 15000},
+        ]
+
+        df = convert_to_pipeline_format(ads)
+
+        assert df.iloc[0]['page_likes'] == 15000
+
+    def test_link_urls_collection(self):
+        """Test link URLs are collected."""
+        ads = [
+            {'page_id': '123', 'page_name': 'Test', 'link_url': 'https://example.com/offer1'},
+            {'page_id': '123', 'page_name': 'Test', 'link_url': 'https://example.com/offer2'},
+        ]
+
+        df = convert_to_pipeline_format(ads)
+
+        link_urls = json.loads(df.iloc[0]['link_urls'])
+        assert len(link_urls) == 2
 
 
 class TestHistoryFileOperations:

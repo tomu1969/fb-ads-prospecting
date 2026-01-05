@@ -370,8 +370,31 @@ def update_history(history: Dict, ads: List[Dict], config: Dict, duplicates: int
     return history
 
 
+def get_ad_text(ad: Dict) -> str:
+    """Extract ad text trying multiple possible field names."""
+    # Try various field names the Apify actor might use
+    text_fields = [
+        'text',              # Actual field from dz_omar actor
+        'title',             # Ad title
+        'ad_creative_body', 'adCreativeBody',  # Legacy names
+        'body', 'adBody', 'ad_body',
+        'message', 'description', 'caption',
+    ]
+    for field in text_fields:
+        value = ad.get(field)
+        if value and isinstance(value, str) and value.strip():
+            return value.strip()
+    return ''
+
+
 def convert_to_pipeline_format(ads: List[Dict]) -> pd.DataFrame:
-    """Convert Apify results to pipeline-compatible format."""
+    """Convert Apify results to pipeline-compatible format.
+
+    Extracts and groups ads by advertiser (page), capturing:
+    - Ad texts from 'text' field (primary) or fallback fields
+    - Page likes from 'page_likes' field
+    - Start dates, platforms, active status, etc.
+    """
     rows = []
 
     # Group by advertiser
@@ -388,6 +411,11 @@ def convert_to_pipeline_format(ads: List[Dict]) -> pd.DataFrame:
                 'platforms': set(),
                 'first_ad_date': None,
                 'is_active': False,
+                'page_likes': 0,
+                'page_url': None,
+                'page_category': None,
+                'ad_titles': [],
+                'link_urls': set(),
             }
 
         advertisers[page_id]['ads'].append(ad)
@@ -399,8 +427,8 @@ def convert_to_pipeline_format(ads: List[Dict]) -> pd.DataFrame:
         elif platforms:
             advertisers[page_id]['platforms'].add(platforms)
 
-        # Track first ad date
-        start_date = ad.get('ad_delivery_start_time', ad.get('startDate'))
+        # Track first ad date (actual field is 'start_date')
+        start_date = ad.get('start_date', ad.get('ad_delivery_start_time', ad.get('startDate')))
         if start_date:
             if not advertisers[page_id]['first_ad_date'] or start_date < advertisers[page_id]['first_ad_date']:
                 advertisers[page_id]['first_ad_date'] = start_date
@@ -409,22 +437,50 @@ def convert_to_pipeline_format(ads: List[Dict]) -> pd.DataFrame:
         if ad.get('is_active', ad.get('isActive', False)):
             advertisers[page_id]['is_active'] = True
 
+        # Capture page likes (take max across ads)
+        page_likes = ad.get('page_likes', 0)
+        if isinstance(page_likes, (int, float)) and page_likes > advertisers[page_id]['page_likes']:
+            advertisers[page_id]['page_likes'] = int(page_likes)
+
+        # Capture page metadata
+        if not advertisers[page_id]['page_url']:
+            advertisers[page_id]['page_url'] = ad.get('page_url')
+        if not advertisers[page_id]['page_category']:
+            advertisers[page_id]['page_category'] = ad.get('page_category')
+
+        # Collect link URLs for analysis
+        link_url = ad.get('link_url')
+        if link_url:
+            advertisers[page_id]['link_urls'].add(link_url)
+
+        # Collect ad titles
+        title = ad.get('title')
+        if title and title not in advertisers[page_id]['ad_titles']:
+            advertisers[page_id]['ad_titles'].append(title)
+
     # Convert to rows
     for page_id, data in advertisers.items():
+        # Extract ad texts using the correct field name
         ad_texts = []
         for ad in data['ads']:
-            body = ad.get('ad_creative_body', ad.get('adCreativeBody', ''))
-            if body:
-                ad_texts.append(body)
+            text = get_ad_text(ad)
+            if text and text not in ad_texts:  # Dedupe
+                ad_texts.append(text)
 
         rows.append({
             'page_name': data['page_name'],
+            'page_id': page_id,
+            'page_likes': data['page_likes'],
+            'page_url': data['page_url'],
+            'page_category': data['page_category'],
             'ad_count': len(data['ads']),
-            'total_page_likes': 0,  # Not always available
-            'ad_texts': json.dumps(ad_texts[:10]),  # Limit to 10
+            'text': ' | '.join(ad_texts[:10]),  # Pipeline expects 'text' field
+            'ad_texts': json.dumps(ad_texts[:10]),  # Keep JSON version too
+            'ad_titles': json.dumps(data['ad_titles'][:5]),
             'platforms': json.dumps(list(data['platforms'])),
             'is_active': data['is_active'],
-            'first_ad_date': data['first_ad_date'],
+            'start_date': data['first_ad_date'],
+            'link_urls': json.dumps(list(data['link_urls'])[:5]),
         })
 
     return pd.DataFrame(rows)
