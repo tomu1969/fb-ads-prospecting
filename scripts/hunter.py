@@ -282,13 +282,22 @@ def merge_manual_contacts(df):
 
 if __name__ == '__main__':
     import shutil
-    
+    import json
+
     # Check if module should run based on enrichment config
-    from utils.enrichment_config import should_run_module
-    if not should_run_module("hunter"):
-        print("=== Hunter Module ===")
-        print("⏭️  SKIPPED: Email enrichment not selected in configuration")
-        print("   Copying input file to output to maintain pipeline continuity...")
+    from utils.enrichment_config import should_run_module, load_config_from_env
+
+    config = load_config_from_env()
+    should_run = should_run_module("hunter", config)
+
+    if not should_run:
+        print("=" * 60)
+        print("MODULE 3.5: HUNTER")
+        print("=" * 60)
+        print("\nStatus: ⏭️  SKIPPED")
+        print("Reason: Email enrichment not selected in configuration")
+        print(f"Config: {json.dumps(config, indent=2) if config else 'None (using defaults)'}")
+        print("\nCopying input file to output to maintain pipeline continuity...")
         
         run_id = get_run_id_from_env()
         base_input = "03_contacts.csv"
@@ -344,6 +353,15 @@ if __name__ == '__main__':
     input_path = str(input_path)
     output_path = str(output_path)
 
+    # === LOGGING: Show RUNNING status ===
+    print("=" * 60)
+    print("MODULE 3.5: HUNTER")
+    print("=" * 60)
+    print("\nStatus: ✓ RUNNING")
+    print(f"Reason: Email enrichment enabled in config")
+    print(f"Config: {json.dumps(config, indent=2) if config else 'None (using defaults)'}")
+    print("")
+
     print(f"Loading: {input_path}")
     df = pd.read_csv(input_path)
     print(f"Loaded {len(df)} rows")
@@ -359,7 +377,22 @@ if __name__ == '__main__':
     df = merge_manual_contacts(df)
 
     df.to_csv(output_path, index=False)
-    print(f"\nSaved: {output_path}")
+
+    # === LOGGING: Show output summary ===
+    print(f"\n{'='*60}")
+    print("HUNTER OUTPUT SUMMARY")
+    print(f"{'='*60}")
+    print(f"Output: {output_path}")
+    print(f"Rows: {len(df)}")
+    print(f"Columns: {len(df.columns)}")
+    print(f"\nKey columns added:")
+    for col in ['hunter_contact_name', 'hunter_emails', 'primary_email', 'email_verified', 'email_confidence']:
+        if col in df.columns:
+            non_empty = df[col].notna().sum()
+            print(f"  {col}: {non_empty}/{len(df)} filled")
+        else:
+            print(f"  {col}: NOT ADDED")
+    print(f"{'='*60}")
     
     # Create latest symlink
     if run_id:

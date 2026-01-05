@@ -14,23 +14,36 @@ load_dotenv()
 from utils.enrichment_config import ENRICHMENT_TYPES, get_cost_breakdown, estimate_cost_and_time
 
 
-def analyze_input_data(input_file: Path, sample_size: int = 10) -> Dict:
+def analyze_input_data(input_file: Path, sample_size: int = 20) -> Dict:
     """
     Analyze input data to understand what's already available.
-    
+
     Args:
         input_file: Path to input CSV/Excel file
-        sample_size: Number of rows to sample for analysis
-        
+        sample_size: Number of rows to sample for analysis (default 20)
+
     Returns:
-        Dict with analysis results
+        Dict with analysis results including fill rates and sample data
     """
     try:
         if input_file.suffix.lower() == '.csv':
             df = pd.read_csv(input_file, nrows=sample_size)
         else:
             df = pd.read_excel(input_file, nrows=sample_size)
-        
+
+        # Calculate fill rates for each column
+        fill_rates = {}
+        for col in df.columns:
+            non_empty = df[col].notna().sum()
+            # Also check for empty strings
+            if df[col].dtype == 'object':
+                non_empty = (df[col].notna() & (df[col].astype(str).str.strip() != '')).sum()
+            fill_rates[col] = {
+                'filled': int(non_empty),
+                'total': len(df),
+                'percent': round(100 * non_empty / len(df), 1) if len(df) > 0 else 0
+            }
+
         analysis = {
             'total_rows': len(df),
             'columns': list(df.columns),
@@ -39,9 +52,10 @@ def analyze_input_data(input_file: Path, sample_size: int = 10) -> Dict:
             'has_phone': any('phone' in col.lower() or 'tel' in col.lower() for col in df.columns),
             'has_contact_name': any('name' in col.lower() or 'contact' in col.lower() for col in df.columns),
             'has_instagram': any('instagram' in col.lower() for col in df.columns),
-            'sample_data': df.head(3).to_dict('records') if len(df) > 0 else [],
+            'fill_rates': fill_rates,
+            'sample_data': df.head(sample_size).to_dict('records') if len(df) > 0 else [],
         }
-        
+
         return analysis
     except Exception as e:
         return {'error': str(e)}
@@ -51,41 +65,63 @@ def suggest_enrichment_strategy(
     input_file: Path,
     current_config: Dict[str, bool],
     row_count: int,
-    sample_size: int = 10
+    sample_size: int = 20
 ) -> Dict:
     """
     Use AI to suggest optimal enrichment strategy.
-    
+
     Args:
         input_file: Path to input file
         current_config: Current enrichment configuration
         row_count: Total number of rows to process
-        sample_size: Number of rows to sample for analysis
-        
+        sample_size: Number of rows to sample for analysis (default 20)
+
     Returns:
         Dict with AI suggestions
     """
-    # Analyze input data
+    # Analyze input data with larger sample for better recommendations
     analysis = analyze_input_data(input_file, sample_size)
-    
+
     if 'error' in analysis:
         return {
             'error': analysis['error'],
             'recommendations': [],
             'rationale': 'Could not analyze input data'
         }
-    
+
+    # Format fill rates for display
+    fill_rates_str = ""
+    if 'fill_rates' in analysis:
+        relevant_cols = []
+        for col, stats in analysis['fill_rates'].items():
+            col_lower = col.lower()
+            if any(kw in col_lower for kw in ['website', 'url', 'email', 'phone', 'name', 'contact', 'instagram']):
+                relevant_cols.append(f"  - {col}: {stats['filled']}/{stats['total']} ({stats['percent']}% filled)")
+        if relevant_cols:
+            fill_rates_str = "\n".join(relevant_cols)
+
+    # Format sample data summary (first 5 rows for context, not all 20)
+    sample_summary = ""
+    if analysis.get('sample_data'):
+        sample_summary = f"\nSAMPLE DATA (first 5 of {len(analysis['sample_data'])} rows analyzed):\n"
+        sample_summary += json.dumps(analysis['sample_data'][:5], indent=2, default=str)
+
     # Prepare prompt for AI
     prompt = f"""You are an expert data enrichment strategist. Analyze the following input data and current enrichment configuration, then provide recommendations.
 
 INPUT DATA ANALYSIS:
-- Total rows: {row_count}
+- Total rows in dataset: {row_count}
+- Rows analyzed for quality: {analysis.get('total_rows', 0)}
 - Columns available: {', '.join(analysis.get('columns', []))}
-- Already has website URLs: {analysis.get('has_website', False)}
-- Already has emails: {analysis.get('has_email', False)}
-- Already has phone numbers: {analysis.get('has_phone', False)}
-- Already has contact names: {analysis.get('has_contact_name', False)}
-- Already has Instagram handles: {analysis.get('has_instagram', False)}
+- Has website column: {analysis.get('has_website', False)}
+- Has email column: {analysis.get('has_email', False)}
+- Has phone column: {analysis.get('has_phone', False)}
+- Has contact name column: {analysis.get('has_contact_name', False)}
+- Has Instagram column: {analysis.get('has_instagram', False)}
+
+DATA QUALITY (fill rates for key columns):
+{fill_rates_str if fill_rates_str else "  No relevant columns found"}
+{sample_summary}
 
 CURRENT ENRICHMENT CONFIGURATION:
 {json.dumps(current_config, indent=2)}
@@ -99,14 +135,16 @@ AVAILABLE ENRICHMENT TYPES:
 
 Provide recommendations in JSON format with:
 1. recommended_config: Dict of enrichment_type -> bool (what to enable/disable)
-2. rationale: String explaining why
-3. optimization_tips: List of specific optimization tips
+2. rationale: String explaining why, referencing specific data quality observations
+3. optimization_tips: List of specific optimization tips based on data analysis
 4. module_suggestions: Dict mapping module names to suggestions (skip, run, optimize)
+5. data_quality_notes: String with observations about input data quality
 
 Focus on:
-- Skipping enrichments for data that's already present
+- Analyzing the actual sample data to assess quality (not just column presence)
+- Skipping enrichments for data that's already well-populated (>80% fill rate)
+- Recommending enrichment for columns with low fill rates
 - Prioritizing high-value, low-cost enrichments
-- Suggesting optimizations for expensive modules
 - Balancing completeness vs cost/time
 
 Respond ONLY with valid JSON, no markdown formatting."""
@@ -226,7 +264,12 @@ def format_suggestions_for_display(suggestions: Dict) -> str:
         lines.append(f"\n🔧 MODULE SUGGESTIONS:")
         for module, suggestion in suggestions['module_suggestions'].items():
             lines.append(f"   {module}: {suggestion}")
-    
+
+    # Data quality notes (from improved analysis)
+    if 'data_quality_notes' in suggestions and suggestions['data_quality_notes']:
+        lines.append(f"\n📊 DATA QUALITY:")
+        lines.append(f"   {suggestions['data_quality_notes']}")
+
     lines.append("=" * 60)
     
     return "\n".join(lines)

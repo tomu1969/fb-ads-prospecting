@@ -855,13 +855,27 @@ async def main():
     OUTPUT_ENRICHED, OUTPUT_FINAL, base_enriched, base_final = get_output_files()
     
     # Check if module should run based on enrichment config
-    from utils.enrichment_config import should_run_module
-    if not should_run_module("contact_enricher"):
+    from utils.enrichment_config import should_run_module, load_config_from_env, get_email_depth
+    import json as _json
+
+    config = load_config_from_env()
+    email_depth = get_email_depth(config)
+
+    # should_run_module now checks email_depth internally
+    if not should_run_module("contact_enricher", config):
         print(f"\n{'='*60}")
         print("MODULE 3.6: AGENT ENRICHER (Pipeline v4)")
         print(f"{'='*60}")
-        print("⏭️  SKIPPED: Email enrichment not selected in configuration")
-        print("   Copying input file to output to maintain pipeline continuity...")
+        print("\nStatus: ⏭️  SKIPPED")
+        if email_depth == 'basic':
+            print("Reason: email_depth=basic (Hunter only, no AI agents)")
+        elif not config or not config.get('emails', False):
+            print("Reason: Email enrichment not selected in configuration")
+        else:
+            print("Reason: Module should not run based on configuration")
+        print(f"Email depth: {email_depth}")
+        print(f"Config: {_json.dumps(config, indent=2) if config else 'None'}")
+        print("\nCopying input file to output to maintain pipeline continuity...")
         
         if os.path.exists(INPUT_FILE):
             import shutil
@@ -878,6 +892,10 @@ async def main():
     print(f"\n{'='*60}")
     print("MODULE 3.6: AGENT ENRICHER (Pipeline v4)")
     print(f"{'='*60}")
+    print("\nStatus: ✓ RUNNING")
+    print(f"Reason: email_depth=thorough (Hunter + AI agents)")
+    print(f"Email depth: {email_depth}")
+    print(f"Config: {_json.dumps(config, indent=2) if config else 'None'}")
 
     # Load input file
     print(f"\nLoading: {INPUT_FILE}")

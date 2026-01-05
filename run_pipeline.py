@@ -200,11 +200,17 @@ def check_disk_space(min_gb=1):
         return True
 
 
-def get_row_count(input_file, run_all):
-    """Get row count from input file."""
+def get_row_count(input_file, run_all=None):
+    """Get row count from input file.
+
+    Args:
+        input_file: Path to input file
+        run_all: If True, return full count. If False, return min(count, 3).
+                 If None, return full count (for display before user chooses mode).
+    """
     if not input_file or not input_file.exists():
         return None
-    
+
     try:
         import pandas as pd
         if input_file.suffix.lower() == '.csv':
@@ -212,17 +218,18 @@ def get_row_count(input_file, run_all):
         else:
             df = pd.read_excel(input_file)
         row_count = len(df)
-        
-        if not run_all:
+
+        # Only limit to 3 if explicitly in test mode (run_all=False)
+        if run_all is False:
             row_count = min(row_count, 3)  # Test mode
-        
+
         return row_count
     except Exception:
         # Fallback: approximate count
         try:
             with open(input_file, 'rb') as f:
                 row_count = sum(1 for _ in f) - 1  # Subtract header
-            if not run_all:
+            if run_all is False:
                 row_count = min(row_count, 3)
             return row_count if row_count > 0 else None
         except Exception:
@@ -387,28 +394,33 @@ def interactive_file_selection() -> Path:
             print("   Please try again.")
 
 
-def interactive_enrichment_selection_with_ai(input_file: Path, run_all: bool) -> dict:
+def interactive_enrichment_selection_with_ai(input_file: Path, run_all: bool, initial_email_depth: str = 'thorough') -> dict:
     """
     AI-first enrichment selection: Analyze input, show recommendations, let user customize.
-    
+
     Args:
         input_file: Path to input file
-        run_all: Whether running full dataset
-        
+        run_all: Whether running full dataset (ignored - we show full count for planning)
+        initial_email_depth: Starting email depth ('basic' or 'thorough')
+
     Returns:
-        Dict mapping enrichment types to enabled status
+        Dict mapping enrichment types to enabled status (includes email_depth)
     """
-    row_count = get_row_count(input_file, run_all)
+    from utils.enrichment_config import EMAIL_DEPTH_OPTIONS
+
+    # Always get FULL row count for enrichment planning (user picks test/full mode later)
+    row_count = get_row_count(input_file, run_all=None)  # None = get full count
     if row_count is None:
-        row_count = 3 if not run_all else 100  # Fallback estimate
-    
+        row_count = 100  # Fallback estimate
+
     print("\n" + "=" * 60)
     print("ENRICHMENT CONFIGURATION")
     print("=" * 60)
     print(f"\nAnalyzing input data for {row_count} contact(s)...")
-    
+
     # Start with default config for AI analysis
     default_config = get_default_config()
+    default_config['email_depth'] = initial_email_depth
     
     # Get AI recommendations first
     recommended_config = default_config
@@ -454,20 +466,28 @@ def interactive_enrichment_selection_with_ai(input_file: Path, run_all: bool) ->
         for idx, (enrichment_type, info) in enumerate(ENRICHMENT_TYPES.items(), 1):
             enabled = config.get(enrichment_type, False)
             checkbox = "[✓]" if enabled else "[ ]"
-            
+
             # Get cost/time for this enrichment type
             type_breakdown = breakdown.get(enrichment_type, {'cost': 0.0, 'time_minutes': 0.0})
             cost_str = f"${type_breakdown['cost']:.2f}" if type_breakdown['cost'] > 0 else "Free"
             time_str = f"{type_breakdown['time_minutes']:.1f} min" if type_breakdown['time_minutes'] > 0.1 else "<0.1 min"
-            
+
             # Show if this was recommended by AI
             recommended_by_ai = ""
             if ai_suggestions and recommended_config.get(enrichment_type) == enabled:
                 recommended_by_ai = " (AI recommended)" if enabled else " (AI skipped)"
-            
+
             print(f"  [{idx}] {checkbox} {info['name']}{recommended_by_ai}")
             print(f"      {info['description']}")
             print(f"      Cost: {cost_str} | Time: {time_str}")
+
+            # Show email depth option if this is emails and enabled
+            if enrichment_type == 'emails' and enabled:
+                email_depth = config.get('email_depth', 'thorough')
+                depth_info = EMAIL_DEPTH_OPTIONS.get(email_depth, {})
+                depth_name = depth_info.get('name', email_depth)
+                print(f"      Depth: {depth_name}")
+                print(f"      (Press 'd' to toggle depth)")
         
         # Show totals
         print("\n" + "-" * 60)
@@ -479,6 +499,7 @@ def interactive_enrichment_selection_with_ai(input_file: Path, run_all: bool) ->
         print("\nOptions:")
         print("  [Enter] Accept and continue")
         print("  [1-5] Toggle enrichment type")
+        print("  [d] Toggle email depth (Basic ↔ Thorough)")
         print("  [a] Enable all enrichments")
         print("  [n] Disable all enrichments")
         print("  [r] Reset to AI recommendations")
@@ -502,19 +523,34 @@ def interactive_enrichment_selection_with_ai(input_file: Path, run_all: bool) ->
                 sys.exit(1)
             
             elif choice == 'a':
+                current_depth = config.get('email_depth', 'thorough')  # Preserve current depth
                 config = get_default_config()
+                config['email_depth'] = current_depth
                 estimated_cost, estimated_minutes = estimate_cost_and_time(row_count, config, parallel_factor=1.5)
                 breakdown = get_cost_breakdown(row_count, config)
                 print("✓ All enrichments enabled")
                 continue
             
             elif choice == 'n':
+                current_depth = config.get('email_depth', 'thorough')  # Save before reset
                 config = {k: False for k in ENRICHMENT_TYPES.keys()}
+                config['email_depth'] = current_depth  # Preserve email_depth
                 estimated_cost, estimated_minutes = estimate_cost_and_time(row_count, config, parallel_factor=1.5)
                 breakdown = get_cost_breakdown(row_count, config)
                 print("✓ All enrichments disabled")
                 continue
-            
+
+            elif choice == 'd':
+                # Toggle email depth between basic and thorough
+                current_depth = config.get('email_depth', 'thorough')
+                new_depth = 'basic' if current_depth == 'thorough' else 'thorough'
+                config['email_depth'] = new_depth
+                depth_info = EMAIL_DEPTH_OPTIONS.get(new_depth, {})
+                estimated_cost, estimated_minutes = estimate_cost_and_time(row_count, config, parallel_factor=1.5)
+                breakdown = get_cost_breakdown(row_count, config)
+                print(f"✓ Email depth set to: {depth_info.get('name', new_depth)}")
+                continue
+
             elif choice == 'r' and ai_suggestions:
                 config = recommended_config.copy()
                 estimated_cost, estimated_minutes = estimate_cost_and_time(row_count, config, parallel_factor=3.0)
@@ -548,47 +584,9 @@ def interactive_enrichment_selection_with_ai(input_file: Path, run_all: bool) ->
             print("   Please try again.")
 
 
-def interactive_speed_mode_selection() -> str:
-    """
-    Interactive speed mode selection (fast vs full enrichment).
-
-    Returns:
-        'fast' for Hunter-only mode, 'full' for complete enrichment
-    """
-    print("\n" + "=" * 60)
-    print("SELECT ENRICHMENT SPEED")
-    print("=" * 60)
-
-    print("\n[1] Fast Mode (Hunter Only) - ~10 minutes")
-    print("    Uses Hunter.io + website scraping for emails")
-    print("    Faster but may find fewer emails (~60-70% coverage)")
-
-    print("\n[2] Full Enrichment - ~25-40 minutes")
-    print("    Adds AI-powered email discovery (v2.1 + v3.1 agents)")
-    print("    Slower but better coverage (~85-95% of findable emails)")
-
-    while True:
-        try:
-            choice = input("\nEnter choice (1-2): ").strip()
-
-            if choice == '1':
-                print("Selected: Fast Mode (Hunter Only)")
-                os.environ['PIPELINE_SPEED_MODE'] = 'fast'
-                return 'fast'
-            elif choice == '2':
-                print("Selected: Full Enrichment")
-                os.environ['PIPELINE_SPEED_MODE'] = 'full'
-                return 'full'
-            else:
-                print("Invalid choice. Please enter 1 or 2.")
-                continue
-
-        except KeyboardInterrupt:
-            print("\n\nCancelled by user.")
-            sys.exit(1)
-        except Exception as e:
-            print(f"Error: {e}")
-            print("   Please try again.")
+# NOTE: interactive_speed_mode_selection() has been removed.
+# Speed mode (email_depth) is now integrated into interactive_enrichment_selection_with_ai()
+# Use 'd' to toggle between Basic (Hunter only) and Thorough (Hunter + AI agents)
 
 
 def interactive_run_mode_selection(input_file: Path, enrichment_config: dict = None) -> bool:
@@ -733,42 +731,42 @@ def main():
         if input_file is None:
             input_file = interactive_file_selection()
 
-    # Speed mode selection (fast vs full enrichment)
-    # Skip if --skip-enrichment-selection is set (non-interactive mode)
-    speed_mode = 'full'  # Default to full
+    # Handle --fast flag (sets email_depth to 'basic')
+    # Speed mode is now controlled via email_depth in config, not a separate selection
+    initial_email_depth = 'thorough'  # Default
     if "--fast" in sys.argv:
-        speed_mode = 'fast'
-        os.environ['PIPELINE_SPEED_MODE'] = 'fast'
-        os.environ['SKIP_CONTACT_ENRICHER'] = 'true'
-        print("Using Fast Mode (Hunter Only)")
+        initial_email_depth = 'basic'
+        os.environ['PIPELINE_SPEED_MODE'] = 'fast'  # For backward compatibility
+        os.environ['SKIP_CONTACT_ENRICHER'] = 'true'  # For backward compatibility
+        print("Using Fast Mode (Hunter Only) - email_depth=basic")
     elif "--speed-full" in sys.argv:
-        speed_mode = 'full'
+        initial_email_depth = 'thorough'
         os.environ['PIPELINE_SPEED_MODE'] = 'full'
-        print("Using Full Enrichment Mode")
-    elif "--skip-enrichment-selection" not in sys.argv:
-        # Only show interactive selection if not skipping enrichment selection
-        speed_mode = interactive_speed_mode_selection()
+        print("Using Full Enrichment Mode - email_depth=thorough")
 
     # AI-first enrichment selection (analyze first, then let user customize)
+    # Speed mode is now integrated into enrichment selection via email_depth option
     enrichment_config = None
     if "--skip-enrichment-selection" not in sys.argv:
-        enrichment_config = interactive_enrichment_selection_with_ai(input_file, run_all if run_all is not None else False)
-
-        # In Fast Mode, disable contact_enricher (Agent Enricher module)
-        # This is the main time-saver: skip LLM-based email finding
-        if speed_mode == 'fast':
-            # Modify the emails enrichment to skip contact_enricher
-            # The enrichment config controls which modules run
-            os.environ['SKIP_CONTACT_ENRICHER'] = 'true'
-            print("Fast Mode: Skipping Agent Enricher (LLM-based email finding)")
-
+        enrichment_config = interactive_enrichment_selection_with_ai(
+            input_file,
+            run_all if run_all is not None else False,
+            initial_email_depth=initial_email_depth
+        )
         save_config_to_env(enrichment_config)
+
+        # Set env vars for backward compatibility with modules that check them
+        if enrichment_config.get('email_depth') == 'basic':
+            os.environ['SKIP_CONTACT_ENRICHER'] = 'true'
+            os.environ['PIPELINE_SPEED_MODE'] = 'fast'
+        else:
+            os.environ['SKIP_CONTACT_ENRICHER'] = 'false'
+            os.environ['PIPELINE_SPEED_MODE'] = 'full'
     else:
         # Load from env if available, otherwise default to all
         from utils.enrichment_config import load_config_from_env, get_default_config
         enrichment_config = load_config_from_env() or get_default_config()
-        if speed_mode == 'fast':
-            os.environ['SKIP_CONTACT_ENRICHER'] = 'true'
+        enrichment_config['email_depth'] = initial_email_depth
         save_config_to_env(enrichment_config)
     
     # Interactive run mode selection if not explicitly set
@@ -805,8 +803,49 @@ def main():
         print(f"# Starting from: Module {start_from}")
     print(f"{'#'*60}")
 
+    # === LOGGING: Show enrichment configuration ===
+    print(f"\n{'='*60}")
+    print("ENRICHMENT CONFIGURATION")
+    print(f"{'='*60}")
+    print("\nEnrichment types:")
+    from utils.enrichment_config import EMAIL_DEPTH_OPTIONS
+    for etype, enabled in (enrichment_config or {}).items():
+        if etype == 'email_depth':
+            depth_info = EMAIL_DEPTH_OPTIONS.get(enabled, {})
+            print(f"  email_depth: {depth_info.get('name', enabled)}")
+        else:
+            status = "✓ ENABLED" if enabled else "✗ disabled"
+            print(f"  {etype}: {status}")
+
+    print("\nModules to run:")
+    from utils.enrichment_config import should_run_module, MODULE_TO_ENRICHMENT
+    for module in MODULES:
+        module_key = {
+            "Enricher": "enricher",
+            "Scraper": "scraper",
+            "Hunter": "hunter",
+            "Agent Enricher": "contact_enricher",
+            "Instagram Enricher": "instagram_enricher",
+        }.get(module["name"])
+
+        if module_key:
+            will_run = should_run_module(module_key, enrichment_config)
+            enriches = MODULE_TO_ENRICHMENT.get(module_key, [])
+            enriches_str = f" ({', '.join(enriches)})" if enriches else ""
+            status = "→ WILL RUN" if will_run else "→ SKIP"
+            print(f"  {module['num']} {module['name']}{enriches_str}: {status}")
+        else:
+            print(f"  {module['num']} {module['name']}: → WILL RUN")
+
+    print(f"\nEnvironment:")
+    print(f"  SKIP_CONTACT_ENRICHER: {os.environ.get('SKIP_CONTACT_ENRICHER', 'not set')}")
+    print(f"  PIPELINE_SPEED_MODE: {os.environ.get('PIPELINE_SPEED_MODE', 'not set')}")
+    print(f"{'='*60}\n")
+
     total_start = time.time()
     failed_modules = []
+    modules_run = []
+    modules_skipped = []
 
     for module in MODULES:
         if module["num"] < start_from:
@@ -820,6 +859,80 @@ def main():
             break
 
     total_elapsed = time.time() - total_start
+
+    # === LOGGING: Pipeline summary with field coverage ===
+    print(f"\n{'='*60}")
+    print("PIPELINE SUMMARY")
+    print(f"{'='*60}")
+
+    # Try to read the final output and show field coverage
+    try:
+        import pandas as pd
+        from utils.run_id import get_versioned_filename
+
+        # Find the final output file
+        if run_id:
+            final_file = BASE_DIR / "processed" / get_versioned_filename("03d_final.csv", run_id)
+        else:
+            final_file = BASE_DIR / "processed" / "03d_final.csv"
+
+        if final_file.exists() or (final_file.is_symlink() and final_file.resolve().exists()):
+            df = pd.read_csv(final_file)
+            total_rows = len(df)
+
+            print(f"\nOutput: {final_file.name} ({total_rows} rows)")
+            print(f"\nField coverage:")
+
+            # Key fields to check
+            key_fields = [
+                ('contact_name', 'Contact names'),
+                ('primary_email', 'Primary emails'),
+                ('hunter_contact_name', 'Hunter names'),
+                ('pipeline_name', 'Pipeline names'),
+                ('instagram_handles', 'Instagram handles'),
+                ('phones', 'Phone numbers'),
+            ]
+
+            warnings = []
+            for field, label in key_fields:
+                if field in df.columns:
+                    # Count non-empty values
+                    def is_filled(val):
+                        if pd.isna(val):
+                            return False
+                        val_str = str(val).strip().lower()
+                        return val_str not in ['', 'nan', 'none', 'none none', 'null', '[]']
+
+                    filled = df[field].apply(is_filled).sum()
+                    pct = 100 * filled / total_rows if total_rows > 0 else 0
+                    status = ""
+                    if pct < 30:
+                        status = " ← LOW"
+                        warnings.append(f"{label}: only {pct:.0f}%")
+                    print(f"  {label}: {filled}/{total_rows} ({pct:.0f}%){status}")
+                else:
+                    print(f"  {label}: MISSING COLUMN ← Module likely skipped")
+                    warnings.append(f"{label} column missing")
+
+            # Check which modules actually added columns
+            print(f"\nModule output verification:")
+            hunter_cols = ['hunter_contact_name', 'hunter_emails', 'primary_email']
+            hunter_added = any(c in df.columns for c in hunter_cols)
+            print(f"  Hunter module: {'✓ Columns present' if hunter_added else '✗ No columns added - SKIPPED?'}")
+
+            pipeline_cols = ['pipeline_name', 'pipeline_email', 'enrichment_stage']
+            pipeline_added = any(c in df.columns for c in pipeline_cols)
+            print(f"  Contact Enricher: {'✓ Columns present' if pipeline_added else '✗ No columns added - SKIPPED?'}")
+
+            if warnings:
+                print(f"\n⚠️  Warnings:")
+                for w in warnings:
+                    print(f"    - {w}")
+
+    except Exception as e:
+        print(f"\n  Could not read final output: {e}")
+
+    print(f"{'='*60}")
 
     print(f"\n{'#'*60}")
     print(f"# PIPELINE COMPLETE")

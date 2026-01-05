@@ -5,6 +5,24 @@ import json
 from typing import Dict, List, Optional
 from pathlib import Path
 
+# Email enrichment depth options
+EMAIL_DEPTH_OPTIONS = {
+    'basic': {
+        'name': 'Basic (Hunter only)',
+        'description': 'Hunter.io lookup only (~10 min, 60-70% coverage)',
+        'modules': ['hunter'],
+        'time_per_contact': 1.0,  # seconds
+        'cost_per_contact': 0.0,  # Free with Hunter tier
+    },
+    'thorough': {
+        'name': 'Thorough (Hunter + AI)',
+        'description': 'Hunter.io + AI-powered discovery (~25-40 min, 85-95% coverage)',
+        'modules': ['hunter', 'contact_enricher'],
+        'time_per_contact': 1.3,  # seconds base, contact_enricher adds more for unfound
+        'cost_per_contact': 0.0,  # Free with Hunter tier, AI costs extra
+    },
+}
+
 # Enrichment types and their associated modules
 # NOTE: Time estimates based on actual measured performance with parallelization
 ENRICHMENT_TYPES = {
@@ -18,9 +36,11 @@ ENRICHMENT_TYPES = {
     'emails': {
         'name': 'Email Addresses',
         'description': 'Hunter.io lookup + email verification',
-        'modules': ['hunter', 'contact_enricher'],
+        'modules': ['hunter', 'contact_enricher'],  # contact_enricher only runs if depth=thorough
         'cost_per_contact': 0.0,  # Free with Hunter tier
         'time_per_contact': 1.3,  # seconds (measured: ~1.3 min for 59 contacts)
+        'has_depth_option': True,  # Flag for UI to show depth toggle
+        'default_depth': 'thorough',
     },
     'phones': {
         'name': 'Phone Numbers',
@@ -55,9 +75,33 @@ MODULE_TO_ENRICHMENT = {
 }
 
 
-def get_default_config() -> Dict[str, bool]:
-    """Get default enrichment configuration (all enabled)."""
-    return {enrichment_type: True for enrichment_type in ENRICHMENT_TYPES.keys()}
+def get_default_config() -> Dict:
+    """Get default enrichment configuration (all enabled, thorough email depth)."""
+    config = {enrichment_type: True for enrichment_type in ENRICHMENT_TYPES.keys()}
+    config['email_depth'] = 'thorough'  # Default to thorough email enrichment
+    return config
+
+
+def get_email_depth(config: Optional[Dict] = None) -> str:
+    """
+    Get email enrichment depth from config or environment.
+
+    Args:
+        config: Enrichment configuration dict
+
+    Returns:
+        'basic' or 'thorough'
+    """
+    # First check config
+    if config and 'email_depth' in config:
+        return config['email_depth']
+
+    # Fall back to env var for backward compatibility with --fast flag
+    if os.environ.get('SKIP_CONTACT_ENRICHER') == 'true' or \
+       os.environ.get('PIPELINE_SPEED_MODE') == 'fast':
+        return 'basic'
+
+    return 'thorough'  # Default
 
 
 def load_config_from_env() -> Optional[Dict[str, bool]]:
@@ -120,31 +164,40 @@ def save_config_to_file(config: Dict[str, bool], file_path: Path):
         json.dump(config, f, indent=2)
 
 
-def should_run_module(module_name: str, config: Optional[Dict[str, bool]] = None) -> bool:
+def should_run_module(module_name: str, config: Optional[Dict] = None) -> bool:
     """
     Check if a module should run based on enrichment configuration.
-    
+
     Args:
         module_name: Name of the module (e.g., 'enricher', 'hunter')
         config: Enrichment configuration dict (defaults to loading from env)
-        
+
     Returns:
         True if module should run, False otherwise
     """
     if config is None:
         config = load_config_from_env()
-    
+
     # If no config, default to running all modules (backward compatibility)
     if config is None:
         return True
-    
+
+    # Special case: contact_enricher only runs if email_depth is 'thorough'
+    if module_name == 'contact_enricher':
+        # First check if emails are enabled
+        if not config.get('emails', False):
+            return False
+        # Then check depth
+        email_depth = get_email_depth(config)
+        return email_depth == 'thorough'
+
     # Get enrichment types required by this module
     required_types = MODULE_TO_ENRICHMENT.get(module_name, [])
-    
+
     # If module has no enrichment types, run it (e.g., loader, exporter, validator)
     if not required_types:
         return True
-    
+
     # Module should run if any of its required enrichment types are enabled
     return any(config.get(enrichment_type, False) for enrichment_type in required_types)
 
@@ -209,18 +262,17 @@ def estimate_cost_and_time(
         time_per = enrichment_info.get('time_per_contact', 0.0)
         modules = enrichment_info.get('modules', [])
         
-        # Special handling for emails (only 30% need agent enrichment)
+        # Special handling for emails (depends on email_depth setting)
         if enrichment_type == 'emails':
-            # Check if Fast Mode is enabled (skip contact_enricher)
-            fast_mode = os.environ.get('SKIP_CONTACT_ENRICHER') == 'true' or \
-                        os.environ.get('PIPELINE_SPEED_MODE') == 'fast'
+            # Get email depth from config (basic = Hunter only, thorough = Hunter + AI)
+            email_depth = get_email_depth(config)
 
-            if fast_mode:
-                # Fast Mode: Only Hunter, no agent enricher
+            if email_depth == 'basic':
+                # Basic Mode: Only Hunter, no agent enricher
                 module_times['hunter'] = max(module_times['hunter'], row_count * 1.0)
-                # No cost for agent enricher in fast mode
+                # No cost for agent enricher in basic mode
             else:
-                # Full Mode: Hunter + Agent enricher for 30% of contacts
+                # Thorough Mode: Hunter + Agent enricher for 30% of contacts
                 contacts_needing_enrichment = int(row_count * 0.3)
                 total_cost += contacts_needing_enrichment * cost_per
                 # Time is average across all contacts (some fast via Hunter, some slow via Agent)
@@ -279,9 +331,16 @@ def get_cost_breakdown(
         time_per = enrichment_info.get('time_per_contact', 0.0)
         
         if enrichment_type == 'emails':
-            contacts_needing_enrichment = int(row_count * 0.3)
-            cost = contacts_needing_enrichment * cost_per
-            time_minutes = (row_count * time_per) / 60.0
+            email_depth = get_email_depth(config)
+            if email_depth == 'basic':
+                # Basic: Hunter only
+                cost = 0.0
+                time_minutes = (row_count * 1.0) / 60.0  # ~1s per contact
+            else:
+                # Thorough: Hunter + AI for ~30% of contacts
+                contacts_needing_enrichment = int(row_count * 0.3)
+                cost = contacts_needing_enrichment * cost_per
+                time_minutes = (row_count * time_per) / 60.0
         else:
             cost = row_count * cost_per
             time_minutes = (row_count * time_per) / 60.0
