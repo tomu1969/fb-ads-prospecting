@@ -18,3 +18,4 @@ output/*.csv
 output/*.xlsx
 output/*.json
 output/legacy/
+config/scraped_advertisers.json

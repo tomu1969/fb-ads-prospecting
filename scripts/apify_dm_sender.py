@@ -30,6 +30,31 @@ APIFY_API_TOKEN = os.getenv('APIFY_API_TOKEN') or os.getenv('APIFY_API_KEY')
 # Apify actor for Instagram DMs
 APIFY_ACTOR_ID = os.getenv('APIFY_DM_ACTOR_ID', 'am_production/instagram-direct-messages-dms-automation')
 
+# Blocklist of false positive handles (platform accounts, generic handles, etc.)
+HANDLE_BLOCKLIST = {
+    # Platform/service accounts
+    'wix', 'linktr.ee', 'linktree', 'googleplay', 'appstore', 'apple',
+    # Generic Instagram features/pages
+    'reel', 'reels', 'explore', 'instagram', 'accounts', 'about', 'help',
+    # Real estate brands (too generic, not individual agents)
+    'compass', 'remax', 'kw', 'century21', 'coldwellbanker', 'sothebys',
+    # Location-only handles
+    'miami', 'nyc', 'la', 'florida', 'california', 'texas',
+    # CSS/JS false positives
+    'graph', 'context', 'type', 'media', 'import', 'font', 'keyframes',
+    # Generic words
+    'home', 'contact', 'info', 'admin', 'support', 'team', 'official',
+}
+
+# Invalid name patterns
+INVALID_NAMES = {
+    'none', 'nan', 'null', 'n/a', 'na', 'undefined', 'unknown',
+    'none none',  # Common bug from upstream
+    'the', 'a', 'an',  # Articles
+    'new', 'meet', 'leasing', 'sales', 'marketing', 'admin',  # Roles/departments
+    'contact', 'info', 'support', 'team', 'staff',
+}
+
 
 def get_apify_client():
     """Get Apify client."""
@@ -73,11 +98,36 @@ def parse_instagram_handles(handles_str: str) -> List[str]:
             continue
         if handle.startswith('@'):
             handle = handle[1:]
+        handle = handle.lower()
         # Validate format
-        if re.match(r'^[a-zA-Z0-9._]+$', handle):
-            cleaned.append(handle.lower())
+        if not re.match(r'^[a-zA-Z0-9._]+$', handle):
+            continue
+        # Filter out blocklisted handles
+        if handle in HANDLE_BLOCKLIST:
+            continue
+        cleaned.append(handle)
 
     return cleaned
+
+
+def is_valid_name(name: str) -> bool:
+    """Check if name is valid for personalization."""
+    if not name:
+        return False
+    name_lower = name.lower().strip()
+    # Check against invalid names list
+    if name_lower in INVALID_NAMES:
+        return False
+    # Reject names shorter than 2 characters
+    if len(name) < 2:
+        return False
+    # Reject ALL CAPS names (likely acronyms or parsing errors)
+    if name.isupper() and len(name) > 2:
+        return False
+    # Reject names that are just numbers
+    if name.isdigit():
+        return False
+    return True
 
 
 def get_contact_name(row: pd.Series) -> str:
@@ -85,16 +135,63 @@ def get_contact_name(row: pd.Series) -> str:
     # Try matched_name first
     if 'matched_name' in row.index:
         name = str(row.get('matched_name', '')).strip()
-        if name and name.lower() not in ['none', 'nan', 'null', 'n/a', '']:
-            return name.split()[0] if name.split() else name
+        if name:
+            first_name = name.split()[0] if name.split() else name
+            if is_valid_name(first_name):
+                return first_name
 
     # Try contact_name
     if 'contact_name' in row.index:
         name = str(row.get('contact_name', '')).strip()
-        if name and name.lower() not in ['none', 'nan', 'null', 'n/a', '']:
-            return name.split()[0] if name.split() else name
+        if name:
+            first_name = name.split()[0] if name.split() else name
+            if is_valid_name(first_name):
+                return first_name
 
     return ''
+
+
+def extract_name_from_handle(handle: str) -> str:
+    """Try to extract a first name from an Instagram handle.
+
+    Examples:
+        @dexterbrandao -> Dexter
+        @mary.couser -> Mary
+        @john_smith_realtor -> John
+    """
+    if not handle:
+        return ''
+
+    # Remove @ if present
+    handle = handle.replace('@', '').lower()
+
+    # Common patterns to remove
+    suffixes = ['realtor', 'realty', 'realestate', 'homes', 'properties', 'group',
+                'team', 'official', 'miami', 'florida', 'la', 'nyc']
+
+    # Split by common separators
+    parts = re.split(r'[._]', handle)
+
+    if not parts:
+        return ''
+
+    # Get first part
+    first_part = parts[0]
+
+    # Skip if it's a suffix/keyword
+    if first_part in suffixes:
+        return ''
+
+    # Skip if too short or too long
+    if len(first_part) < 3 or len(first_part) > 20:
+        return ''
+
+    # Skip if contains numbers
+    if any(c.isdigit() for c in first_part):
+        return ''
+
+    # Capitalize and return
+    return first_part.capitalize()
 
 
 def get_company_name(row: pd.Series) -> str:
@@ -169,8 +266,14 @@ def send_dm_via_apify(client, username: str, message: str) -> Tuple[bool, Option
 
 def process_csv_and_send(csv_path: Path, message_template: str,
                          dry_run: bool = False, limit: Optional[int] = None,
-                         delay: float = 2.0, exclude_handles: Optional[List[str]] = None) -> Dict:
-    """Process CSV and send DMs."""
+                         delay: float = 2.0, exclude_handles: Optional[List[str]] = None,
+                         first_handle_only: bool = False) -> Dict:
+    """Process CSV and send DMs.
+
+    Args:
+        first_handle_only: If True, only send to the first handle per row.
+                          This prevents sending to multiple handles with mismatched names.
+    """
     # Load CSV
     try:
         df = pd.read_csv(csv_path, encoding='utf-8')
@@ -212,10 +315,18 @@ def process_csv_and_send(csv_path: Path, message_template: str,
                 row_count += 1
                 continue
 
-            contact_name = get_contact_name(row)
+            # If first_handle_only, only process the first handle
+            if first_handle_only:
+                handles = handles[:1]
+
+            row_contact_name = get_contact_name(row)
             company_name = get_company_name(row)
 
             for handle in handles:
+                # Try to get name: first from row, then from handle itself
+                contact_name = row_contact_name
+                if not contact_name:
+                    contact_name = extract_name_from_handle(handle)
                 if handle in processed_handles:
                     continue
                 # Check exclusion list
@@ -341,6 +452,8 @@ def main():
                        help='Delay between sends in seconds (default: 2)')
     parser.add_argument('--exclude', type=str, nargs='+',
                        help='Instagram handles to exclude (already messaged)')
+    parser.add_argument('--first-handle-only', action='store_true',
+                       help='Only send to the first handle per row (prevents name mismatch)')
 
     args = parser.parse_args()
 
@@ -378,7 +491,8 @@ def main():
         dry_run=args.dry_run,
         limit=args.limit,
         delay=args.delay,
-        exclude_handles=args.exclude
+        exclude_handles=args.exclude,
+        first_handle_only=args.first_handle_only
     )
 
     # Show sample if dry run
