@@ -1,6 +1,14 @@
-# Prospecting Pipeline
+# FB Ads Prospecting Pipeline
 
-Automated pipeline to convert lead data (from any source) into qualified prospects with verified contact information, ready for HubSpot import. Supports CSV, Excel, JSON, and TSV input formats with AI-powered field mapping.
+Automated pipeline to scrape Facebook advertisers, enrich leads with contact information, and send Instagram DMs for outreach. Supports CSV, Excel, JSON, and TSV input formats with AI-powered field mapping.
+
+## Repository Overview
+
+This repository contains three main components:
+
+1. **FB Ads Scraper** - Scrape advertisers from Facebook Ad Library
+2. **Enrichment Pipeline** - Find websites, emails, phones, and Instagram handles
+3. **DM Senders** - Send personalized Instagram messages via Apify or ManyChat
 
 ## Quick Start
 
@@ -10,256 +18,186 @@ pip install -r requirements.txt
 
 # Configure API keys
 cp .env.example .env
-# Edit .env with your OPENAI_API_KEY and HUNTER_API_KEY
+# Edit .env with your API keys (see API Requirements section)
 
-# Run full pipeline with default input file
+# Option 1: Full workflow (scrape → enrich → outreach)
+python scripts/fb_ads_scraper.py --query "real estate miami" --count 100
+python run_pipeline.py --input output/fb_ads_scraped_*.csv --all
+python scripts/apify_dm_sender.py --csv output/prospects_final.csv --message "Hi {contact_name}!" --dry-run
+
+# Option 2: Run pipeline with existing data
 python run_pipeline.py --all
-
-# Or use a custom input file (CSV, Excel, JSON, TSV)
-python run_pipeline.py --input path/to/your/file.csv --all
-
-# Or run in test mode (3 rows)
-python run_pipeline.py
 ```
 
-## Pipeline Overview
+---
+
+## Facebook Ads Scraper
+
+Scrapes Facebook advertisers from the Ad Library using the Apify actor `dz_omar/facebook-ads-scraper-pro`.
+
+### Features
+- Interactive mode with search preview
+- Multiple ad type filters (all, housing, political, employment, credit)
+- Country-level location filtering
+- Status filtering (active/inactive/all)
+- Deduplication with history tracking
+- Housing ads workaround for broken category filter
+
+### Usage
+
+```bash
+# Interactive mode
+python scripts/fb_ads_scraper.py
+
+# CLI mode - basic search
+python scripts/fb_ads_scraper.py --query "real estate miami" --count 100
+
+# Search with filters
+python scripts/fb_ads_scraper.py \
+  --query "real estate" \
+  --location us \
+  --ad-type all \
+  --status active \
+  --count 200
+
+# Housing ads (uses keyword workaround)
+python scripts/fb_ads_scraper.py --ad-type housing_ads --query "miami" --count 50
+
+# Browse by filters only (no keywords)
+python scripts/fb_ads_scraper.py --location us --ad-type political_and_issue_ads
+
+# Dry run (preview config)
+python scripts/fb_ads_scraper.py --query "test" --count 50 --dry-run
+
+# Force re-scrape (ignore deduplication)
+python scripts/fb_ads_scraper.py --query "test" --force
+```
+
+### CLI Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--query` | Search keywords | (none) |
+| `--location` | Location preset (us, uk, canada, etc.) | us |
+| `--country` | ISO country code | US |
+| `--ad-type` | all, housing_ads, political_and_issue_ads, employment_ads, credit_ads | all |
+| `--status` | active, inactive, all | active |
+| `--media` | all, video, image | all |
+| `--count` | Max results to fetch | 100 |
+| `--start-date` | Start date (YYYY-MM-DD) | (none) |
+| `--end-date` | End date (YYYY-MM-DD) | (none) |
+| `--output` | Custom output path | auto-generated |
+| `--dry-run` | Preview config without scraping | false |
+| `--force` | Ignore deduplication | false |
+| `--list-locations` | Show available location presets | - |
+
+### Output Format
+
+The scraper outputs a CSV compatible with the enrichment pipeline:
+
+| Column | Description |
+|--------|-------------|
+| `page_name` | Advertiser name |
+| `page_id` | Facebook page ID |
+| `page_likes` | Page follower count |
+| `page_url` | Facebook page URL |
+| `page_category` | Business category |
+| `ad_count` | Number of ads found |
+| `text` | Ad text content |
+| `platforms` | Platforms (Facebook, Instagram, etc.) |
+| `is_active` | Active status |
+| `start_date` | Ad start date |
+| `link_urls` | Destination URLs from ads |
+
+### Housing Ads Note
+
+The Apify actor has a bug where `HOUSING_ADS` category returns 0 results. The scraper automatically applies a workaround:
+- Changes `ad_type` to `all`
+- Adds "real estate" keyword to filter results
+
+---
+
+## Enrichment Pipeline
+
+Converts lead data into qualified prospects with verified contact information.
+
+### Pipeline Flow
 
 ```
 Module 1    Module 2    Module 3    Module 3.5   Module 3.6      Module 3.7        Module 4    Module 5
 Loader  →  Enricher →  Scraper  →   Hunter   → Agent Enricher → Instagram Enricher → Exporter → Validator
   │           │           │            │             │                 │              │           │
-Smart      Search      Scrape      Hunter.io    OpenAI Agents      OpenAI API      HubSpot     Quality
-Adapter    Websites    Contacts    Emails       (fallback)        Instagram       CSV         Report
-(Any       (DuckDuckGo)             (Hunter.io)                    (OpenAI API)     (HubSpot)   (Quality
-Format)                                                                                Import)    Report)
-```
+Smart      Search      Scrape      Hunter.io    OpenAI Agents      OpenAI/Groq     HubSpot     Quality
+Adapter    Websites    Contacts    Emails       (fallback)         Instagram       CSV         Report
 ```
 
-## Project Structure
+### Usage
 
-```
-fb_ads_library_prospecting/
-├── run_pipeline.py           # Main orchestrator
-├── scripts/
-│   ├── loader.py             # Module 1: Smart input adapter (any format)
-│   ├── enricher.py           # Module 2: Find company websites
-│   ├── scraper.py            # Module 3: Scrape contacts from websites
-│   ├── hunter.py             # Module 3.5: Hunter.io email/phone enrichment
-│   ├── contact_enricher_pipeline.py  # Module 3.6: AI agent fallback enrichment
-│   ├── instagram_enricher.py # Module 3.7: Instagram handle enrichment
-│   ├── clean_instagram_handles.py  # Utility: Clean and consolidate Instagram handles
-│   ├── exporter.py           # Module 4: Export to HubSpot CSV
-│   ├── validator.py          # Module 5: Quality validation
-│   ├── apify_dm_sender.py    # Instagram DM sender via Apify
-│   ├── manychat_sender.py    # Instagram DM sender via ManyChat
-│   └── legacy/               # Archived scripts (including loader_fb_ads.py)
-├── input/                    # Source files (CSV, Excel, JSON, TSV)
-├── processed/                # Intermediate CSV files
-│   └── legacy/               # Old processed files
-├── output/                   # Final export files
-│   └── legacy/               # Old output files
-└── config/                   # Settings and overrides
-    └── field_mappings/       # Saved field mapping configurations
-```
-```
-
-## Usage
-
-### Run Full Pipeline
 ```bash
-# With default input file
+# Interactive mode (prompts for everything)
+python run_pipeline.py
+
+# Full run with file selection
 python run_pipeline.py --all
 
-# With custom input file
-python run_pipeline.py --input path/to/your/file.csv --all
+# Custom input file
+python run_pipeline.py --input path/to/leads.csv --all
+
+# Test mode (3 rows only)
+python run_pipeline.py --test
+
+# Resume from specific module
+python run_pipeline.py --from 3.5 --all   # Resume from Hunter
+python run_pipeline.py --from 3.7 --all   # Resume from Instagram Enricher
+
+# Speed modes
+python run_pipeline.py --all --fast        # Hunter only (faster)
+python run_pipeline.py --all --speed-full  # Hunter + AI agents (thorough)
 ```
 
 ### Run Individual Modules
+
 ```bash
-# Module 1: Smart Loader (interactive field mapping)
-python scripts/loader.py
-python scripts/loader.py --input path/to/your/file.csv
-
-# Other modules
-python scripts/enricher.py --all
-python scripts/scraper.py --all
-python scripts/hunter.py --all
-python scripts/contact_enricher_pipeline.py --all
-python scripts/instagram_enricher.py --all
-python scripts/instagram_enricher.py --all --verify  # With handle verification (slower)
-python scripts/exporter.py
-python scripts/validator.py
+python scripts/loader.py --input file.csv     # Smart loader with AI mapping
+python scripts/enricher.py --all              # Find company websites
+python scripts/scraper.py --all               # Scrape contacts from sites
+python scripts/hunter.py --all                # Hunter.io email lookup
+python scripts/contact_enricher_pipeline.py --all  # AI fallback enrichment
+python scripts/instagram_enricher.py --all    # Find Instagram handles
+python scripts/exporter.py                    # Export to HubSpot format
+python scripts/validator.py                   # Quality validation report
 ```
 
-### Resume from Specific Module
-```bash
-python run_pipeline.py --all --from 3.5   # Resume from Hunter
-python run_pipeline.py --all --from 3.6   # Resume from Agent Enricher
-python run_pipeline.py --all --from 3.7   # Resume from Instagram Enricher
-python run_pipeline.py --all --from 4     # Resume from Exporter
-```
-
-### Smart Input Adapter (Module 1)
-
-The pipeline is **input-agnostic** - it accepts **any input file format** (CSV, Excel, JSON, TSV) and uses OpenAI to intelligently map your columns to the pipeline's required schema. This means you can use leads from:
-- LinkedIn exports
-- CRM exports (Salesforce, HubSpot, etc.)
-- Manual CSV files
-- Facebook Ads Library data (original use case)
-- Any other lead source
-
-**Features:**
-- **Auto-detection**: Automatically detects file format (CSV, Excel, JSON, TSV)
-- **AI-powered mapping**: Uses OpenAI GPT-4o to analyze your file structure and suggest field mappings
-- **Interactive verification**: CLI prompts to confirm or correct AI suggestions
-- **Mapping reuse**: Saves mappings to `config/field_mappings/` for future imports of the same file format
-- **Backwards compatible**: Automatically detects FB Ads Library format and uses optimized legacy loader
-
-**Example:**
-```bash
-# First time: Interactive mapping (AI suggests, you verify)
-python scripts/loader.py --input my_leads.csv
-
-# Next time: Uses saved mapping automatically (no prompts needed)
-python scripts/loader.py --input my_leads.csv
-
-# Via full pipeline
-python run_pipeline.py --input my_leads.csv --all
-```
-
-**Supported Input Formats:**
-- CSV (`.csv`) - Most common, works with any delimiter
-- Excel (`.xlsx`, `.xls`) - Supports multiple sheets
-- JSON (`.json`) - Array of objects or nested structures
-- TSV (`.tsv`) - Tab-separated values
-
-**Required Field:**
-- `page_name` (company/business name) - **REQUIRED** - Must be mapped from your input file
-
-**Optional Fields (can be mapped or will use defaults):**
-- `ad_count` - Number of ads/entries (default: 1)
-- `total_page_likes` - Social media metrics (default: 0)
-- `ad_texts` - Marketing text or descriptions (default: [""])
-- `platforms` - Platforms (Facebook, Instagram, etc.) (default: ["UNKNOWN"])
-- `is_active` - Active status (default: True)
-- `first_ad_date` - Date of first appearance (default: today)
-
-## Output Files
-
-The pipeline generates **3 output files** (plus versioned copies with timestamps):
-
-| File | Description |
-|------|-------------|
-| `output/hubspot_contacts.csv` | HubSpot-ready import file (contacts with email) |
-| `output/prospects_final.csv` | Complete prospect data (all columns, comma-separated format) |
-| `output/prospects_final.xlsx` | Excel version with formatting |
-
-### HubSpot CSV Columns
-
-| Column | HubSpot Property | Source |
-|--------|------------------|--------|
-| `email` | Email (unique ID) | Hunter.io / Agent Enricher |
-| `firstname` | First Name | Parsed from contact_name |
-| `lastname` | Last Name | Parsed from contact_name |
-| `company` | Company | page_name |
-| `jobtitle` | Job Title | contact_position |
-| `website` | Website | website_url |
-| `phone` | Phone | Scraper / Hunter.io |
-| `fb_ad_count` | Custom: FB Ad Count | Source data |
-| `fb_page_likes` | Custom: FB Page Likes | Source data |
-| `ad_platforms` | Custom: Ad Platforms | Source data |
-| `email_verified` | Custom: Email Verified | Hunter.io verification |
-| `instagram_handles` | Custom: Instagram Handles | Instagram Enricher (comma-separated: "@handle1, @handle2") |
-| `linkedin_url` | Custom: LinkedIn URL | Enricher / Scraper |
-| `enrichment_source` | Custom: Enrichment Source | Tracking field |
-
-## Configuration
-
-### Environment Variables (.env)
-```
-OPENAI_API_KEY=sk-...
-HUNTER_API_KEY=...
-```
-
-### Website Overrides (config/website_overrides.csv)
-Manually specify websites for prospects that can't be found automatically:
-```csv
-page_name,website_url
-"Company Name","https://company.com"
-```
-
-### Manual Contacts (config/manual_contacts.csv)
-Add manually researched contacts:
-```csv
-page_name,primary_email,contact_name,contact_position
-"Company Name","email@company.com","John Doe","Broker"
-```
-
-## Example Pipeline Results
-
-The pipeline processes any input file format and enriches prospects with contact information. Results vary based on input data quality and size.
-
-**Typical Enrichment Metrics:**
-- Website discovery rate: ~80-90%
-- Email discovery rate: ~70-85%
-- Phone number coverage: ~60-75%
-- Instagram handle coverage: ~85-95%
-
-### Enrichment Sources
-
-| Source | Description |
-|--------|-------------|
-| Hunter.io | Primary email enrichment and verification |
-| Agent Enricher | AI agent fallback for missing contacts |
-| Website Scraping | Direct extraction from company websites |
-| Manual Overrides | Config files for manual additions |
-| Instagram Enricher | Multi-strategy Instagram handle discovery |
-
-## Pipeline Data Flow
+### Data Files
 
 ```
-01_loaded.csv      → Raw data from input file (any format: CSV, Excel, JSON, TSV)
-02_enriched.csv    → + website_url, linkedin_url, search_confidence
-03_contacts.csv    → + emails, phones from website scraping
-03b_hunter.csv     → + primary_email, contact_name, email_verified from Hunter
-03c_enriched.csv   → Agent enrichment results (for unfound contacts)
-03d_final.csv      → Merged final data (input for Instagram Enricher)
-03d_final.csv      → + instagram_handles (JSON array) from Instagram Enricher
-                    → Final data (input for Exporter)
+processed/01_loaded.csv     → Standardized input data
+processed/02_enriched.csv   → + website_url, linkedin_url
+processed/03_contacts.csv   → + scraped emails, phones
+processed/03b_hunter.csv    → + Hunter.io verified emails
+processed/03d_final.csv     → Final merged data
+
+output/hubspot_contacts.csv → HubSpot-ready import file
+output/prospects_final.csv  → Complete prospect data
+output/prospects_final.xlsx → Excel version
 ```
 
-**Note:** Instagram handles are stored internally as JSON arrays: `["@handle1", "@handle2", "@handle3"]`, but are exported as **comma-separated strings** in all output files (e.g., `"@handle1, @handle2, @handle3"`). The `instagram_handles` column is included in all exports, including the HubSpot CSV. Both personal and company handles are consolidated into this single column. False positives (CSS/JS keywords) are automatically filtered out.
+### Enrichment Results
 
-## Troubleshooting
+| Metric | Typical Rate |
+|--------|--------------|
+| Website discovery | 80-90% |
+| Email discovery | 70-85% |
+| Phone coverage | 60-75% |
+| Instagram handles | 85-95% |
 
-### No emails found for a prospect
-1. Check if website was found in `02_enriched.csv`
-2. Try adding website manually to `config/website_overrides.csv`
-3. Re-run from Hunter module: `python run_pipeline.py --from 3.5 --all`
+---
 
-### Missing phone numbers
-1. Phone numbers are extracted from websites (Scraper) and Hunter.io
-2. Agent Enricher also searches for phone numbers as fallback
-3. Consider adding to `config/manual_contacts.csv`
+## Instagram DM Senders
 
-### Rate limiting errors
-- Enricher: Uses 2-second delays between requests
-- Hunter: Uses 1-second delays
-- Agent Enricher: Uses OpenAI API with built-in rate limiting
-- Instagram Enricher: Uses 2-second delays between searches
-- Increase delays in scripts if needed
+Send personalized Instagram messages to enriched prospects.
 
-### Instagram handles not found
-1. Instagram Enricher uses multiple strategies: website scraping, OpenAI search, and enhanced search
-2. Handles are automatically filtered to remove false positives (CSS/JS keywords)
-3. All handles are consolidated into `instagram_handles` column (comma-separated in exports)
-4. Use `--verify` flag to verify handles exist: `python scripts/instagram_enricher.py --all --verify`
-   - **Note**: Verification is slower (~1.5s per handle) and may be limited by Instagram's anti-bot measures
-5. Run cleanup script if needed: `python scripts/clean_instagram_handles.py`
-
-## Instagram Outreach
-
-After the pipeline completes, you can send Instagram DMs to prospects using the Apify-based sender:
+### Apify DM Sender (Recommended)
 
 ```bash
 # Preview messages (dry run)
@@ -271,34 +209,192 @@ python scripts/apify_dm_sender.py \
 # Send to all contacts
 python scripts/apify_dm_sender.py \
   --csv output/prospects_final.csv \
-  --message "Hey {contact_name} — quick question about {company_name}..."
+  --message "Hi {contact_name}! Interested in discussing {company_name}?"
 
-# Exclude already-contacted handles
+# Send with exclusions and limits
 python scripts/apify_dm_sender.py \
   --csv output/prospects_final.csv \
   --message "Your message here" \
-  --exclude handle1 handle2
+  --limit 20 \
+  --exclude handle1 handle2 \
+  --first-handle-only
+
+# Custom delay between sends
+python scripts/apify_dm_sender.py \
+  --csv output/prospects_final.csv \
+  --message "Your message" \
+  --delay 3.0
 ```
 
-**Required Environment Variables:**
-```
-APIFY_API_KEY=apify_api_...
-INSTAGRAM_SESSION_ID=...  # From browser cookies
+### CLI Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--csv` | Path to CSV with instagram_handles | (required) |
+| `--message` | Message template | (required) |
+| `--dry-run` | Preview without sending | false |
+| `--limit` | Max rows to process | (all) |
+| `--delay` | Seconds between sends | 2.0 |
+| `--exclude` | Handles to skip | (none) |
+| `--first-handle-only` | Only first handle per row | false |
+
+### Message Template Variables
+
+| Variable | Description | Fallback |
+|----------|-------------|----------|
+| `{contact_name}` | Contact's first name | "there" |
+| `{company_name}` | Company/page name | "your company" |
+| `{instagram_handle}` | Instagram handle | - |
+
+### ManyChat Sender (Alternative)
+
+```bash
+python scripts/manychat_sender.py \
+  --csv output/hubspot_contacts.csv \
+  --message "Hi {contact_name}! Interested in {company_name}?" \
+  --dry-run
 ```
 
-**Message Template Variables:**
-- `{contact_name}` - Contact's first name (defaults to "there")
-- `{company_name}` - Company/page name
-- `{instagram_handle}` - Instagram handle
+### Output
+
+Results saved to `output/apify_dm_results_TIMESTAMP.csv`:
+- `instagram_handle`, `contact_name`, `company_name`
+- `message`, `status` (sent/error/dry_run)
+- `error`, `timestamp`
+
+---
+
+## Complete Workflow Example
+
+```bash
+# Step 1: Scrape Facebook advertisers
+python scripts/fb_ads_scraper.py \
+  --query "real estate miami" \
+  --ad-type all \
+  --status active \
+  --count 100
+
+# Step 2: Run enrichment pipeline
+python run_pipeline.py \
+  --input output/fb_ads_scraped_*.csv \
+  --all
+
+# Step 3: Preview DM messages
+python scripts/apify_dm_sender.py \
+  --csv output/prospects_final.csv \
+  --message "Hey {contact_name} — saw your ads for {company_name}. Quick question..." \
+  --dry-run
+
+# Step 4: Send messages
+python scripts/apify_dm_sender.py \
+  --csv output/prospects_final.csv \
+  --message "Hey {contact_name} — saw your ads for {company_name}. Quick question..." \
+  --first-handle-only
+```
+
+---
+
+## Project Structure
+
+```
+fb-ads-prospecting/
+├── run_pipeline.py              # Main pipeline orchestrator
+├── scripts/
+│   ├── fb_ads_scraper.py        # Facebook Ad Library scraper
+│   ├── loader.py                # Module 1: Smart input adapter
+│   ├── enricher.py              # Module 2: Website discovery
+│   ├── scraper.py               # Module 3: Contact extraction
+│   ├── hunter.py                # Module 3.5: Hunter.io enrichment
+│   ├── contact_enricher_pipeline.py  # Module 3.6: AI agent fallback
+│   ├── instagram_enricher.py    # Module 3.7: Instagram handles
+│   ├── exporter.py              # Module 4: HubSpot export
+│   ├── validator.py             # Module 5: Quality validation
+│   ├── apify_dm_sender.py       # Instagram DM sender (Apify)
+│   ├── manychat_sender.py       # Instagram DM sender (ManyChat)
+│   └── clean_instagram_handles.py  # Utility: Handle cleanup
+├── input/                       # Source files
+├── processed/                   # Intermediate pipeline files
+├── output/                      # Final exports
+├── config/
+│   ├── website_overrides.csv    # Manual website mappings
+│   ├── manual_contacts.csv      # Manual contact data
+│   └── field_mappings/          # Saved field mappings
+└── tests/                       # Unit tests
+```
+
+---
+
+## Configuration
+
+### Environment Variables (.env)
+
+```bash
+# Required
+OPENAI_API_KEY=sk-...           # AI enrichment
+HUNTER_API_KEY=...              # Email verification
+
+# For FB Scraper
+APIFY_API_TOKEN=apify_api_...   # FB scraping & DM sending
+
+# For Instagram DM
+INSTAGRAM_SESSION_ID=...        # From browser cookies
+
+# Optional
+GROQ_API_KEY=...                # Faster Instagram search
+MANYCHAT_API_KEY=...            # ManyChat integration
+```
+
+### Manual Overrides
+
+**config/website_overrides.csv** - Specify websites manually:
+```csv
+page_name,website_url
+"Company Name","https://company.com"
+```
+
+**config/manual_contacts.csv** - Add contact data:
+```csv
+page_name,primary_email,contact_name,contact_position
+"Company Name","email@company.com","John Doe","Broker"
+```
+
+---
 
 ## API Requirements
 
 | Service | Purpose | Free Tier |
 |---------|---------|-----------|
-| OpenAI | Agent enrichment, website analysis, Instagram search | Pay per use |
-| Hunter.io | Email finding/verification | 25 searches/month |
-| DuckDuckGo | Website search | Unlimited (rate limited) |
-| Apify | Instagram DM sending | Pay per use |
+| OpenAI | AI enrichment, analysis | Pay per use |
+| Hunter.io | Email verification | 25/month |
+| Apify | FB scraping, DM sending | Pay per use |
+| DuckDuckGo | Website search | Unlimited |
+| Groq | Fast LLM (optional) | Free tier |
+
+---
+
+## Troubleshooting
+
+### FB Scraper returns 0 results
+- Check if query is too specific
+- Try broader keywords
+- For housing ads, the workaround is automatic
+
+### No emails found
+1. Check `02_enriched.csv` for website discovery
+2. Add website to `config/website_overrides.csv`
+3. Re-run: `python run_pipeline.py --from 3.5 --all`
+
+### Instagram handles not found
+1. Run with full mode: `python scripts/instagram_enricher.py --all --full`
+2. Add `--verify` flag to validate handles
+3. Check `config/manual_contacts.csv`
+
+### DM sending errors
+- Verify `INSTAGRAM_SESSION_ID` is valid (refresh from browser)
+- Check handle blocklist filtering
+- Use `--dry-run` to preview before sending
+
+---
 
 ## License
 
