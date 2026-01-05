@@ -18,6 +18,9 @@ from fb_ads_scraper import (
     convert_to_pipeline_format,
     load_history,
     save_history,
+    apply_housing_workaround,
+    LOCATION_PRESETS,
+    HOUSING_KEYWORDS,
 )
 
 
@@ -65,6 +68,48 @@ class TestBuildSearchUrl:
         for ad_type in ['all', 'political_and_issue_ads', 'housing_ads', 'employment_ads', 'credit_ads']:
             url = build_search_url(query="test", country="US", ad_type=ad_type)
             assert f"ad_type={ad_type}" in url
+
+    def test_empty_query(self):
+        """Test URL building without keywords (browsing by filters)."""
+        url = build_search_url(query='', country='US', ad_type='housing_ads')
+        assert 'country=US' in url
+        assert 'ad_type=housing_ads' in url
+        assert 'q=' not in url  # No query parameter when empty
+
+    def test_empty_query_default(self):
+        """Test URL building with default empty query."""
+        url = build_search_url(country='GB')
+        assert 'country=GB' in url
+        assert 'q=' not in url
+
+
+class TestLocationPresets:
+    """Tests for location presets."""
+
+    def test_us_preset(self):
+        """Test US preset has correct values."""
+        preset = LOCATION_PRESETS['us']
+        assert preset['country'] == 'US'
+        assert preset['name'] == 'United States'
+
+    def test_uk_preset(self):
+        """Test UK preset has correct values."""
+        preset = LOCATION_PRESETS['uk']
+        assert preset['country'] == 'GB'
+        assert preset['name'] == 'United Kingdom'
+
+    def test_canada_preset(self):
+        """Test Canada preset has correct values."""
+        preset = LOCATION_PRESETS['canada']
+        assert preset['country'] == 'CA'
+        assert preset['name'] == 'Canada'
+
+    def test_all_presets_have_required_keys(self):
+        """Test all presets have required keys."""
+        required_keys = ['country', 'name']
+        for key, preset in LOCATION_PRESETS.items():
+            for req_key in required_keys:
+                assert req_key in preset, f"Preset '{key}' missing key '{req_key}'"
 
 
 class TestFilterDuplicates:
@@ -207,6 +252,28 @@ class TestUpdateHistory:
         assert updated['searches'][0]['new_advertisers'] == 1
         assert updated['searches'][0]['duplicates_skipped'] == 5
 
+    def test_search_log_empty_query(self):
+        """Test search logging with empty query (browse by filters)."""
+        history = {'advertisers': {}, 'searches': []}
+        ads = [{'page_id': '123', 'page_name': 'Company A'}]
+        config = {'query': '', 'location_name': 'Miami, US'}
+
+        updated = update_history(history, ads, config, duplicates=0)
+
+        assert len(updated['searches']) == 1
+        assert updated['searches'][0]['query'] == '(browse by filters)'
+        assert updated['searches'][0]['location'] == 'Miami, US'
+
+    def test_search_log_with_location(self):
+        """Test search logging includes location info."""
+        history = {'advertisers': {}, 'searches': []}
+        ads = [{'page_id': '123', 'page_name': 'Company A'}]
+        config = {'query': 'real estate', 'location_name': 'Florida, US', 'country': 'US'}
+
+        updated = update_history(history, ads, config, duplicates=0)
+
+        assert updated['searches'][0]['location'] == 'Florida, US'
+
 
 class TestConvertToPipelineFormat:
     """Tests for convert_to_pipeline_format function."""
@@ -342,6 +409,51 @@ class TestHistoryFileOperations:
 
         fb_ads_scraper.HISTORY_FILE = original_file
         fb_ads_scraper.CONFIG_DIR = original_config
+
+
+class TestHousingWorkaround:
+    """Tests for housing ads workaround."""
+
+    def test_non_housing_unchanged(self):
+        """Test that non-housing ad types are not modified."""
+        config = {'ad_type': 'all', 'query': 'test'}
+        result = apply_housing_workaround(config)
+        assert result['ad_type'] == 'all'
+        assert result['query'] == 'test'
+
+    def test_housing_converted_to_all(self):
+        """Test housing_ads is converted to all."""
+        config = {'ad_type': 'housing_ads', 'query': 'miami'}
+        result = apply_housing_workaround(config)
+        assert result['ad_type'] == 'all'
+        assert result['_original_ad_type'] == 'housing_ads'
+
+    def test_housing_adds_keyword_when_empty(self):
+        """Test housing workaround adds keyword when query is empty."""
+        config = {'ad_type': 'housing_ads', 'query': ''}
+        result = apply_housing_workaround(config)
+        assert result['ad_type'] == 'all'
+        assert 'real estate' in result['query']
+
+    def test_housing_adds_keyword_when_missing(self):
+        """Test housing workaround prepends keyword when no housing terms present."""
+        config = {'ad_type': 'housing_ads', 'query': 'miami florida'}
+        result = apply_housing_workaround(config)
+        assert result['query'].startswith('real estate')
+        assert 'miami florida' in result['query']
+
+    def test_housing_preserves_existing_keyword(self):
+        """Test housing workaround doesn't add keyword if one exists."""
+        config = {'ad_type': 'housing_ads', 'query': 'real estate miami'}
+        result = apply_housing_workaround(config)
+        # Should not duplicate 'real estate'
+        assert result['query'] == 'real estate miami'
+
+    def test_housing_keywords_list(self):
+        """Test HOUSING_KEYWORDS contains expected terms."""
+        assert 'real estate' in HOUSING_KEYWORDS
+        assert 'realtor' in HOUSING_KEYWORDS
+        assert 'mortgage' in HOUSING_KEYWORDS
 
 
 if __name__ == '__main__':

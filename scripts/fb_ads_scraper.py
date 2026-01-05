@@ -11,8 +11,22 @@ Usage:
     # CLI mode
     python scripts/fb_ads_scraper.py --query "real estate miami" --count 50
 
+    # Housing ads (uses keyword workaround - see note below)
+    python scripts/fb_ads_scraper.py --ad-type housing_ads --query "miami" --count 50
+
     # Dry run
     python scripts/fb_ads_scraper.py --query "test" --dry-run
+
+Note on Housing Ads:
+    The Apify actor has a known bug where it converts HOUSING_ADS to HOUSING
+    internally, which Facebook's API doesn't recognize (returns 0 results).
+
+    Workaround: When --ad-type housing_ads is selected, the script automatically:
+    1. Changes ad_type to 'all'
+    2. Adds 'real estate' keyword if no housing-related terms are present
+
+    This returns real estate advertisers via keyword filtering instead of
+    the broken category filter.
 """
 
 import os
@@ -62,6 +76,65 @@ MEDIA_TYPES = {
 
 PLATFORMS = ['facebook', 'instagram', 'messenger', 'audience_network']
 
+# Map our values to Apify actor's expected format
+ACTOR_AD_TYPE_MAP = {
+    'all': 'ALL',
+    'political_and_issue_ads': 'POLITICAL_AND_ISSUE_ADS',
+    'housing_ads': 'HOUSING_ADS',
+    'employment_ads': 'EMPLOYMENT_ADS',
+    'credit_ads': 'CREDIT_ADS',
+}
+
+# WORKAROUND: The dz_omar actor has a bug where it converts HOUSING_ADS to HOUSING
+# internally, causing 0 results. Use keywords to filter housing-related ads instead.
+HOUSING_KEYWORDS = [
+    'real estate', 'realtor', 'home for sale', 'house for sale', 'property',
+    'apartment', 'condo', 'rental', 'mortgage', 'buy home', 'sell home',
+    'listing', 'open house', 'mls', 'broker', 'realty'
+]
+
+ACTOR_STATUS_MAP = {
+    'active': 'ACTIVE',
+    'inactive': 'INACTIVE',
+    'all': 'ALL',
+}
+
+ACTOR_MEDIA_TYPE_MAP = {
+    'all': 'ALL',
+    'video': 'VIDEO',
+    'image': 'IMAGE',
+}
+
+# Location presets for quick selection
+# Note: FB Ad Library only supports country-level filtering
+# For city/state targeting, use keywords in the search query
+LOCATION_PRESETS = {
+    # Countries
+    'us': {'country': 'US', 'name': 'United States'},
+    'uk': {'country': 'GB', 'name': 'United Kingdom'},
+    'canada': {'country': 'CA', 'name': 'Canada'},
+    'australia': {'country': 'AU', 'name': 'Australia'},
+    'germany': {'country': 'DE', 'name': 'Germany'},
+    'spain': {'country': 'ES', 'name': 'Spain'},
+    'mexico': {'country': 'MX', 'name': 'Mexico'},
+    'france': {'country': 'FR', 'name': 'France'},
+    'brazil': {'country': 'BR', 'name': 'Brazil'},
+}
+
+# Interactive location menu options
+LOCATION_MENU = {
+    '1': 'us',
+    '2': 'uk',
+    '3': 'canada',
+    '4': 'australia',
+    '5': 'germany',
+    '6': 'spain',
+    '7': 'mexico',
+    '8': 'france',
+    '9': 'brazil',
+    '10': 'other',  # Enter ISO code
+}
+
 
 def get_apify_client():
     """Get Apify client with lazy import."""
@@ -93,20 +166,34 @@ def save_history(history: Dict):
         json.dump(history, f, indent=2)
 
 
-def build_search_url(query: str, country: str = 'US', ad_type: str = 'all',
+def build_search_url(query: str = '', country: str = 'US', ad_type: str = 'all',
                      status: str = 'active', media_type: str = 'all',
                      platforms: str = 'all', start_date: str = None,
                      end_date: str = None) -> str:
-    """Build Facebook Ad Library search URL."""
+    """Build Facebook Ad Library search URL.
+
+    Args:
+        query: Search keywords (optional - can browse by filters alone)
+        country: ISO country code
+        ad_type: Ad category filter
+        status: Active status filter
+        media_type: Media type filter
+        platforms: Platform filter
+        start_date: Start date filter
+        end_date: End date filter
+    """
     base = 'https://www.facebook.com/ads/library/'
     params = [
         f'active_status={status}',
         f'ad_type={ad_type}',
         f'country={country}',
-        f'q={quote_plus(query)}',
         'search_type=keyword_unordered',
         f'media_type={media_type}',
     ]
+
+    # Only add query if provided
+    if query:
+        params.append(f'q={quote_plus(query)}')
 
     if start_date:
         params.append(f'start_date_min={start_date}')
@@ -118,23 +205,17 @@ def build_search_url(query: str, country: str = 'US', ad_type: str = 'all',
 
 def get_preview_count(client, config: Dict) -> Tuple[int, Optional[str]]:
     """Get preview count of ads matching criteria without full download."""
-    url = build_search_url(
-        query=config['query'],
-        country=config['country'],
-        ad_type=config['ad_type'],
-        status=config['status'],
-        media_type=config['media'],
-        start_date=config.get('start_date'),
-        end_date=config.get('end_date')
-    )
+    search_query = config.get('query', '') or ''
 
     try:
         run_input = {
-            'urls': [{'url': url}],
-            'count': 1,  # Just get count
-            'period': '',
-            'scrapePageAds.activeStatus': config['status'],
-            'scrapePageAds.countryCode': config['country'],
+            'searchQueries': [search_query] if search_query else [],
+            'maxResultsPerQuery': 1,  # Just get count
+            'countries': config['country'],  # String, not list
+            'adType': ACTOR_AD_TYPE_MAP.get(config['ad_type'], 'ALL'),
+            'activeStatus': ACTOR_STATUS_MAP.get(config['status'], 'ACTIVE'),
+            'mediaType': ACTOR_MEDIA_TYPE_MAP.get(config['media'], 'ALL'),
+            'proxyConfig': {'useApifyProxy': True},
         }
 
         run = client.actor(APIFY_ACTOR_ID).call(run_input=run_input, timeout_secs=120)
@@ -152,32 +233,76 @@ def get_preview_count(client, config: Dict) -> Tuple[int, Optional[str]]:
         return 0, str(e)
 
 
+def apply_housing_workaround(config: Dict) -> Dict:
+    """Apply workaround for housing ads category bug.
+
+    The dz_omar actor has a bug where HOUSING_ADS gets converted to HOUSING,
+    which Facebook's API doesn't recognize, returning 0 results.
+
+    Workaround: Use ad_type=ALL and add housing keywords to find real estate ads.
+    """
+    if config.get('ad_type') != 'housing_ads':
+        return config
+
+    print("\n" + "!" * 62)
+    print("WARNING: Housing ads category has a known bug in this actor.")
+    print("The actor converts HOUSING_ADS to HOUSING internally, causing 0 results.")
+    print("!" * 62)
+    print("\nApplying workaround: Using ad_type=ALL with housing keywords...")
+
+    # Create modified config
+    new_config = config.copy()
+    new_config['ad_type'] = 'all'
+    new_config['_original_ad_type'] = 'housing_ads'  # Track for reporting
+
+    # Add housing keyword if no query specified
+    query = config.get('query', '').strip()
+    if not query:
+        # Use a common housing keyword
+        new_config['query'] = 'real estate'
+        print(f"  Added keyword: 'real estate'")
+    else:
+        # Check if query already contains housing-related terms
+        query_lower = query.lower()
+        has_housing_keyword = any(kw in query_lower for kw in HOUSING_KEYWORDS)
+        if not has_housing_keyword:
+            # Prepend 'real estate' to help filter
+            new_config['query'] = f"real estate {query}"
+            print(f"  Modified query: '{new_config['query']}'")
+
+    print(f"  Changed ad_type: housing_ads -> all")
+    print("\nNote: Results may include non-housing ads. Filter by keywords if needed.")
+    print("-" * 62)
+
+    return new_config
+
+
 def scrape_ads(client, config: Dict, limit: int = 100) -> Tuple[List[Dict], Optional[str]]:
     """Scrape ads from Facebook Ad Library."""
-    url = build_search_url(
-        query=config['query'],
-        country=config['country'],
-        ad_type=config['ad_type'],
-        status=config['status'],
-        media_type=config['media'],
-        start_date=config.get('start_date'),
-        end_date=config.get('end_date')
-    )
-
     try:
+        # Apply housing ads workaround if needed
+        config = apply_housing_workaround(config)
+
+        # Build run_input with direct parameters (not URL parsing)
+        # The actor expects these specific parameter names
+        search_query = config.get('query', '') or ''
+
         run_input = {
-            'urls': [{'url': url}],
-            'count': limit,
-            'period': '',
-            'scrapePageAds.activeStatus': config['status'],
-            'scrapePageAds.countryCode': config['country'],
+            'searchQueries': [search_query] if search_query else [],
+            'maxResultsPerQuery': limit,  # Actor uses maxResultsPerQuery, not count
+            'countries': config['country'],  # String, not list
+            'adType': ACTOR_AD_TYPE_MAP.get(config['ad_type'], 'ALL'),
+            'activeStatus': ACTOR_STATUS_MAP.get(config['status'], 'ACTIVE'),
+            'mediaType': ACTOR_MEDIA_TYPE_MAP.get(config['media'], 'ALL'),
             'proxyConfig': {
                 'useApifyProxy': True,
             },
         }
 
         print(f"\nStarting Apify actor: {APIFY_ACTOR_ID}")
-        print(f"Search URL: {url[:80]}...")
+        print(f"Query: {search_query or '(browse all)'}")
+        print(f"Country: {config['country']}, Ad Type: {run_input['adType']}, Status: {run_input['activeStatus']}")
+        print(f"Max results: {limit}")
 
         run = client.actor(APIFY_ACTOR_ID).call(run_input=run_input)
 
@@ -234,7 +359,8 @@ def update_history(history: Dict, ads: List[Dict], config: Dict, duplicates: int
             }
 
     history['searches'].append({
-        'query': config['query'],
+        'query': config['query'] or '(browse by filters)',
+        'location': config.get('location_name', config.get('country', 'US')),
         'date': today,
         'count': len(ads) + duplicates,
         'new_advertisers': len(ads),
@@ -327,8 +453,17 @@ def print_config(config: Dict):
     """Print current configuration."""
     print("\n" + "-" * 62)
     print("SEARCH CONFIGURATION:")
-    print(f"  Keywords:    {config['query']}")
-    print(f"  Country:     {config['country']}")
+
+    # Show location in friendly format
+    location_name = config.get('location_name', config['country'])
+    print(f"  Location:    {location_name}")
+
+    # Show keywords (or indicate if browsing by filters only)
+    if config.get('query'):
+        print(f"  Keywords:    {config['query']}")
+    else:
+        print(f"  Keywords:    (none - browsing by filters)")
+
     print(f"  Ad Type:     {config['ad_type']}")
     print(f"  Status:      {config['status']}")
     print(f"  Platforms:   {config['platforms']}")
@@ -362,19 +497,57 @@ def prompt_choice(prompt: str, options: Dict, default: str = '1') -> str:
     return options.get(choice, options[default])[0]
 
 
+def prompt_location() -> Tuple[str, str]:
+    """Prompt user for location selection.
+
+    Note: FB Ad Library only supports country-level filtering.
+    For city/state targeting, use keywords in the search query.
+
+    Returns:
+        Tuple of (country_code, location_name)
+    """
+    print("\nCountry (FB Ad Library only supports country-level filtering):")
+    print("  [1] United States")
+    print("  [2] United Kingdom")
+    print("  [3] Canada")
+    print("  [4] Australia")
+    print("  [5] Germany")
+    print("  [6] Spain")
+    print("  [7] Mexico")
+    print("  [8] France")
+    print("  [9] Brazil")
+    print("  [10] Other (enter ISO code)")
+
+    choice = input("Select [1]: ").strip() or '1'
+
+    if choice == '10':
+        # Other country
+        country = input("Enter ISO country code (e.g., IT, JP, NL): ").strip().upper() or 'US'
+        return country, country
+    else:
+        # Preset selection
+        preset_key = LOCATION_MENU.get(choice, 'us')
+        if preset_key in LOCATION_PRESETS:
+            preset = LOCATION_PRESETS[preset_key]
+            return preset['country'], preset['name']
+        # Default to US
+        return 'US', 'United States'
+
+
 def interactive_mode() -> Dict:
     """Run interactive mode to collect search parameters."""
     print_banner()
 
-    # Collect parameters
-    query = input("Search Keywords (required): ").strip()
-    if not query:
-        print("ERROR: Keywords are required")
-        sys.exit(1)
+    # Location selection first (country-level only)
+    country, location_name = prompt_location()
 
-    country = input("\nCountry [US]: ").strip().upper() or 'US'
-
+    # Ad Type
     ad_type = prompt_choice("Ad Type", AD_TYPES, '1')
+
+    # Keywords (optional) - location is handled via country filter, not keywords
+    print("\nSearch Keywords (optional, press Enter to browse all by filters):")
+    query = input("Keywords: ").strip()
+
     status = prompt_choice("Active Status", STATUS_OPTIONS, '1')
 
     print("\nPlatforms (comma-separated, or 'all'):")
@@ -394,6 +567,7 @@ def interactive_mode() -> Dict:
     return {
         'query': query,
         'country': country,
+        'location_name': location_name,
         'ad_type': ad_type,
         'status': status,
         'platforms': platforms,
@@ -409,23 +583,33 @@ def modification_loop(client, config: Dict, history: Dict, force: bool = False) 
     while True:
         print_config(config)
 
-        print("\nChecking ad count...")
-        # Note: Preview count is an estimate - actual scraping gives exact count
+        # Show search summary
+        query_display = config.get('query') or '(no keywords - browsing by filters)'
+        location_display = config.get('location_name', config.get('country', 'US'))
+        ad_type_display = config.get('ad_type', 'all')
+
+        print(f"\nReady to scrape:")
+        print(f"  Query: {query_display}")
+        print(f"  Location: {location_display}")
+        print(f"  Ad Type: {ad_type_display}")
 
         print("\nOptions:")
-        print(f"  [1] Download up to {config['count']} ads")
+        print(f"  [1] Start download (up to {config['count']} ads)")
         print("  [2] Modify search keywords")
         print("  [3] Change max results")
         print("  [4] Cancel")
 
-        choice = input("\nSelect [1]: ").strip() or '1'
+        try:
+            choice = input("\nSelect [1]: ").strip() or '1'
+        except (EOFError, KeyboardInterrupt):
+            print("\nCancelled.")
+            return config, False
 
         if choice == '1':
             return config, True
         elif choice == '2':
-            new_query = input("\nNew keywords: ").strip()
-            if new_query:
-                config['query'] = new_query
+            new_query = input("\nNew keywords (or blank to clear): ").strip()
+            config['query'] = new_query
         elif choice == '3':
             new_count = input("\nNew max results: ").strip()
             if new_count.isdigit():
@@ -436,13 +620,43 @@ def modification_loop(client, config: Dict, history: Dict, force: bool = False) 
             print("Invalid choice")
 
 
+def print_locations():
+    """Print available location presets."""
+    print("\nAvailable Location Presets:")
+    print("-" * 40)
+    print("\nUS States:")
+    for key in ['us', 'us-fl', 'us-ca', 'us-tx', 'us-ny']:
+        preset = LOCATION_PRESETS[key]
+        hint = f" (adds '{preset['query_hint']}' keyword)" if preset['query_hint'] else ""
+        print(f"  {key:12} {preset['name']}{hint}")
+
+    print("\nUS Metros:")
+    for key in ['miami', 'la', 'nyc', 'chicago', 'houston', 'dallas']:
+        preset = LOCATION_PRESETS[key]
+        print(f"  {key:12} {preset['name']} (adds '{preset['query_hint']}' keyword)")
+
+    print("\nOther Countries:")
+    for key in ['uk', 'canada', 'australia', 'germany', 'spain', 'mexico']:
+        preset = LOCATION_PRESETS[key]
+        print(f"  {key:12} {preset['name']}")
+
+    print("\nUsage:")
+    print("  python scripts/fb_ads_scraper.py --location miami --ad-type housing_ads")
+    print("  python scripts/fb_ads_scraper.py --location us-fl --query 'real estate'")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Scrape Facebook Ad Library using Apify',
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
-    parser.add_argument('--query', type=str, help='Search keywords')
+    parser.add_argument('--query', type=str, default='',
+                        help='Search keywords (optional - can browse by category/location alone)')
+    parser.add_argument('--location', type=str,
+                        help='Location preset (miami, la, us-fl, uk, etc.) Use --list-locations to see all')
+    parser.add_argument('--list-locations', action='store_true',
+                        help='List available location presets')
     parser.add_argument('--country', type=str, default='US', help='ISO country code (default: US)')
     parser.add_argument('--ad-type', type=str, default='all',
                         choices=['all', 'political_and_issue_ads', 'housing_ads', 'employment_ads', 'credit_ads'],
@@ -466,6 +680,11 @@ def main():
 
     args = parser.parse_args()
 
+    # List locations if requested
+    if args.list_locations:
+        print_locations()
+        return
+
     # Clear history if requested
     if args.clear_history:
         if HISTORY_FILE.exists():
@@ -475,13 +694,37 @@ def main():
             print("No history file found.")
         return
 
-    # Determine mode
-    if args.interactive or not args.query:
+    # Determine mode - interactive if explicitly requested or no CLI args provided
+    has_cli_args = args.location or args.query or args.ad_type != 'all'
+    if args.interactive or not has_cli_args:
         config = interactive_mode()
     else:
+        # Build config from CLI args
+        country = args.country
+        location_name = args.country
+        query = args.query or ''
+
+        # Apply location preset if specified
+        if args.location:
+            preset_key = args.location.lower()
+            if preset_key in LOCATION_PRESETS:
+                preset = LOCATION_PRESETS[preset_key]
+                country = preset['country']
+                location_name = preset['name']
+                # Combine preset query hint with user query
+                if preset['query_hint']:
+                    if query:
+                        query = f"{preset['query_hint']} {query}"
+                    else:
+                        query = preset['query_hint']
+            else:
+                print(f"WARNING: Unknown location preset '{args.location}'. Use --list-locations to see options.")
+                print(f"Falling back to country code: {args.country}")
+
         config = {
-            'query': args.query,
-            'country': args.country,
+            'query': query,
+            'country': country,
+            'location_name': location_name,
             'ad_type': args.ad_type,
             'status': args.status,
             'platforms': args.platforms,
@@ -513,7 +756,7 @@ def main():
     history = load_history()
 
     # Modification loop (interactive mode)
-    if args.interactive or not args.query:
+    if args.interactive or not has_cli_args:
         config, proceed = modification_loop(client, config, history, args.force)
         if not proceed:
             print("\nCancelled.")
