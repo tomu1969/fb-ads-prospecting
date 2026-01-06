@@ -3,6 +3,7 @@
 import os
 import sys
 import time
+import json
 import pandas as pd
 import requests
 from pathlib import Path
@@ -204,6 +205,38 @@ def enrich_all(df):
     df['primary_email'] = [r['primary_email'] for r in results]
     df['email_confidence'] = [r['email_confidence'] for r in results]
     df['email_verified'] = [r['email_verified'] for r in results]
+
+    # Fallback: If primary_email is empty, pick from hunter_emails or scraper emails
+    for idx, row in df.iterrows():
+        if pd.isna(row['primary_email']) or not row['primary_email']:
+            # Try hunter_emails first
+            hunter_emails = row.get('hunter_emails', [])
+            if isinstance(hunter_emails, str):
+                try:
+                    hunter_emails = json.loads(hunter_emails) if hunter_emails else []
+                except:
+                    hunter_emails = []
+
+            if hunter_emails:
+                df.at[idx, 'primary_email'] = hunter_emails[0]
+                df.at[idx, 'email_verified'] = 'not_checked'
+                continue
+
+            # Try scraper emails
+            scraper_emails = row.get('emails', [])
+            if isinstance(scraper_emails, str):
+                try:
+                    scraper_emails = json.loads(scraper_emails) if scraper_emails else []
+                except:
+                    scraper_emails = []
+
+            # Filter out junk emails (sentry, wix internal, placeholders)
+            junk_patterns = ['sentry', 'wixpress', 'name@website', 'example.com', 'test@']
+            valid_emails = [e for e in scraper_emails if not any(p in e.lower() for p in junk_patterns)]
+
+            if valid_emails:
+                df.at[idx, 'primary_email'] = valid_emails[0]
+                df.at[idx, 'email_verified'] = 'not_checked'
 
     # Ensure contact_name and contact_position are object type to avoid FutureWarning
     if 'contact_name' in df.columns:
