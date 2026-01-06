@@ -602,6 +602,8 @@ def interactive_mode() -> Dict:
 
     # Keywords (optional) - location is handled via country filter, not keywords
     print("\nSearch Keywords (optional, press Enter to browse all by filters):")
+    print("  Tip: Use broad terms first (e.g., 'real estate') for more results.")
+    print("       Avoid city names in keywords - use country filter instead.")
     query = input("Keywords: ").strip()
 
     status = prompt_choice("Active Status", STATUS_OPTIONS, '1')
@@ -617,8 +619,8 @@ def interactive_mode() -> Dict:
     start_date = input("  Start date (YYYY-MM-DD, or blank): ").strip() or None
     end_date = input("  End date (YYYY-MM-DD, or blank): ").strip() or None
 
-    count = input("\nMax Results [100]: ").strip()
-    count = int(count) if count.isdigit() else 100
+    count = input("\nMax Results [500]: ").strip()
+    count = int(count) if count.isdigit() else 500
 
     return {
         'query': query,
@@ -727,7 +729,7 @@ def main():
                         help='Media type filter')
     parser.add_argument('--start-date', type=str, help='Start date (YYYY-MM-DD)')
     parser.add_argument('--end-date', type=str, help='End date (YYYY-MM-DD)')
-    parser.add_argument('--count', type=int, default=100, help='Max results to fetch')
+    parser.add_argument('--count', type=int, default=500, help='Max results to fetch (default: 500)')
     parser.add_argument('--output', type=str, help='Output CSV path')
     parser.add_argument('--dry-run', action='store_true', help='Show config without running')
     parser.add_argument('--force', action='store_true', help='Ignore deduplication')
