@@ -83,7 +83,7 @@ python scripts/fb_ads_scraper.py --query "test" --force
 | `--ad-type` | all, housing_ads, political_and_issue_ads, employment_ads, credit_ads | all |
 | `--status` | active, inactive, all | active |
 | `--media` | all, video, image | all |
-| `--count` | Max results to fetch | 100 |
+| `--count` | Max results to fetch | 500 |
 | `--start-date` | Start date (YYYY-MM-DD) | (none) |
 | `--end-date` | End date (YYYY-MM-DD) | (none) |
 | `--output` | Custom output path | auto-generated |
@@ -108,6 +108,14 @@ The scraper outputs a CSV compatible with the enrichment pipeline:
 | `is_active` | Active status |
 | `start_date` | Ad start date |
 | `link_urls` | Destination URLs from ads |
+
+### Query Strategy Tips
+
+For best results:
+- **Use broad keywords** (e.g., "real estate") instead of city-specific terms
+- **Avoid duplicate queries** like "miami real estate" and "real estate miami" (same results)
+- **Use country filter** instead of keywords for location targeting
+- **Start broad, then narrow** - generic queries first, specific ones later
 
 ### Housing Ads Note
 
