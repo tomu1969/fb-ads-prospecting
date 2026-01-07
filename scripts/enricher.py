@@ -162,9 +162,14 @@ def extract_website_url(results: list, page_name: str) -> tuple:
         if page_name_compact == domain_compact:
             # Exact match
             confidence = 0.99
-        elif page_name_compact.startswith(domain_compact) or domain_compact.startswith(page_name_compact[:min(5, len(page_name_compact))]):
-            # Domain starts with page name or vice versa (prioritize beginning match)
-            confidence = 0.95
+        elif page_name_compact.startswith(domain_compact):
+            # Page name starts with domain - prefer longer domain matches
+            # e.g., "nexthomegulfcoast" (16 chars) scores higher than "nexthome" (8 chars)
+            match_ratio = len(domain_compact) / len(page_name_compact)
+            confidence = 0.90 + (0.08 * match_ratio)  # Range: 0.90-0.98
+        elif domain_compact.startswith(page_name_compact[:min(5, len(page_name_compact))]):
+            # Domain starts with beginning of page name
+            confidence = 0.85
         elif domain_compact in page_name_compact:
             # Domain is contained in page name - less confident
             # Shorter matches at the start are better
@@ -203,15 +208,40 @@ def extract_linkedin_url(results: list) -> str:
 
 
 def validate_url(url: str) -> bool:
-    """Validate URL is accessible."""
+    """Validate URL is accessible.
+
+    Many sites block HEAD requests (return 403/405), so we:
+    1. Try HEAD first
+    2. Fall back to GET if HEAD fails
+    3. Accept 403 as valid (server exists, just blocking bots)
+    """
+    headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'}
+
     try:
+        # Try HEAD first
         response = requests.head(
             url,
             timeout=REQUEST_TIMEOUT,
             allow_redirects=True,
-            headers={'User-Agent': 'Mozilla/5.0'}
+            headers=headers
         )
-        return response.status_code < 400
+        # Accept 2xx, 3xx, and 403 (blocked but server exists)
+        if response.status_code < 400 or response.status_code == 403:
+            return True
+
+        # If HEAD failed with 405 (Method Not Allowed), try GET
+        if response.status_code == 405:
+            response = requests.get(
+                url,
+                timeout=REQUEST_TIMEOUT,
+                allow_redirects=True,
+                headers=headers,
+                stream=True  # Don't download full content
+            )
+            response.close()
+            return response.status_code < 400 or response.status_code == 403
+
+        return False
     except Exception:
         return False
 
