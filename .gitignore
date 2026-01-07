@@ -19,3 +19,9 @@ output/*.xlsx
 output/*.json
 output/legacy/
 config/scraped_advertisers.json
+
+# Auto-generated field mappings (regenerated per input file)
+config/field_mappings/fb_ads_*.json
+
+# Archived scripts
+scripts/_archived/
