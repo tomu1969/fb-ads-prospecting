@@ -1,0 +1,10 @@
+Hi {first_name},
+
+[HOOK: Reference specific detail from their ad/website/social media]
+
+[PROBLEM: Connect that detail to lead overflow/response time challenges]
+
+We help 100+ realtors handle that exact overflow instantly without adding headcount. Would you be open to seeing how they do it?
+
+Thanks,
+{sender_name}

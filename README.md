@@ -305,13 +305,18 @@ python run_pipeline.py \
   --input output/fb_ads_scraped_*.csv \
   --all
 
-# Step 3: Preview DM messages
+# Step 3: Draft personalized emails (optional)
+python scripts/email_drafter/drafter.py \
+  --input output/prospects_final.csv \
+  --limit 5
+
+# Step 4: Preview DM messages
 python scripts/apify_dm_sender.py \
   --csv output/prospects_final.csv \
   --message "Hey {contact_name} — saw your ads for {company_name}. Quick question..." \
   --dry-run
 
-# Step 4: Send messages
+# Step 5: Send messages
 python scripts/apify_dm_sender.py \
   --csv output/prospects_final.csv \
   --message "Hey {contact_name} — saw your ads for {company_name}. Quick question..." \
@@ -331,16 +336,25 @@ fb-ads-prospecting/
 │   ├── enricher.py              # Module 2: Website discovery
 │   ├── scraper.py               # Module 3: Contact extraction
 │   ├── hunter.py                # Module 3.5: Hunter.io enrichment
-│   ├── contact_enricher_pipeline.py  # Module 3.6: AI agent fallback
+│   ├── exa_enricher.py          # Module 3.6 Stage 0: Exa API contact discovery
+│   ├── contact_enricher_pipeline.py  # Module 3.6: AI agent fallback (Exa + OpenAI)
 │   ├── instagram_enricher.py    # Module 3.7: Instagram handles
 │   ├── exporter.py              # Module 4: HubSpot export
 │   ├── validator.py             # Module 5: Quality validation
 │   ├── apify_dm_sender.py       # Instagram DM sender (Apify)
 │   ├── manychat_sender.py       # Instagram DM sender (ManyChat)
-│   └── clean_instagram_handles.py  # Utility: Handle cleanup
+│   ├── email_drafter/           # Email drafting module
+│   │   ├── drafter.py           # Main orchestrator
+│   │   ├── researcher.py        # Prospect research via Exa
+│   │   ├── analyzer.py          # Hook selection logic
+│   │   └── composer.py          # Email generation
+│   ├── clean_instagram_handles.py  # Utility: Handle cleanup
+│   └── _archived/               # Legacy scripts (superseded)
 ├── input/                       # Source files
 ├── processed/                   # Intermediate pipeline files
+│   └── legacy/                  # Archived intermediate files
 ├── output/                      # Final exports
+│   └── legacy/                  # Archived output files
 ├── config/
 │   ├── website_overrides.csv    # Manual website mappings
 │   ├── manual_contacts.csv      # Manual contact data

@@ -1,0 +1,13 @@
+Hi {first_name},
+
+Just following up on my last email about helping {company_name} handle lead overflow.
+
+I know you're busy growing your team, but wanted to quickly share that we've helped teams like yours:
+- Respond to leads in under 2 minutes (vs the industry average of 47 hours)
+- Increase conversion rates by 30%+
+- Do this without hiring additional staff
+
+Would a quick 10-minute call this week work to show you how?
+
+Thanks,
+{sender_name}

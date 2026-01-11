@@ -11,6 +11,9 @@ python run_pipeline.py --input input/your_file.csv
 # Scrape Facebook Ads Library
 python scripts/fb_ads_scraper.py --search "real estate Miami" --limit 100
 
+# Draft personalized emails
+python scripts/email_drafter/drafter.py --input output/prospects_final.csv --limit 5
+
 # Send Instagram DMs
 python scripts/apify_dm_sender.py --csv output/prospects_final.csv --message "Hi {contact_name}!" --dry-run
 ```
@@ -31,14 +34,18 @@ python scripts/apify_dm_sender.py --csv output/prospects_final.csv --message "Hi
 │   ├── validator.py         # Module 5: Quality validation
 │   ├── fb_ads_scraper.py    # Facebook Ads Library scraper
 │   ├── apify_dm_sender.py   # Instagram DM sender (Apify)
-│   └── manychat_sender.py   # Instagram DM sender (ManyChat)
+│   ├── manychat_sender.py   # Instagram DM sender (ManyChat)
+│   ├── email_drafter/       # Email drafting module (research + compose)
+│   └── _archived/           # Legacy scripts (superseded implementations)
 ├── config/
 │   ├── field_mappings/      # Auto-generated field mappings
 │   ├── website_overrides.csv # Manual website corrections
 │   └── do_not_contact.csv   # Exclusion list
 ├── input/                   # Raw input files
 ├── processed/               # Intermediate pipeline outputs
+│   └── legacy/              # Archived intermediate files
 └── output/                  # Final exports
+    └── legacy/              # Archived output files
 ```
 
 ## Pipeline Stages

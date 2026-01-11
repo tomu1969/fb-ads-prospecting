@@ -4,8 +4,9 @@ __pycache__/
 .DS_Store
 ~$*
 
-# MCP server config
+# MCP server config (user-specific)
 .mcp.json
+*.mcp.json
 
 # Input data
 input/*.csv
