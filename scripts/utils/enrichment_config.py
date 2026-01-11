@@ -15,11 +15,11 @@ EMAIL_DEPTH_OPTIONS = {
         'cost_per_contact': 0.0,  # Free with Hunter tier
     },
     'thorough': {
-        'name': 'Thorough (Hunter + AI)',
-        'description': 'Hunter.io + AI-powered discovery (~25-40 min, 85-95% coverage)',
+        'name': 'Thorough (Hunter + Exa + AI)',
+        'description': 'Hunter.io + Exa search + AI-powered discovery (~20-35 min, 85-95% coverage)',
         'modules': ['hunter', 'contact_enricher'],
         'time_per_contact': 1.3,  # seconds base, contact_enricher adds more for unfound
-        'cost_per_contact': 0.0,  # Free with Hunter tier, AI costs extra
+        'cost_per_contact': 0.001,  # Exa API cost (~$0.001/contact)
     },
 }
 

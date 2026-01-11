@@ -4,6 +4,7 @@ Module 3.6 in the FB Ads Library Pipeline.
 Runs after Hunter (3.5) to find emails for contacts Hunter couldn't verify.
 
 A cost-effective pipeline that combines:
+- Stage 0: Exa (fast/cheapest) - web search via Exa API
 - Stage 1: v2.1 (fast/cheap) with rotating strategies
 - Stage 2: v3.1 (creative/thorough) with feedback loop
 - Hunter.io verification as the quality gate
@@ -43,6 +44,9 @@ from tqdm import tqdm
 
 # OpenAI Agents SDK imports
 from agents import Agent, Runner, WebSearchTool, function_tool
+
+# Exa enricher (Stage 0)
+from exa_enricher import enrich_with_exa
 
 load_dotenv()
 
@@ -768,13 +772,36 @@ Respond with JSON: name, email, position, confidence, source, queries_tried, evi
 # =============================================================================
 
 async def enrich_contact(company_name: str, website_url: str) -> dict:
-    """Main pipeline: v2.1 → v3.1 → output with Hunter status and phone."""
+    """Main pipeline: Exa → v2.1 → v3.1 → output with Hunter status and phone."""
 
     print(f"\n  Processing: {company_name}")
+
+    # STAGE 0: Exa enrichment (fast, cheap)
+    print(f"    Stage 0: Exa (fast search)...")
+    exa_result = await enrich_with_exa(company_name, website_url)
+
+    if exa_result.get('hunter_status') in ['valid', 'accept_all']:
+        return {
+            'page_name': company_name,
+            'website_url': website_url,
+            'email': exa_result.get('email', ''),
+            'phone': exa_result.get('phone', ''),
+            'name': exa_result.get('name', ''),
+            'position': exa_result.get('position', ''),
+            'confidence': 95,  # High confidence for Exa+Hunter verified
+            'hunter_status': exa_result.get('hunter_status', ''),
+            'hunter_score': exa_result.get('hunter_score', 0),
+            'stage_found': 'exa',
+            'source': exa_result.get('source', ''),
+            'total_cost': exa_result.get('cost', 0)
+        }
 
     # STAGE 1: v2.1 loop
     print(f"    Stage 1: v2.1 (fast search)...")
     v2_result = await stage_v2_1(company_name, website_url)
+
+    # Include Exa cost in running total
+    exa_cost = exa_result.get('cost', 0)
 
     if v2_result.get('hunter_status') in ['valid', 'accept_all']:
         return {
@@ -789,14 +816,14 @@ async def enrich_contact(company_name: str, website_url: str) -> dict:
             'hunter_score': v2_result.get('hunter_score', 0),
             'stage_found': v2_result.get('stage_found', ''),
             'source': v2_result.get('source', ''),
-            'total_cost': v2_result.get('cost', 0)
+            'total_cost': exa_cost + v2_result.get('cost', 0)
         }
 
     # STAGE 2: v3.1 loop (only for unfound/invalid)
     print(f"    Stage 2: v3.1 (creative search)...")
     v3_result = await stage_v3_1(company_name, website_url, v2_evidence=v2_result)
 
-    total_cost = v2_result.get('cost', 0) + v3_result.get('cost', 0)
+    total_cost = exa_cost + v2_result.get('cost', 0) + v3_result.get('cost', 0)
 
     # Combine phones from both stages
     phone = v3_result.get('phone', '') or v2_result.get('phone', '')

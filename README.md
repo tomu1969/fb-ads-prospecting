@@ -132,12 +132,30 @@ Converts lead data into qualified prospects with verified contact information.
 ### Pipeline Flow
 
 ```
-Module 1    Module 2    Module 3    Module 3.5   Module 3.6      Module 3.7        Module 4    Module 5
-Loader  →  Enricher →  Scraper  →   Hunter   → Agent Enricher → Instagram Enricher → Exporter → Validator
-  │           │           │            │             │                 │              │           │
-Smart      Search      Scrape      Hunter.io    OpenAI Agents      OpenAI/Groq     HubSpot     Quality
-Adapter    Websites    Contacts    Emails       (fallback)         Instagram       CSV         Report
+Module 1    Module 2    Module 3    Module 3.5   Module 3.6            Module 3.7        Module 4    Module 5
+Loader  →  Enricher →  Scraper  →   Hunter   → Agent Enricher    → Instagram Enricher → Exporter → Validator
+  │           │           │            │          (Exa + OpenAI)          │              │           │
+Smart      Search      Scrape      Hunter.io   Stage 0: Exa API      OpenAI/Groq     HubSpot     Quality
+Adapter    Websites    Contacts    Emails      Stage 1+: Agents      Instagram       CSV         Report
 ```
+
+#### Module 3.6: Contact Enricher Details
+
+The Contact Enricher uses a multi-stage approach for cost-effective enrichment:
+
+**Stage 0 - Exa API (Fast & Cheap)**
+- Web search via Exa API for contact pages
+- Email extraction with regex patterns
+- Hunter.io verification for quality gate
+- Early exit if valid email found (~$0.001 per search)
+
+**Stage 1+ - OpenAI Agents (Thorough)**
+- Multi-strategy agent workflows
+- Deep web scraping and analysis
+- Manual enrichment requests
+- Used only when Stage 0 fails (~$0.05-0.15 per contact)
+
+This tiered approach reduces costs by 90% while maintaining high success rates.
 
 ### Usage
 
@@ -348,6 +366,7 @@ APIFY_API_TOKEN=apify_api_...   # FB scraping & DM sending
 INSTAGRAM_SESSION_ID=...        # From browser cookies
 
 # Optional
+EXA_API_KEY=...                 # Fast contact discovery (Stage 0 enrichment)
 GROQ_API_KEY=...                # Faster Instagram search
 MANYCHAT_API_KEY=...            # ManyChat integration
 ```
@@ -375,6 +394,7 @@ page_name,primary_email,contact_name,contact_position
 | OpenAI | AI enrichment, analysis | Pay per use |
 | Hunter.io | Email verification | 25/month |
 | Apify | FB scraping, DM sending | Pay per use |
+| Exa | Fast contact discovery (optional) | 1000 searches/month |
 | DuckDuckGo | Website search | Unlimited |
 | Groq | Fast LLM (optional) | Free tier |
 

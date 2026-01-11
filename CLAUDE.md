@@ -24,7 +24,8 @@ python scripts/apify_dm_sender.py --csv output/prospects_final.csv --message "Hi
 │   ├── enricher.py          # Module 2: Website discovery
 │   ├── scraper.py           # Module 3: Contact extraction
 │   ├── hunter.py            # Module 3.5: Email verification
-│   ├── contact_enricher_pipeline.py  # Module 3.6: AI agent enrichment
+│   ├── exa_enricher.py      # Module 3.6 Stage 0: Fast Exa API contact discovery
+│   ├── contact_enricher_pipeline.py  # Module 3.6: AI agent enrichment (Exa + OpenAI)
 │   ├── instagram_enricher.py # Module 3.7: Instagram handle discovery
 │   ├── exporter.py          # Module 4: CSV/Excel/HubSpot export
 │   ├── validator.py         # Module 5: Quality validation
@@ -46,7 +47,7 @@ python scripts/apify_dm_sender.py --csv output/prospects_final.csv --message "Hi
 2. **Enricher** - Discovers websites via DuckDuckGo search
 3. **Scraper** - Extracts contacts from websites
 4. **Hunter** - Verifies emails via Hunter.io
-5. **Contact Enricher** - AI agent fallback for missing data
+5. **Contact Enricher** - Stage 0: Exa API, Stage 1+: OpenAI Agents fallback
 6. **Instagram Enricher** - Finds Instagram handles
 7. **Exporter** - Outputs CSV/Excel/HubSpot format
 
@@ -62,5 +63,6 @@ python scripts/apify_dm_sender.py --csv output/prospects_final.csv --message "Hi
 
 ```
 input/*.csv → processed/01_loaded.csv → 02_enriched.csv → 03_contacts.csv
-    → 03b_hunter.csv → 03d_final.csv → output/prospects_final.csv
+    → 03b_hunter.csv → 03c_enriched.csv (Exa + Agents) → 03d_final.csv
+    → output/prospects_final.csv
 ```

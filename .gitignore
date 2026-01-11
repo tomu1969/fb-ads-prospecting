@@ -4,12 +4,16 @@ __pycache__/
 .DS_Store
 ~$*
 
+# MCP server config
+.mcp.json
+
 # Input data
 input/*.csv
 input/*.json
 input/*.xlsx
 
 # Processed data (intermediate files)
+processed/
 processed/*.csv
 processed/legacy/
 
