@@ -21,7 +21,7 @@ DEFAULT_SENDER_NAME = os.getenv('EMAIL_SENDER_NAME', 'Tomas')
 openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 # The standard offer (constant across all emails)
-STANDARD_OFFER = """We help 100+ realtors and real estate teams close more deals by responding to leads instantly and nurturing them automatically until they're ready to buy. Would you be open to seeing how they do it?"""
+STANDARD_OFFER = """We help 100+ businesses running Facebook and Instagram ads close more deals by responding to leads instantly and nurturing them automatically until they're ready to buy. Would you be open to seeing how they do it?"""
 
 
 def get_first_name(full_name) -> str:
