@@ -1,14 +1,15 @@
 # FB Ads Prospecting Pipeline
 
-Automated pipeline to scrape Facebook advertisers, enrich leads with contact information, and send Instagram DMs for outreach. Supports CSV, Excel, JSON, and TSV input formats with AI-powered field mapping.
+Automated pipeline to scrape Facebook advertisers, enrich leads with contact information, and send cold emails and Instagram DMs for outreach. Supports CSV, Excel, JSON, and TSV input formats with AI-powered field mapping.
 
 ## Repository Overview
 
-This repository contains three main components:
+This repository contains four main components:
 
 1. **FB Ads Scraper** - Scrape advertisers from Facebook Ad Library
 2. **Enrichment Pipeline** - Find websites, emails, phones, and Instagram handles
-3. **DM Senders** - Send personalized Instagram messages via Apify or ManyChat
+3. **Email Outreach** - Draft personalized emails, verify deliverability, and send via Gmail
+4. **DM Senders** - Send personalized Instagram messages via Apify or ManyChat
 
 ## Quick Start
 
