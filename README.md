@@ -219,6 +219,99 @@ output/prospects_final.xlsx → Excel version
 
 ---
 
+## Email Verification & Sending
+
+Advanced email verification and cold email sending with bounce recovery.
+
+### Email Verification (MillionVerifier)
+
+Verify emails with 99%+ accuracy, including catch-all detection:
+
+```bash
+# Verify single email
+python scripts/email_verifier/verifier.py --email test@example.com
+
+# Verify CSV of emails (with scoring)
+python scripts/email_verifier/verifier.py \
+  --csv output/email_drafts_v2.csv \
+  --output output/verified_drafts.csv
+
+# Show detailed analysis
+python scripts/email_verifier/verifier.py --email test@example.com --verbose
+```
+
+Features:
+- Catch-all domain detection (avoids sending to catch-all addresses)
+- Multi-factor scoring (confidence, deliverability, role-based, free provider)
+- Generic email detection (info@, sales@, etc.)
+- Bulk verification with progress tracking
+- API: MillionVerifier (99%+ accuracy, ~$0.50 per 1,000 verifications)
+
+### Gmail Sender (SMTP)
+
+Send cold emails via Gmail with advanced verification:
+
+```bash
+# Dry run (preview without sending)
+python scripts/gmail_sender/gmail_sender.py \
+  --csv output/verified_drafts.csv \
+  --dry-run \
+  --limit 5
+
+# Send emails (with built-in verification)
+python scripts/gmail_sender/gmail_sender.py \
+  --csv output/verified_drafts.csv \
+  --limit 50 \
+  --delay 10
+
+# Resume from failure
+python scripts/gmail_sender/gmail_sender.py \
+  --csv output/verified_drafts.csv \
+  --resume
+```
+
+Features:
+- Dry-run mode for testing
+- Resume capability (tracks sent emails)
+- Built-in email verification (MillionVerifier + Hunter.io)
+- Multi-factor send scoring (skip risky emails)
+- Customizable delays between sends
+- Comprehensive logging (console + file)
+- Gmail App Password authentication (no OAuth required)
+
+CSV Format Requirements:
+- Required columns: `email`, `subject`, `body`
+- Optional columns: `contact_name`, `company_name` (for personalization)
+
+### Bounce Recovery
+
+Recover bounced contacts by finding alternative emails:
+
+```bash
+# Recover from bounced contacts CSV
+python scripts/bounce_recovery/bounce_recovery.py \
+  --input config/bounced_contacts.csv \
+  --output output/recovered_contacts.csv
+
+# With specific strategies
+python scripts/bounce_recovery/bounce_recovery.py \
+  --input config/bounced_contacts.csv \
+  --output output/recovered_contacts.csv \
+  --strategies 0,1,2,3
+```
+
+Recovery Strategies:
+1. **Strategy 0**: Re-verify original email (sometimes bounces are temporary)
+2. **Strategy 1**: Try generic patterns (info@, contact@, hello@, sales@)
+3. **Strategy 2**: Search Hunter.io for alternative contacts at same domain
+4. **Strategy 3**: Search Apollo.io B2B database for alternative contacts
+
+CSV Format Requirements:
+- Required columns: `email`, `company_name`, `website_url`
+- Optional: `contact_name`, `bounce_reason`
+
+---
+
 ## Instagram DM Senders
 
 Send personalized Instagram messages to enriched prospects.
@@ -305,18 +398,33 @@ python run_pipeline.py \
   --input output/fb_ads_scraped_*.csv \
   --all
 
-# Step 3: Draft personalized emails (optional)
+# Step 3: Draft personalized emails
 python scripts/email_drafter/drafter.py \
   --input output/prospects_final.csv \
   --limit 5
 
-# Step 4: Preview DM messages
-python scripts/apify_dm_sender.py \
-  --csv output/prospects_final.csv \
-  --message "Hey {contact_name} — saw your ads for {company_name}. Quick question..." \
-  --dry-run
+# Step 4: Verify emails (catch-all detection with MillionVerifier)
+python scripts/email_verifier/verifier.py \
+  --csv output/email_drafts_v2.csv \
+  --output output/verified_drafts.csv
 
-# Step 5: Send messages
+# Step 5: Send emails via Gmail (dry-run first!)
+python scripts/gmail_sender/gmail_sender.py \
+  --csv output/verified_drafts.csv \
+  --dry-run \
+  --limit 5
+
+# Step 6: Send emails for real
+python scripts/gmail_sender/gmail_sender.py \
+  --csv output/verified_drafts.csv \
+  --limit 50
+
+# Step 7 (if bounces occur): Recover bounced contacts
+python scripts/bounce_recovery/bounce_recovery.py \
+  --input config/bounced_contacts.csv \
+  --output output/recovered_contacts.csv
+
+# Alternative: Send Instagram DMs instead
 python scripts/apify_dm_sender.py \
   --csv output/prospects_final.csv \
   --message "Hey {contact_name} — saw your ads for {company_name}. Quick question..." \
@@ -338,6 +446,7 @@ fb-ads-prospecting/
 │   ├── hunter.py                # Module 3.5: Hunter.io enrichment
 │   ├── exa_enricher.py          # Module 3.6 Stage 0: Exa API contact discovery
 │   ├── contact_enricher_pipeline.py  # Module 3.6: AI agent fallback (Exa + OpenAI)
+│   ├── apollo_enricher.py       # Module 3.6.5: Apollo.io B2B contact database
 │   ├── instagram_enricher.py    # Module 3.7: Instagram handles
 │   ├── exporter.py              # Module 4: HubSpot export
 │   ├── validator.py             # Module 5: Quality validation
@@ -348,6 +457,15 @@ fb-ads-prospecting/
 │   │   ├── researcher.py        # Prospect research via Exa
 │   │   ├── analyzer.py          # Hook selection logic
 │   │   └── composer.py          # Email generation
+│   ├── email_verifier/          # MillionVerifier email verification
+│   │   ├── verifier.py          # Email verification with catch-all detection
+│   │   └── scorer.py            # Multi-factor scoring for send decisions
+│   ├── gmail_sender/            # Gmail email sender (SMTP with app password)
+│   │   └── gmail_sender.py      # Send cold emails via Gmail
+│   ├── smtp_verifier/           # SMTP email verifier (no external API)
+│   │   └── smtp_verifier.py     # Verify emails via SMTP RCPT TO
+│   ├── bounce_recovery/         # Bounce recovery module
+│   │   └── bounce_recovery.py   # Find alternative emails for bounced contacts
 │   ├── clean_instagram_handles.py  # Utility: Handle cleanup
 │   └── _archived/               # Legacy scripts (superseded)
 ├── input/                       # Source files
@@ -358,6 +476,7 @@ fb-ads-prospecting/
 ├── config/
 │   ├── website_overrides.csv    # Manual website mappings
 │   ├── manual_contacts.csv      # Manual contact data
+│   ├── bounced_contacts.csv     # Track bounced emails for recovery
 │   └── field_mappings/          # Saved field mappings
 └── tests/                       # Unit tests
 ```

@@ -22,3 +22,4 @@ tqdm>=4.65.0
 pyyaml>=6.0.0
 redis>=5.0.0  # Optional: for caching Instagram handles
 apify-client>=1.3.0  # Optional: for paid Instagram API
+dnspython>=2.4.0
