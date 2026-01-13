@@ -481,8 +481,17 @@ fb-ads-prospecting/
 │   │   └── smtp_verifier.py     # Verify emails via SMTP RCPT TO
 │   ├── bounce_recovery/         # Bounce recovery module
 │   │   └── bounce_recovery.py   # Find alternative emails for bounced contacts
-│   ├── clean_instagram_handles.py  # Utility: Handle cleanup
+│   ├── instagram_warmup/        # Instagram warm-up automation
+│   ├── utils/                   # Shared utilities
 │   └── _archived/               # Legacy scripts (superseded)
+├── config/
+│   ├── website_overrides.csv    # Manual website mappings
+│   ├── manual_contacts.csv      # Manual contact data
+│   ├── bounced_contacts.csv     # Track bounced emails for recovery
+│   └── field_mappings/          # Saved field mappings
+├── docs/
+│   ├── PRD.md                   # Product Requirements Document
+│   └── ARCHITECTURE.md          # Technical architecture details
 ├── input/                       # Source files
 ├── processed/                   # Intermediate pipeline files
 │   └── legacy/                  # Archived intermediate files

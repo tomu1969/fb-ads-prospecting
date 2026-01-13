@@ -11,16 +11,38 @@ python run_pipeline.py --input input/your_file.csv
 # Scrape Facebook Ads Library
 python scripts/fb_ads_scraper.py --search "real estate Miami" --limit 100
 
-# Draft personalized emails (outputs to output/email_campaign/drafts.csv)
+# === EMAIL CAMPAIGN PIPELINE ===
+
+# Full email pipeline (draft → verify → fix → send)
+python scripts/email_pipeline.py --input output/to_email.csv --all
+
+# Draft, verify, fix only (no sending)
+python scripts/email_pipeline.py --input output/to_email.csv --all --no-send
+
+# Verify and fix existing drafts
+python scripts/email_pipeline.py --drafts output/email_campaign/drafts.csv --verify-only
+
+# Send previously fixed drafts
+python scripts/email_pipeline.py --drafts output/email_campaign/drafts_fixed.csv --send-only
+
+# === INDIVIDUAL EMAIL TOOLS ===
+
+# Draft personalized emails
 python scripts/email_drafter/drafter.py --input output/prospects_final.csv --limit 5
 
-# Verify emails before sending (catch-all detection)
-python scripts/email_verifier/verifier.py --csv output/email_campaign/drafts.csv --output output/email_campaign/verified_drafts.csv
+# Verify email deliverability (MillionVerifier API)
+python scripts/email_verifier/verifier.py --csv output/email_campaign/drafts.csv
 
-# Send cold emails via Gmail (dry-run first!)
-python scripts/gmail_sender/gmail_sender.py --csv output/email_campaign/verified_drafts.csv --dry-run --limit 5
+# Verify email deliverability (SMTP method - no API required)
+python scripts/smtp_verifier/smtp_verifier.py --csv output/email_campaign/drafts.csv
 
-# Recover bounced contacts (outputs to output/email_campaign/recovered_contacts.csv)
+# Fix email issues automatically
+python scripts/email_verifier/fixer.py --drafts output/email_campaign/drafts.csv
+
+# Send emails via Gmail (dry-run first!)
+python scripts/gmail_sender/gmail_sender.py --csv output/email_campaign/drafts_fixed.csv --dry-run --limit 5
+
+# Recover bounced contacts
 python scripts/bounce_recovery/bounce_recovery.py --input config/bounced_contacts.csv
 
 # Instagram Warm-Up (5-7 days before DM) - MANUAL MODE
@@ -63,8 +85,12 @@ python scripts/linkedin_enricher.py --csv output/prospects.csv  # Standalone mod
 │   ├── fb_ads_scraper.py    # Facebook Ads Library scraper
 │   ├── apify_dm_sender.py   # Instagram DM sender (Apify)
 │   ├── manychat_sender.py   # Instagram DM sender (ManyChat)
+│   ├── email_pipeline.py    # End-to-end email campaign orchestrator
 │   ├── email_drafter/       # Email drafting module (research + compose)
-│   ├── email_verifier/      # MillionVerifier email verification (99%+ accuracy)
+│   ├── email_verifier/      # Email verification & fixing (quality checks)
+│   │   ├── verifier.py      # Validation checks (name, domain, template vars)
+│   │   ├── fixer.py         # Auto-fix issues (greeting, name extraction)
+│   │   └── checks.py        # Individual check functions
 │   ├── gmail_sender/        # Gmail email sender (SMTP with app password)
 │   ├── smtp_verifier/       # SMTP email verifier (no external API)
 │   ├── bounce_recovery/     # Bounce recovery (find alternative emails)
@@ -77,6 +103,9 @@ python scripts/linkedin_enricher.py --csv output/prospects.csv  # Standalone mod
 │   ├── bounced_contacts.csv # Track bounced emails for recovery
 │   ├── warmup_state.csv     # Instagram warm-up progress tracker
 │   └── warmup_config.json   # Warm-up phase configuration
+├── docs/
+│   ├── PRD.md               # Product Requirements Document
+│   └── ARCHITECTURE.md      # Technical architecture details
 ├── input/                   # Raw input files
 ├── processed/               # Intermediate pipeline outputs
 │   └── legacy/              # Archived intermediate files
@@ -109,9 +138,13 @@ python scripts/linkedin_enricher.py --csv output/prospects.csv  # Standalone mod
 ## Key Files
 
 - `run_pipeline.py` - Entry point, CLI options, module orchestration
+- `scripts/email_pipeline.py` - End-to-end email campaign workflow (draft → verify → fix → send)
 - `scripts/loader.py` - AI field mapping logic
 - `scripts/apify_dm_sender.py` - Instagram DM automation
-- `README.md` - Full documentation
+- `README.md` - Full documentation and usage guide
+- `CLAUDE.md` - Quick reference and development practices (this file)
+- `docs/PRD.md` - Product requirements and feature specifications
+- `docs/ARCHITECTURE.md` - Technical architecture and design decisions
 
 ## Data Flow
 
@@ -121,7 +154,13 @@ input/*.csv → processed/01_loaded.csv → 02_enriched.csv → 03_contacts.csv
     → 03e_names.csv (Contact Name Resolver) → 03f_linkedin.csv (LinkedIn Enricher)
     → output/prospects_master.csv         # Primary contacts
     → output/hubspot/contacts.csv         # CRM export
-    → output/email_campaign/drafts.csv    # Email drafts
+
+Email Campaign Flow:
+    prospects_master.csv → [email_drafter] → drafts.csv
+    → [verifier] → verification_report.csv
+    → [fixer] → drafts_fixed.csv
+    → [verifier] → verification_report_after.csv
+    → [gmail_sender] → sent emails
 ```
 
 ## Development Practices

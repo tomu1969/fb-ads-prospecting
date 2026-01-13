@@ -1,450 +1,324 @@
-"""Email Verifier - Professional email verification with catch-all detection.
+"""
+Email Verifier - Main verification CLI.
 
-Uses MillionVerifier API for high-accuracy verification (99%+).
-Supports single email and bulk verification with CSV processing.
+Validates drafted emails for quality and consistency with source data.
+
+Usage:
+    python verifier.py --drafts output/email_campaign/drafts_batch2.csv
+    python verifier.py --drafts drafts.csv --report
+    python verifier.py --drafts drafts.csv --fix
 """
 
-import os
-import re
-import time
-import logging
 import argparse
-from enum import Enum
-from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any
+import logging
+import sys
+from pathlib import Path
+from typing import List, Dict, Any, Optional
+from dataclasses import asdict
 
-import requests
 import pandas as pd
-from dotenv import load_dotenv
 
-load_dotenv()
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent))
 
-# Configuration
-MILLIONVERIFIER_API_KEY = os.getenv('MILLIONVERIFIER_API_KEY')
-MILLIONVERIFIER_URL = 'https://api.millionverifier.com/api/v3/'
+from checks import (
+    CheckResult,
+    check_contact_name,
+    check_email_name_match,
+    check_no_template_vars,
+    check_domain_match,
+    check_greeting_name,
+)
 
-# Generic email prefixes that are often catch-all
-GENERIC_PREFIXES = {
-    'info', 'sales', 'contact', 'hello', 'support', 'admin',
-    'office', 'team', 'general', 'inquiries', 'help', 'service',
-    'mail', 'enquiries', 'marketing', 'billing', 'accounts'
-}
-
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('email_verifier.log')
+    ]
+)
 logger = logging.getLogger(__name__)
 
-
-class VerificationStatus(Enum):
-    """Email verification status codes."""
-    OK = 'ok'                    # Verified deliverable
-    CATCH_ALL = 'catch_all'      # Server accepts all (risky)
-    INVALID = 'invalid'          # Hard bounce guaranteed
-    UNKNOWN = 'unknown'          # Could not verify
-    ERROR = 'error'              # API/network error
+# Default paths
+BASE_DIR = Path(__file__).parent.parent.parent
+DEFAULT_DRAFTS = "output/email_campaign/drafts_batch2.csv"
+DEFAULT_PROSPECTS = "output/prospects_master.csv"
+DEFAULT_OUTPUT = "output/email_campaign/verification_report.csv"
 
 
-@dataclass
-class VerificationResult:
-    """Result of email verification."""
-    email: str
-    status: VerificationStatus
-    is_catch_all: bool = False
-    is_deliverable: bool = False
-    confidence: int = 0
-    is_free: bool = False
-    is_role: bool = False
-    error: Optional[str] = None
-    raw_response: Dict[str, Any] = field(default_factory=dict)
-
-    @property
-    def safe_to_send(self) -> bool:
-        """Check if email is safe to send (high confidence delivery)."""
-        return (
-            self.status == VerificationStatus.OK and
-            not self.is_catch_all and
-            self.is_deliverable and
-            self.confidence >= 70
-        )
+def load_drafts(path: str) -> pd.DataFrame:
+    """Load email drafts CSV."""
+    logger.info(f"Loading drafts from: {path}")
+    df = pd.read_csv(path)
+    logger.info(f"Loaded {len(df)} drafts")
+    return df
 
 
-def extract_domain(email: Optional[str]) -> Optional[str]:
-    """Extract domain from email address."""
-    if not email or not isinstance(email, str):
-        return None
-    if '@' not in email:
-        return None
-    return email.split('@')[1].lower()
+def load_prospects(path: str) -> pd.DataFrame:
+    """Load prospects master CSV for cross-reference."""
+    logger.info(f"Loading prospects from: {path}")
+    df = pd.read_csv(path)
+    logger.info(f"Loaded {len(df)} prospects")
+    return df
 
 
-def is_generic_email(email: Optional[str]) -> bool:
-    """Check if email uses a generic prefix (info@, sales@, etc.)."""
-    if not email or not isinstance(email, str):
-        return False
-    if '@' not in email:
-        return False
-
-    prefix = email.split('@')[0].lower()
-    return prefix in GENERIC_PREFIXES
-
-
-def verify_email(
-    email: str,
-    api_key: Optional[str] = None,
-    timeout: int = 30
-) -> VerificationResult:
+def verify_single_draft(draft: Dict[str, Any], prospect: Optional[Dict[str, Any]] = None) -> List[CheckResult]:
     """
-    Verify a single email using MillionVerifier API.
+    Run all verification checks on a single draft.
 
     Args:
-        email: Email address to verify.
-        api_key: MillionVerifier API key (uses env var if not provided).
-        timeout: Request timeout in seconds.
+        draft: Draft email dict
+        prospect: Optional matching prospect for cross-reference
 
     Returns:
-        VerificationResult with status and metadata.
-    """
-    api_key = api_key or MILLIONVERIFIER_API_KEY
-
-    if not api_key:
-        return VerificationResult(
-            email=email,
-            status=VerificationStatus.UNKNOWN,
-            error='No API key provided (set MILLIONVERIFIER_API_KEY)'
-        )
-
-    try:
-        response = requests.get(
-            MILLIONVERIFIER_URL,
-            params={
-                'api': api_key,
-                'email': email
-            },
-            timeout=timeout
-        )
-
-        if response.status_code != 200:
-            return VerificationResult(
-                email=email,
-                status=VerificationStatus.ERROR,
-                error=f'API error: HTTP {response.status_code}'
-            )
-
-        data = response.json()
-        return _parse_millionverifier_response(email, data)
-
-    except requests.exceptions.Timeout:
-        return VerificationResult(
-            email=email,
-            status=VerificationStatus.ERROR,
-            error='API timeout'
-        )
-    except requests.exceptions.RequestException as e:
-        return VerificationResult(
-            email=email,
-            status=VerificationStatus.ERROR,
-            error=f'Request error: {str(e)}'
-        )
-    except Exception as e:
-        return VerificationResult(
-            email=email,
-            status=VerificationStatus.ERROR,
-            error=f'Unexpected error: {str(e)}'
-        )
-
-
-def _parse_millionverifier_response(email: str, data: Dict[str, Any]) -> VerificationResult:
-    """Parse MillionVerifier API response into VerificationResult."""
-    result_code = data.get('result', '').lower()
-    result_code_num = data.get('resultcode', 0)
-
-    # Map MillionVerifier results to our status
-    # Result codes: 1=ok, 2=invalid, 3=unknown, 4=catch_all
-    status_map = {
-        'ok': VerificationStatus.OK,
-        'valid': VerificationStatus.OK,
-        'invalid': VerificationStatus.INVALID,
-        'unknown': VerificationStatus.UNKNOWN,
-        'catch_all': VerificationStatus.CATCH_ALL,
-        'disposable': VerificationStatus.INVALID,
-    }
-
-    status = status_map.get(result_code, VerificationStatus.UNKNOWN)
-
-    # Determine deliverability and confidence
-    is_catch_all = result_code == 'catch_all' or result_code_num == 4
-    is_deliverable = status == VerificationStatus.OK
-    is_free = data.get('free', False)
-    is_role = data.get('role', False)
-
-    # Calculate confidence score
-    if status == VerificationStatus.OK:
-        confidence = 95 if not is_role else 85
-    elif status == VerificationStatus.CATCH_ALL:
-        # Catch-all: lower confidence, especially for generic emails
-        confidence = 30 if is_generic_email(email) else 50
-    elif status == VerificationStatus.INVALID:
-        confidence = 0
-    else:
-        confidence = 20
-
-    return VerificationResult(
-        email=email,
-        status=status,
-        is_catch_all=is_catch_all,
-        is_deliverable=is_deliverable,
-        confidence=confidence,
-        is_free=is_free,
-        is_role=is_role,
-        raw_response=data
-    )
-
-
-def verify_emails_bulk(
-    emails: List[str],
-    api_key: Optional[str] = None,
-    delay: float = 0.5,
-    progress_callback: Optional[callable] = None
-) -> List[VerificationResult]:
-    """
-    Verify multiple emails with rate limiting.
-
-    Args:
-        emails: List of email addresses.
-        api_key: MillionVerifier API key.
-        delay: Seconds between API calls (rate limiting).
-        progress_callback: Optional callback(current, total) for progress.
-
-    Returns:
-        List of VerificationResults.
+        List of CheckResult objects
     """
     results = []
-    total = len(emails)
 
-    for i, email in enumerate(emails, 1):
-        result = verify_email(email, api_key=api_key)
-        results.append(result)
+    contact_name = str(draft.get('contact_name', ''))
+    email = str(draft.get('primary_email', ''))
+    email_body = str(draft.get('email_body', ''))
+    page_name = str(draft.get('page_name', ''))
 
-        if progress_callback:
-            progress_callback(i, total)
+    # 1. Check contact name validity
+    results.append(check_contact_name(contact_name))
 
-        # Rate limiting (skip delay on last item)
-        if i < total and delay > 0:
-            time.sleep(delay)
+    # 2. Check email-name match
+    results.append(check_email_name_match(email, contact_name))
+
+    # 3. Check for template variables
+    results.append(check_no_template_vars(email_body))
+
+    # 4. Check domain match
+    results.append(check_domain_match(email, page_name))
+
+    # 5. Check greeting name
+    results.append(check_greeting_name(email_body, contact_name))
 
     return results
 
 
-def verify_csv(
-    input_path: str,
-    output_path: str,
-    email_column: str = 'primary_email',
-    api_key: Optional[str] = None,
-    delay: float = 0.5,
-    strict: bool = False
-) -> Dict[str, Any]:
+def verify_all_drafts(
+    drafts_df: pd.DataFrame,
+    prospects_df: Optional[pd.DataFrame] = None
+) -> List[Dict[str, Any]]:
     """
-    Verify emails from CSV file and save results.
+    Verify all drafts and return detailed results.
 
     Args:
-        input_path: Path to input CSV.
-        output_path: Path to output CSV.
-        email_column: Column name containing emails.
-        api_key: MillionVerifier API key.
-        delay: Seconds between API calls.
-        strict: If True, only include safe_to_send emails in output.
+        drafts_df: DataFrame of email drafts
+        prospects_df: Optional DataFrame of prospects for cross-reference
 
     Returns:
-        Summary statistics.
+        List of result dicts with check details
     """
-    df = pd.read_csv(input_path)
+    all_results = []
 
-    if email_column not in df.columns:
-        raise ValueError(f"Column '{email_column}' not found in CSV")
+    # Create prospect lookup if available
+    prospect_lookup = {}
+    if prospects_df is not None and 'page_name' in prospects_df.columns:
+        prospect_lookup = prospects_df.set_index('page_name').to_dict('index')
 
-    emails = df[email_column].dropna().tolist()
-    total = len(emails)
+    for idx, draft in drafts_df.iterrows():
+        page_name = draft.get('page_name', '')
+        prospect = prospect_lookup.get(page_name)
 
-    logger.info(f"Verifying {total} emails from {input_path}")
+        # Run all checks
+        check_results = verify_single_draft(draft.to_dict(), prospect)
 
-    stats = {
-        'total': total,
-        'ok': 0,
-        'catch_all': 0,
-        'invalid': 0,
-        'unknown': 0,
-        'error': 0,
-        'safe_to_send': 0
-    }
+        # Add results
+        for result in check_results:
+            if result.status != "pass":  # Only include non-passing results
+                all_results.append({
+                    'page_name': page_name,
+                    'contact_name': draft.get('contact_name', ''),
+                    'email': draft.get('primary_email', ''),
+                    **asdict(result)
+                })
 
-    # Initialize result columns
-    df['verify_status'] = ''
-    df['verify_confidence'] = 0
-    df['is_catch_all'] = False
-    df['safe_to_send'] = False
+    return all_results
 
-    for i, (idx, row) in enumerate(df.iterrows(), 1):
-        email = row.get(email_column)
 
-        if pd.isna(email) or not email:
-            continue
+def print_summary(results: List[Dict[str, Any]], total_drafts: int):
+    """Print verification summary to console."""
+    print("\n" + "=" * 60)
+    print("EMAIL VERIFICATION SUMMARY")
+    print("=" * 60)
 
-        result = verify_email(str(email), api_key=api_key)
+    # Count by severity
+    critical = sum(1 for r in results if r['severity'] == 'critical')
+    high = sum(1 for r in results if r['severity'] == 'high')
+    medium = sum(1 for r in results if r['severity'] == 'medium')
+    low = sum(1 for r in results if r['severity'] == 'low')
 
-        # Update dataframe
-        df.loc[idx, 'verify_status'] = result.status.value
-        df.loc[idx, 'verify_confidence'] = result.confidence
-        df.loc[idx, 'is_catch_all'] = result.is_catch_all
-        df.loc[idx, 'safe_to_send'] = result.safe_to_send
+    # Count by check type
+    check_counts = {}
+    for r in results:
+        check = r['check_name']
+        check_counts[check] = check_counts.get(check, 0) + 1
 
-        # Update stats
-        stats[result.status.value] = stats.get(result.status.value, 0) + 1
-        if result.safe_to_send:
-            stats['safe_to_send'] += 1
+    # Unique drafts with issues
+    drafts_with_issues = len(set(r['page_name'] for r in results))
 
-        logger.info(f"[{i}/{total}] {email}: {result.status.value} (conf: {result.confidence})")
+    print(f"\nTotal drafts checked: {total_drafts}")
+    print(f"Drafts with issues:   {drafts_with_issues}")
+    print(f"Total issues found:   {len(results)}")
 
-        if i < total and delay > 0:
-            time.sleep(delay)
+    print(f"\nBy severity:")
+    print(f"  Critical: {critical}")
+    print(f"  High:     {high}")
+    print(f"  Medium:   {medium}")
+    print(f"  Low:      {low}")
 
-    # Filter if strict mode
-    if strict:
-        df = df[df['safe_to_send'] == True]
-        logger.info(f"Strict mode: kept {len(df)} safe emails")
+    print(f"\nBy check type:")
+    for check, count in sorted(check_counts.items(), key=lambda x: -x[1]):
+        print(f"  {check}: {count}")
+
+    # Show critical issues
+    if critical > 0:
+        print(f"\n{'='*60}")
+        print("CRITICAL ISSUES (must fix before sending):")
+        print("=" * 60)
+        for r in results:
+            if r['severity'] == 'critical':
+                print(f"\n  Company: {r['page_name']}")
+                print(f"  Check:   {r['check_name']}")
+                print(f"  Issue:   {r['issue_detail']}")
+                print(f"  Fix:     {r['suggested_fix']}")
+
+    # Show high severity issues
+    if high > 0:
+        print(f"\n{'='*60}")
+        print("HIGH SEVERITY ISSUES:")
+        print("=" * 60)
+        for r in results:
+            if r['severity'] == 'high':
+                print(f"\n  Company: {r['page_name']}")
+                print(f"  Email:   {r['email']}")
+                print(f"  Check:   {r['check_name']}")
+                print(f"  Issue:   {r['issue_detail']}")
+
+
+def save_report(results: List[Dict[str, Any]], output_path: str):
+    """Save verification report to CSV."""
+    if not results:
+        logger.info("No issues found - skipping report generation")
+        return
+
+    df = pd.DataFrame(results)
+
+    # Order columns
+    cols = ['page_name', 'contact_name', 'email', 'check_name', 'status',
+            'severity', 'issue_detail', 'suggested_fix']
+    df = df[[c for c in cols if c in df.columns]]
+
+    # Sort by severity
+    severity_order = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3}
+    df['_severity_order'] = df['severity'].map(severity_order)
+    df = df.sort_values('_severity_order').drop('_severity_order', axis=1)
 
     df.to_csv(output_path, index=False)
-    logger.info(f"Results saved to {output_path}")
-
-    return stats
-
-
-def setup_logging(verbose: bool = False) -> None:
-    """Configure logging."""
-    level = logging.DEBUG if verbose else logging.INFO
-    logging.basicConfig(
-        level=level,
-        format='%(asctime)s [%(levelname)s] %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
-
-
-def parse_args() -> argparse.Namespace:
-    """Parse command line arguments."""
-    parser = argparse.ArgumentParser(
-        description='Verify email deliverability using MillionVerifier API',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Verify single email
-  python verifier.py --email test@example.com
-
-  # Verify CSV file
-  python verifier.py --csv contacts.csv --output verified.csv
-
-  # Verify and filter (strict mode)
-  python verifier.py --csv contacts.csv --output verified.csv --strict
-        """
-    )
-
-    parser.add_argument(
-        '--email',
-        type=str,
-        help='Single email to verify'
-    )
-
-    parser.add_argument(
-        '--csv',
-        type=str,
-        help='CSV file with emails to verify'
-    )
-
-    parser.add_argument(
-        '--output',
-        type=str,
-        help='Output CSV path (for --csv mode)'
-    )
-
-    parser.add_argument(
-        '--column',
-        type=str,
-        default='primary_email',
-        help='Email column name in CSV (default: primary_email)'
-    )
-
-    parser.add_argument(
-        '--delay',
-        type=float,
-        default=0.5,
-        help='Seconds between API calls (default: 0.5)'
-    )
-
-    parser.add_argument(
-        '--strict',
-        action='store_true',
-        help='Only output emails that are safe to send'
-    )
-
-    parser.add_argument(
-        '--verbose', '-v',
-        action='store_true',
-        help='Enable verbose logging'
-    )
-
-    return parser.parse_args()
+    logger.info(f"Report saved to: {output_path}")
 
 
 def main():
     """Main entry point."""
-    args = parse_args()
-    setup_logging(args.verbose)
+    parser = argparse.ArgumentParser(
+        description='Verify email drafts for quality and consistency'
+    )
 
-    if not MILLIONVERIFIER_API_KEY:
-        logger.error("MILLIONVERIFIER_API_KEY not set in environment")
-        logger.error("Sign up at https://www.millionverifier.com/ and add key to .env")
-        return 1
+    parser.add_argument(
+        '--drafts', '-d',
+        type=str,
+        default=DEFAULT_DRAFTS,
+        help=f'Path to email drafts CSV (default: {DEFAULT_DRAFTS})'
+    )
 
-    if args.email:
-        # Single email mode
-        result = verify_email(args.email)
-        print(f"\nEmail: {result.email}")
-        print(f"Status: {result.status.value}")
-        print(f"Confidence: {result.confidence}%")
-        print(f"Catch-all: {result.is_catch_all}")
-        print(f"Safe to send: {result.safe_to_send}")
-        if result.error:
-            print(f"Error: {result.error}")
-        return 0 if result.safe_to_send else 1
+    parser.add_argument(
+        '--prospects', '-p',
+        type=str,
+        default=DEFAULT_PROSPECTS,
+        help=f'Path to prospects CSV for cross-reference (default: {DEFAULT_PROSPECTS})'
+    )
 
-    elif args.csv:
-        # CSV mode
-        if not args.output:
-            args.output = args.csv.replace('.csv', '_verified.csv')
+    parser.add_argument(
+        '--output', '-o',
+        type=str,
+        default=DEFAULT_OUTPUT,
+        help=f'Path for verification report (default: {DEFAULT_OUTPUT})'
+    )
 
-        stats = verify_csv(
-            input_path=args.csv,
-            output_path=args.output,
-            email_column=args.column,
-            delay=args.delay,
-            strict=args.strict
-        )
+    parser.add_argument(
+        '--report', '-r',
+        action='store_true',
+        help='Generate detailed CSV report'
+    )
 
-        print("\n" + "=" * 50)
-        print("VERIFICATION SUMMARY")
-        print("=" * 50)
-        print(f"Total: {stats['total']}")
-        print(f"OK (verified): {stats['ok']}")
-        print(f"Catch-all (risky): {stats['catch_all']}")
-        print(f"Invalid (bounce): {stats['invalid']}")
-        print(f"Unknown: {stats['unknown']}")
-        print(f"Errors: {stats['error']}")
-        print("-" * 50)
-        print(f"Safe to send: {stats['safe_to_send']}")
-        print("=" * 50)
+    parser.add_argument(
+        '--fix',
+        action='store_true',
+        help='Auto-fix issues where possible (not implemented)'
+    )
 
-        return 0
+    args = parser.parse_args()
 
+    print("""
+    ╔═══════════════════════════════════════════════╗
+    ║           EMAIL VERIFICATION AGENT            ║
+    ║   Quality checks for personalized emails      ║
+    ╚═══════════════════════════════════════════════╝
+    """)
+
+    # Resolve paths
+    drafts_path = Path(args.drafts)
+    if not drafts_path.is_absolute():
+        drafts_path = BASE_DIR / args.drafts
+
+    prospects_path = Path(args.prospects)
+    if not prospects_path.is_absolute():
+        prospects_path = BASE_DIR / args.prospects
+
+    output_path = Path(args.output)
+    if not output_path.is_absolute():
+        output_path = BASE_DIR / args.output
+
+    # Load data
+    if not drafts_path.exists():
+        logger.error(f"Drafts file not found: {drafts_path}")
+        sys.exit(1)
+
+    drafts_df = load_drafts(str(drafts_path))
+
+    prospects_df = None
+    if prospects_path.exists():
+        prospects_df = load_prospects(str(prospects_path))
     else:
-        logger.error("Specify --email or --csv")
-        return 1
+        logger.warning(f"Prospects file not found: {prospects_path}")
+
+    # Run verification
+    logger.info("Running verification checks...")
+    results = verify_all_drafts(drafts_df, prospects_df)
+
+    # Print summary
+    print_summary(results, len(drafts_df))
+
+    # Save report if requested
+    if args.report or results:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        save_report(results, str(output_path))
+
+    # Exit with error if critical issues found
+    critical_count = sum(1 for r in results if r['severity'] == 'critical')
+    if critical_count > 0:
+        print(f"\n[WARNING] {critical_count} critical issues found - fix before sending!")
+        sys.exit(1)
+
+    print("\n[OK] Verification complete")
+    return 0
 
 
-if __name__ == '__main__':
-    exit(main())
+if __name__ == "__main__":
+    sys.exit(main())
