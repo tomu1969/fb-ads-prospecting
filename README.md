@@ -133,11 +133,18 @@ Converts lead data into qualified prospects with verified contact information.
 ### Pipeline Flow
 
 ```
-Module 1    Module 2    Module 3    Module 3.5   Module 3.6            Module 3.7        Module 4    Module 5
-Loader  →  Enricher →  Scraper  →   Hunter   → Agent Enricher    → Instagram Enricher → Exporter → Validator
-  │           │           │            │          (Exa + OpenAI)          │              │           │
-Smart      Search      Scrape      Hunter.io   Stage 0: Exa API      OpenAI/Groq     HubSpot     Quality
-Adapter    Websites    Contacts    Emails      Stage 1+: Agents      Instagram       CSV         Report
+Module 1    Module 2    Module 3    Module 3.5   Module 3.6            Module 3.7
+Loader  →  Enricher →  Scraper  →   Hunter   → Agent Enricher    → Instagram Enricher →
+  │           │           │            │          (Exa + OpenAI)          │
+Smart      Search      Scrape      Hunter.io   Stage 0: Exa API      OpenAI/Groq
+Adapter    Websites    Contacts    Emails      Stage 1+: Agents      Instagram
+
+   Module 3.8           Module 3.9        Module 4    Module 5
+→ Contact Name      → LinkedIn        → Exporter → Validator
+   Resolver            Enricher            │           │
+      │                   │             HubSpot     Quality
+  Multi-source         Exa API           CSV        Report
+   Name Finder        Profiles
 ```
 
 #### Module 3.6: Contact Enricher Details
@@ -191,6 +198,8 @@ python scripts/scraper.py --all               # Scrape contacts from sites
 python scripts/hunter.py --all                # Hunter.io email lookup
 python scripts/contact_enricher_pipeline.py --all  # AI fallback enrichment
 python scripts/instagram_enricher.py --all    # Find Instagram handles
+python scripts/contact_name_resolver.py --all # Resolve contact names
+python scripts/linkedin_enricher.py --all     # Find LinkedIn profiles
 python scripts/exporter.py                    # Export to HubSpot format
 python scripts/validator.py                   # Quality validation report
 ```
@@ -202,7 +211,9 @@ processed/01_loaded.csv     → Standardized input data
 processed/02_enriched.csv   → + website_url, linkedin_url
 processed/03_contacts.csv   → + scraped emails, phones
 processed/03b_hunter.csv    → + Hunter.io verified emails
-processed/03d_final.csv     → Final merged data
+processed/03d_final.csv     → + Instagram handles
+processed/03e_names.csv     → + resolved contact names
+processed/03f_linkedin.csv  → + LinkedIn profiles (final)
 
 output/prospects_master.csv      → Primary contact database
 output/prospects_master.xlsx     → Excel version
@@ -218,6 +229,8 @@ output/email_campaign/drafts.csv → Email drafts for sending
 | Email discovery | 70-85% |
 | Phone coverage | 60-75% |
 | Instagram handles | 85-95% |
+| Contact names | 90-95% |
+| LinkedIn profiles | 60-80% |
 
 ---
 
@@ -448,6 +461,8 @@ fb-ads-prospecting/
 │   ├── contact_enricher_pipeline.py  # Module 3.6: AI agent fallback (Exa + OpenAI)
 │   ├── apollo_enricher.py       # Module 3.6.5: Apollo.io B2B contact database
 │   ├── instagram_enricher.py    # Module 3.7: Instagram handles
+│   ├── contact_name_resolver.py # Module 3.8: Multi-source name finder
+│   ├── linkedin_enricher.py     # Module 3.9: LinkedIn profile finder (Exa)
 │   ├── exporter.py              # Module 4: HubSpot export
 │   ├── validator.py             # Module 5: Quality validation
 │   ├── apify_dm_sender.py       # Instagram DM sender (Apify)
