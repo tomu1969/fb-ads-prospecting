@@ -1,5 +1,7 @@
 """
-Contact Name Resolver - Find contact names using multiple data sources
+Contact Name Resolver - Module 3.8 - Find contact names using multiple data sources
+
+Runs automatically after Instagram Enricher (Module 3.7) in the pipeline.
 
 Priority order:
 1. Existing contact_name (if valid)
@@ -9,10 +11,14 @@ Priority order:
 5. Extract from page_name (patterns like "John Smith, Realtor")
 6. Exa company owner search (optional, costs API credits)
 
+Input: processed/03d_final.csv (from Module 3.7)
+Output: processed/03e_names.csv
+
 Usage:
-    python scripts/contact_name_resolver.py --csv output/prospects.csv
-    python scripts/contact_name_resolver.py --csv output/prospects.csv --use-exa
-    python scripts/contact_name_resolver.py --csv output/prospects.csv --dry-run
+    python scripts/contact_name_resolver.py           # Test mode (3 contacts)
+    python scripts/contact_name_resolver.py --all    # Process all contacts
+    python scripts/contact_name_resolver.py --all --use-exa  # Include Exa search
+    python scripts/contact_name_resolver.py --csv output/prospects.csv  # Standalone mode
 """
 
 import os
@@ -28,6 +34,11 @@ import pandas as pd
 import requests
 from dotenv import load_dotenv
 from tqdm import tqdm
+
+# Add scripts directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent))
+from utils.run_id import get_run_id_from_env, get_versioned_filename, create_latest_symlink
+from utils.enrichment_config import should_run_module
 
 load_dotenv()
 
@@ -46,6 +57,10 @@ logger = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).parent.parent
 EXA_API_KEY = os.getenv('EXA_API_KEY')
 EXA_API_URL = "https://api.exa.ai/search"
+
+# Pipeline input/output paths
+INPUT_BASE = "03d_final.csv"
+OUTPUT_BASE = "03e_names.csv"
 
 # Invalid names to skip
 INVALID_NAMES = {
@@ -354,52 +369,121 @@ def print_summary(stats: Dict):
 
 
 def main():
+    """Main function with pipeline and standalone mode support."""
+
+    # Check if module should run based on enrichment config
+    if not should_run_module("contact_name_resolver"):
+        print(f"\n{'='*60}")
+        print("MODULE 3.8: CONTACT NAME RESOLVER")
+        print(f"{'='*60}")
+        print("⏭️  SKIPPED: Contact name resolution not selected in configuration")
+        print("   No changes made to input file.")
+        return 0
+
+    print(f"\n{'='*60}")
+    print("MODULE 3.8: CONTACT NAME RESOLVER")
+    print(f"{'='*60}")
+
+    # Parse arguments
     parser = argparse.ArgumentParser(
         description='Resolve contact names from multiple data sources',
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
-
-    parser.add_argument('--csv', type=str, required=True,
-                       help='Input CSV file')
+    parser.add_argument('--csv', type=str,
+                       help='Input CSV file (standalone mode). If not provided, uses pipeline input.')
     parser.add_argument('--output', type=str,
-                       help='Output CSV path (default: update input file)')
+                       help='Output CSV path (default: pipeline output or same as input)')
+    parser.add_argument('--all', action='store_true',
+                       help='Process all contacts (default: test mode with 3 contacts)')
     parser.add_argument('--use-exa', action='store_true',
                        help='Use Exa API to search for company owners (costs API credits)')
     parser.add_argument('--dry-run', action='store_true',
                        help='Preview without making changes')
     parser.add_argument('--limit', type=int,
-                       help='Limit number of contacts to process')
+                       help='Limit number of contacts to process (alternative to --all)')
 
     args = parser.parse_args()
 
-    csv_path = Path(args.csv)
-    if not csv_path.is_absolute():
-        csv_path = BASE_DIR / args.csv
+    # Determine input file
+    run_id = get_run_id_from_env()
+
+    if args.csv:
+        # Standalone mode - use provided CSV
+        csv_path = Path(args.csv)
+        if not csv_path.is_absolute():
+            csv_path = BASE_DIR / args.csv
+        standalone_mode = True
+    else:
+        # Pipeline mode - auto-detect input
+        if run_id:
+            input_name = get_versioned_filename(INPUT_BASE, run_id)
+            csv_path = BASE_DIR / "processed" / input_name
+        else:
+            csv_path = BASE_DIR / "processed" / INPUT_BASE
+
+        # Try latest symlink if versioned file doesn't exist
+        if not csv_path.exists():
+            latest_path = BASE_DIR / "processed" / INPUT_BASE
+            if latest_path.exists() or latest_path.is_symlink():
+                csv_path = latest_path
+
+        standalone_mode = False
 
     if not csv_path.exists():
-        print(f"ERROR: CSV file not found: {csv_path}")
-        sys.exit(1)
+        print(f"ERROR: Input file not found: {csv_path}")
+        if not standalone_mode:
+            print("Make sure Module 3.7 (Instagram Enricher) has run first.")
+        return 1
 
-    output_path = None
+    # Determine output file
     if args.output:
         output_path = Path(args.output)
         if not output_path.is_absolute():
             output_path = BASE_DIR / args.output
+    elif standalone_mode:
+        output_path = csv_path  # Update in place for standalone
+    else:
+        # Pipeline mode - write to new file
+        if run_id:
+            output_name = get_versioned_filename(OUTPUT_BASE, run_id)
+            output_path = BASE_DIR / "processed" / output_name
+        else:
+            output_path = BASE_DIR / "processed" / OUTPUT_BASE
 
-    print(f"\nProcessing: {csv_path}")
+    # Determine limit
+    if args.limit:
+        limit = args.limit
+    elif args.all:
+        limit = None
+    else:
+        limit = 3  # Test mode
+        print("Test mode: Processing first 3 contacts")
+        print("(Use --all to process all contacts)")
+
+    print(f"\nInput:  {csv_path}")
+    print(f"Output: {output_path}")
     if args.use_exa:
-        print("MODE: Using Exa API for owner search")
+        print("Mode: Using Exa API for owner search (costs credits)")
 
+    # Run resolution
     stats = resolve_all_contacts(
         csv_path=csv_path,
         output_path=output_path,
         use_exa=args.use_exa,
         dry_run=args.dry_run,
-        limit=args.limit
+        limit=limit
     )
 
+    # Create latest symlink in pipeline mode
+    if not standalone_mode and run_id and output_path.exists():
+        latest_path = create_latest_symlink(output_path, OUTPUT_BASE)
+        if latest_path:
+            print(f"✓ Latest symlink: {latest_path}")
+
     print_summary(stats)
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    exit_code = main()
+    sys.exit(exit_code)

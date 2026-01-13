@@ -469,20 +469,40 @@ def export_all(df: pd.DataFrame, output_dir: str = 'output') -> dict:
 if __name__ == "__main__":
     base_dir = Path(__file__).parent.parent
 
-    # Try primary input (from Agent Enricher), then fallback
-    input_path = base_dir / 'processed' / '03d_final.csv'
-    fallback_path = base_dir / 'processed' / '03b_hunter.csv'
+    # Get run ID for versioned files
+    run_id = get_run_id_from_env()
+    processed_dir = base_dir / 'processed'
+
+    # Fallback chain: 03f_linkedin -> 03e_names -> 03d_final -> 03b_hunter
+    input_files = [
+        '03f_linkedin.csv',  # From LinkedIn Enricher (Module 3.9)
+        '03e_names.csv',     # From Contact Name Resolver (Module 3.8)
+        '03d_final.csv',     # From Instagram Enricher (Module 3.7)
+        '03b_hunter.csv',    # From Hunter (Module 3.5)
+    ]
+
+    input_path = None
+    for base_name in input_files:
+        # Try versioned file first
+        if run_id:
+            versioned_name = get_versioned_filename(base_name, run_id)
+            versioned_path = processed_dir / versioned_name
+            if versioned_path.exists():
+                input_path = versioned_path
+                break
+
+        # Try latest symlink
+        latest_path = processed_dir / base_name
+        if latest_path.exists() or latest_path.is_symlink():
+            input_path = latest_path
+            break
 
     output_dir = base_dir / 'output'
 
-    if input_path.exists():
+    if input_path and input_path.exists():
         print(f"Loading: {input_path}")
         df = pd.read_csv(input_path, encoding='utf-8')
         export_all(df, str(output_dir))
-    elif fallback_path.exists():
-        print(f"Using fallback: {fallback_path}")
-        df = pd.read_csv(fallback_path, encoding='utf-8')
-        export_all(df, str(output_dir))
     else:
-        print(f"Input file not found: {input_path}")
+        print(f"Input file not found in processed/ directory")
         print("Run previous pipeline modules first.")

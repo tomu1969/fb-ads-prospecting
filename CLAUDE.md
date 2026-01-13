@@ -32,14 +32,15 @@ python scripts/instagram_warmup/warmup_orchestrator.py --status             # Ch
 # Send Instagram DMs (only to warmed-up prospects)
 python scripts/apify_dm_sender.py --csv output/prospects_final.csv --message "Hi {contact_name}!" --dry-run
 
-# Contact Name Resolution (find names from multiple sources)
-python scripts/contact_name_resolver.py --csv output/prospects.csv --dry-run
-python scripts/contact_name_resolver.py --csv output/prospects.csv --use-exa  # Use Exa API for owner search
+# Contact Name Resolution (Module 3.8 - runs automatically in pipeline)
+python scripts/contact_name_resolver.py           # Test mode (3 contacts)
+python scripts/contact_name_resolver.py --all     # Process all contacts
+python scripts/contact_name_resolver.py --all --use-exa  # Include Exa owner search
 
-# LinkedIn Profile Enrichment (find personal LinkedIn profiles)
-python scripts/linkedin_enricher.py --csv output/prospects.csv --dry-run
-python scripts/linkedin_enricher.py --csv output/prospects.csv --limit 10
-python scripts/linkedin_enricher.py --csv output/prospects.csv --retry-missing  # Re-process unfound
+# LinkedIn Profile Enrichment (Module 3.9 - runs automatically in pipeline)
+python scripts/linkedin_enricher.py               # Test mode (3 contacts)
+python scripts/linkedin_enricher.py --all         # Process all contacts
+python scripts/linkedin_enricher.py --csv output/prospects.csv  # Standalone mode
 ```
 
 ## Project Structure
@@ -118,6 +119,7 @@ python scripts/linkedin_enricher.py --csv output/prospects.csv --retry-missing  
 ```
 input/*.csv → processed/01_loaded.csv → 02_enriched.csv → 03_contacts.csv
     → 03b_hunter.csv → 03c_enriched.csv (Exa + Agents) → 03d_final.csv
+    → 03e_names.csv (Contact Name Resolver) → 03f_linkedin.csv (LinkedIn Enricher)
     → output/prospects_master.csv         # Primary contacts
     → output/hubspot/contacts.csv         # CRM export
     → output/email_campaign/drafts.csv    # Email drafts

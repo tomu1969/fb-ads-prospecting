@@ -51,10 +51,10 @@ ENRICHMENT_TYPES = {
     },
     'contact_names': {
         'name': 'Contact Names',
-        'description': 'Extract from websites (runs with phones)',
-        'modules': ['scraper', 'hunter'],
-        'cost_per_contact': 0.0,  # Free (scraping)
-        'time_per_contact': 0.0,  # seconds (included with phones - same scrape)
+        'description': 'Extract from websites + advanced resolution (Exa owner search)',
+        'modules': ['scraper', 'hunter', 'contact_name_resolver'],
+        'cost_per_contact': 0.001,  # Exa API cost for advanced resolution
+        'time_per_contact': 0.5,  # seconds (resolver adds ~0.5s per contact)
     },
     'instagram_handles': {
         'name': 'Instagram Handles',
@@ -62,6 +62,13 @@ ENRICHMENT_TYPES = {
         'modules': ['instagram_enricher'],
         'cost_per_contact': 0.0002,  # Groq API calls (~$0.01 for 59 contacts)
         'time_per_contact': 0.5,  # seconds (optimized fast mode: cache + scrape + Groq)
+    },
+    'linkedin_profiles': {
+        'name': 'LinkedIn Profiles',
+        'description': 'Find personal LinkedIn profiles via Exa API',
+        'modules': ['linkedin_enricher'],
+        'cost_per_contact': 0.001,  # Exa API cost
+        'time_per_contact': 0.6,  # seconds
     },
 }
 
@@ -72,6 +79,8 @@ MODULE_TO_ENRICHMENT = {
     'hunter': ['emails'],  # Hunter only runs for email enrichment
     'contact_enricher': ['emails'],
     'instagram_enricher': ['instagram_handles'],
+    'contact_name_resolver': ['contact_names'],
+    'linkedin_enricher': ['linkedin_profiles'],
 }
 
 

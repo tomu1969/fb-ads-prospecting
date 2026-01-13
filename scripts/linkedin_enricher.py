@@ -1,11 +1,16 @@
 """
-LinkedIn Profile Enricher - Find personal LinkedIn profiles via Exa API
+LinkedIn Profile Enricher - Module 3.9 - Find personal LinkedIn profiles via Exa API
 
+Runs automatically after Contact Name Resolver (Module 3.8) in the pipeline.
 Searches for personal LinkedIn profiles (/in/) using contact name + company.
 
+Input: processed/03e_names.csv (from Module 3.8)
+Output: processed/03f_linkedin.csv
+
 Usage:
-    python scripts/linkedin_enricher.py --csv output/legacy/merged_prospects_final.csv --limit 10
-    python scripts/linkedin_enricher.py --csv output/legacy/merged_prospects_final.csv --dry-run
+    python scripts/linkedin_enricher.py           # Test mode (3 contacts)
+    python scripts/linkedin_enricher.py --all    # Process all contacts
+    python scripts/linkedin_enricher.py --csv output/prospects.csv  # Standalone mode
 """
 
 import os
@@ -24,6 +29,11 @@ import requests
 from dotenv import load_dotenv
 from tqdm import tqdm
 
+# Add scripts directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent))
+from utils.run_id import get_run_id_from_env, get_versioned_filename, create_latest_symlink
+from utils.enrichment_config import should_run_module
+
 load_dotenv()
 
 # Setup logging
@@ -40,6 +50,10 @@ logger = logging.getLogger(__name__)
 
 # Paths
 BASE_DIR = Path(__file__).parent.parent
+
+# Pipeline input/output paths
+INPUT_BASE = "03e_names.csv"
+OUTPUT_BASE = "03f_linkedin.csv"
 
 # Exa API
 EXA_API_KEY = os.getenv('EXA_API_KEY')
@@ -354,77 +368,144 @@ def print_summary(stats: Dict):
 
 
 def main():
+    """Main function with pipeline and standalone mode support."""
+
+    # Check if module should run based on enrichment config
+    if not should_run_module("linkedin_enricher"):
+        print(f"\n{'='*60}")
+        print("MODULE 3.9: LINKEDIN PROFILE ENRICHER")
+        print(f"{'='*60}")
+        print("⏭️  SKIPPED: LinkedIn enrichment not selected in configuration")
+        print("   No changes made to input file.")
+        return 0
+
+    print(f"\n{'='*60}")
+    print("MODULE 3.9: LINKEDIN PROFILE ENRICHER")
+    print(f"{'='*60}")
+
+    # Parse arguments
     parser = argparse.ArgumentParser(
         description='Enrich contacts with personal LinkedIn profiles via Exa',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Dry run to preview
-  python linkedin_enricher.py --csv output/legacy/merged_prospects_final.csv --dry-run
-
-  # Process first 10 contacts
-  python linkedin_enricher.py --csv output/legacy/merged_prospects_final.csv --limit 10
-
-  # Full run
-  python linkedin_enricher.py --csv output/legacy/merged_prospects_final.csv
-        """
+        formatter_class=argparse.RawDescriptionHelpFormatter
     )
-
-    parser.add_argument('--csv', type=str, required=True,
-                       help='Input CSV with contact_name and page_name columns')
+    parser.add_argument('--csv', type=str,
+                       help='Input CSV file (standalone mode). If not provided, uses pipeline input.')
     parser.add_argument('--output', type=str,
-                       help='Output CSV path (default: input_linkedin.csv)')
+                       help='Output CSV path (default: pipeline output or same as input)')
+    parser.add_argument('--all', action='store_true',
+                       help='Process all contacts (default: test mode with 3 contacts)')
     parser.add_argument('--limit', type=int,
-                       help='Limit number of contacts to process')
+                       help='Limit number of contacts to process (alternative to --all)')
     parser.add_argument('--dry-run', action='store_true',
                        help='Preview without making API calls')
     parser.add_argument('--delay', type=float, default=0.5,
                        help='Delay between API calls in seconds (default: 0.5)')
-    parser.add_argument('--retry-missing', action='store_true',
-                       help='Only process contacts that have no LinkedIn profile yet')
 
     args = parser.parse_args()
 
-    # Validate paths
-    csv_path = Path(args.csv)
-    if not csv_path.is_absolute():
-        csv_path = BASE_DIR / args.csv
+    # Determine input file
+    run_id = get_run_id_from_env()
+
+    if args.csv:
+        # Standalone mode - use provided CSV
+        csv_path = Path(args.csv)
+        if not csv_path.is_absolute():
+            csv_path = BASE_DIR / args.csv
+        standalone_mode = True
+    else:
+        # Pipeline mode - auto-detect input
+        if run_id:
+            input_name = get_versioned_filename(INPUT_BASE, run_id)
+            csv_path = BASE_DIR / "processed" / input_name
+        else:
+            csv_path = BASE_DIR / "processed" / INPUT_BASE
+
+        # Try latest symlink if versioned file doesn't exist
+        if not csv_path.exists():
+            latest_path = BASE_DIR / "processed" / INPUT_BASE
+            if latest_path.exists() or latest_path.is_symlink():
+                csv_path = latest_path
+
+        # Fallback: try 03d_final.csv if 03e_names.csv doesn't exist
+        if not csv_path.exists():
+            fallback_base = "03d_final.csv"
+            if run_id:
+                fallback_name = get_versioned_filename(fallback_base, run_id)
+                fallback_path = BASE_DIR / "processed" / fallback_name
+            else:
+                fallback_path = BASE_DIR / "processed" / fallback_base
+
+            if not fallback_path.exists():
+                fallback_path = BASE_DIR / "processed" / fallback_base
+
+            if fallback_path.exists() or fallback_path.is_symlink():
+                csv_path = fallback_path
+                logger.info(f"Using fallback input: {fallback_path}")
+
+        standalone_mode = False
 
     if not csv_path.exists():
-        print(f"ERROR: CSV file not found: {csv_path}")
-        sys.exit(1)
+        print(f"ERROR: Input file not found: {csv_path}")
+        if not standalone_mode:
+            print("Make sure Module 3.8 (Contact Name Resolver) has run first.")
+        return 1
 
-    output_path = None
+    # Determine output file
     if args.output:
         output_path = Path(args.output)
         if not output_path.is_absolute():
             output_path = BASE_DIR / args.output
+    elif standalone_mode:
+        # For standalone, add _linkedin suffix
+        output_path = csv_path.parent / f"{csv_path.stem}_linkedin{csv_path.suffix}"
+    else:
+        # Pipeline mode - write to new file
+        if run_id:
+            output_name = get_versioned_filename(OUTPUT_BASE, run_id)
+            output_path = BASE_DIR / "processed" / output_name
+        else:
+            output_path = BASE_DIR / "processed" / OUTPUT_BASE
+
+    # Determine limit
+    if args.limit:
+        limit = args.limit
+    elif args.all:
+        limit = None
+    else:
+        limit = 3  # Test mode
+        print("Test mode: Processing first 3 contacts")
+        print("(Use --all to process all contacts)")
 
     # Check API key
     if not EXA_API_KEY and not args.dry_run:
         print("ERROR: EXA_API_KEY not found in environment")
         print("Add it to your .env file")
-        sys.exit(1)
+        return 1
+
+    print(f"\nInput:  {csv_path}")
+    print(f"Output: {output_path}")
+    if args.dry_run:
+        print("Mode: DRY RUN")
 
     # Run enrichment
-    print(f"\nProcessing: {csv_path}")
-    if args.dry_run:
-        print("MODE: DRY RUN\n")
-
-    # For retry-missing, output to same file (update in place)
-    if args.retry_missing and output_path is None:
-        output_path = csv_path
-
     stats = enrich_linkedin_profiles(
         csv_path=csv_path,
         output_path=output_path,
-        limit=args.limit,
+        limit=limit,
         dry_run=args.dry_run,
         delay=args.delay
     )
 
+    # Create latest symlink in pipeline mode
+    if not standalone_mode and run_id and output_path.exists():
+        latest_path = create_latest_symlink(output_path, OUTPUT_BASE)
+        if latest_path:
+            print(f"✓ Latest symlink: {latest_path}")
+
     print_summary(stats)
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    exit_code = main()
+    sys.exit(exit_code)

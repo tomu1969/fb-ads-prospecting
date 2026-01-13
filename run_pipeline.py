@@ -52,6 +52,8 @@ MODULES = [
     {"num": 3.5, "name": "Hunter", "script": "hunter.py", "supports_all": True},
     {"num": 3.6, "name": "Agent Enricher", "script": "contact_enricher_pipeline.py", "supports_all": True},
     {"num": 3.7, "name": "Instagram Enricher", "script": "instagram_enricher.py", "supports_all": True},
+    {"num": 3.8, "name": "Contact Name Resolver", "script": "contact_name_resolver.py", "supports_all": True},
+    {"num": 3.9, "name": "LinkedIn Enricher", "script": "linkedin_enricher.py", "supports_all": True},
     # Composer removed - email drafts will be done in HubSpot
     {"num": 4, "name": "Exporter", "script": "exporter.py", "supports_all": False},
     {"num": 5, "name": "Validator", "script": "validator.py", "supports_all": False},
@@ -69,6 +71,8 @@ def run_module(module, run_all=False, input_file=None, run_id=None, enrichment_c
         "Hunter": "hunter",
         "Agent Enricher": "contact_enricher",
         "Instagram Enricher": "instagram_enricher",
+        "Contact Name Resolver": "contact_name_resolver",
+        "LinkedIn Enricher": "linkedin_enricher",
     }
     
     script_path = SCRIPTS_DIR / module["script"]
