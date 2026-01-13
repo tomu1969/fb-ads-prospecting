@@ -112,7 +112,6 @@ python scripts/linkedin_enricher.py --csv output/prospects.csv  # Standalone mod
 - `scripts/loader.py` - AI field mapping logic
 - `scripts/apify_dm_sender.py` - Instagram DM automation
 - `README.md` - Full documentation
-- `PRD.md` - Technical architecture
 
 ## Data Flow
 
@@ -133,9 +132,10 @@ input/*.csv → processed/01_loaded.csv → 02_enriched.csv → 03_contacts.csv
 3. **Thin Slice Development** - Build the minimum vertical slice that connects functionality end-to-end before expanding
 
 ### TDD Workflow
-1. Write tests first in `tests/` folder within the module
-2. Implement code to pass tests
-3. Run tests after implementation: `pytest <module>/tests/ -v`
+1. Write failing tests first in `tests/` folder that define expected behavior
+2. Implement the minimum code to pass tests
+3. Refactor while keeping tests green
+4. Run tests after implementation: `pytest <module>/tests/ -v`
 
 ### Modular Design
 - Each module should have a single responsibility
@@ -147,6 +147,7 @@ input/*.csv → processed/01_loaded.csv → 02_enriched.csv → 03_contacts.csv
 - Start with the simplest working version that touches all layers
 - Validate the integration path before adding complexity
 - Expand horizontally only after vertical slice works
+- Prefer working software over comprehensive features
 
 ### Logging Standards
 All scripts should include comprehensive logging:
