@@ -1,0 +1,430 @@
+"""
+LinkedIn Profile Enricher - Find personal LinkedIn profiles via Exa API
+
+Searches for personal LinkedIn profiles (/in/) using contact name + company.
+
+Usage:
+    python scripts/linkedin_enricher.py --csv output/legacy/merged_prospects_final.csv --limit 10
+    python scripts/linkedin_enricher.py --csv output/legacy/merged_prospects_final.csv --dry-run
+"""
+
+import os
+import re
+import sys
+import argparse
+import logging
+import time
+from pathlib import Path
+from datetime import datetime
+from typing import Optional, List, Dict, Tuple
+from difflib import SequenceMatcher
+
+import pandas as pd
+import requests
+from dotenv import load_dotenv
+from tqdm import tqdm
+
+load_dotenv()
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('linkedin_enricher.log')
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Paths
+BASE_DIR = Path(__file__).parent.parent
+
+# Exa API
+EXA_API_KEY = os.getenv('EXA_API_KEY')
+EXA_API_URL = "https://api.exa.ai/search"
+
+# Invalid names to skip
+INVALID_NAMES = {
+    'none', 'none none', 'nan', 'n/a', 'null', 'undefined', 'unknown',
+    'meet our team', 'social media', 'featured video', 'your information',
+    'contact', 'info', 'support', 'team', 'admin'
+}
+
+# Company name suffixes to remove for cleaner searches
+COMPANY_NOISE_WORDS = [
+    'realtor', 'realty', 'real estate', 'properties', 'property',
+    'group', 'team', 'associates', 'llc', 'inc', 'corp', 'co',
+    'investments', 'investing', 'capital', 'partners', 'agency'
+]
+
+
+def clean_company_name(company: str) -> str:
+    """Remove noise words from company name for better search results."""
+    if not company:
+        return company
+
+    cleaned = company.lower()
+
+    # Remove common suffixes
+    for word in COMPANY_NOISE_WORDS:
+        # Remove as suffix (with optional punctuation)
+        cleaned = re.sub(rf'\s+{word}[.,]?\s*$', '', cleaned, flags=re.IGNORECASE)
+        # Remove with "&" prefix like "& Associates"
+        cleaned = re.sub(rf'\s+&\s+{word}[.,]?\s*$', '', cleaned, flags=re.IGNORECASE)
+
+    # Remove trailing punctuation
+    cleaned = cleaned.strip(' .,&-')
+
+    # Title case the result
+    return cleaned.title() if cleaned else company
+
+
+def name_similarity(name1: str, name2: str) -> float:
+    """Calculate similarity ratio between two names (0.0 to 1.0)."""
+    return SequenceMatcher(None, name1.lower(), name2.lower()).ratio()
+
+
+def search_exa_linkedin(name: str, company: str = None, num_results: int = 5) -> List[Dict]:
+    """
+    Search Exa for LinkedIn profiles matching name + company.
+
+    Returns list of results with URLs and text snippets.
+    """
+    if not EXA_API_KEY:
+        logger.warning("EXA_API_KEY not configured")
+        return []
+
+    # Build search query targeting LinkedIn personal profiles
+    if company:
+        cleaned_company = clean_company_name(company)
+        query = f'site:linkedin.com/in "{name}" "{cleaned_company}"'
+    else:
+        query = f'site:linkedin.com/in "{name}"'
+
+    try:
+        headers = {
+            "accept": "application/json",
+            "content-type": "application/json",
+            "x-api-key": EXA_API_KEY
+        }
+
+        payload = {
+            "query": query,
+            "numResults": num_results,
+            "type": "auto",
+            "contents": {
+                "text": {"maxCharacters": 1000}
+            }
+        }
+
+        response = requests.post(EXA_API_URL, headers=headers, json=payload, timeout=15)
+
+        if response.status_code == 200:
+            data = response.json()
+            return data.get("results", [])
+        else:
+            logger.error(f"Exa API error: {response.status_code} - {response.text[:200]}")
+            return []
+    except Exception as e:
+        logger.error(f"Exa search error: {e}")
+        return []
+
+
+def extract_linkedin_profile_url(results: List[Dict], name: str, company: str = None) -> Optional[str]:
+    """
+    Extract the best matching personal LinkedIn profile URL from Exa results.
+
+    Uses fuzzy name matching and company verification for better accuracy.
+    Returns URL like https://linkedin.com/in/username or None.
+    """
+    if not results:
+        return None
+
+    name_parts = name.lower().split()
+    first_name = name_parts[0] if name_parts else ''
+    last_name = name_parts[-1] if len(name_parts) > 1 else ''
+
+    # Score each result
+    scored_results = []
+
+    for result in results:
+        url = result.get('url', '')
+
+        # Must be a personal profile (/in/), not company page
+        if '/in/' not in url:
+            continue
+        if '/company/' in url:
+            continue
+
+        url_lower = url.lower()
+        text_lower = result.get('text', '').lower()
+        title_lower = result.get('title', '').lower()
+
+        score = 0
+
+        # Extract username from URL for matching
+        username_match = re.search(r'/in/([^/?]+)', url_lower)
+        username = username_match.group(1) if username_match else ''
+
+        # Score: Name parts in URL username
+        if first_name and first_name in username:
+            score += 30
+        if last_name and last_name in username:
+            score += 30
+
+        # Score: Name parts in profile text
+        if first_name and first_name in text_lower:
+            score += 15
+        if last_name and last_name in text_lower:
+            score += 15
+
+        # Score: Fuzzy match on title (usually contains full name)
+        if title_lower:
+            title_sim = name_similarity(name, title_lower.split('-')[0].strip())
+            score += int(title_sim * 40)
+
+        # Score: Company name in profile text (if provided)
+        if company:
+            cleaned_company = clean_company_name(company).lower()
+            if cleaned_company and len(cleaned_company) > 2:
+                if cleaned_company in text_lower:
+                    score += 25
+                elif any(word in text_lower for word in cleaned_company.split() if len(word) > 3):
+                    score += 10
+
+        # Minimum threshold - at least first or last name should match somewhere
+        if score >= 30:
+            scored_results.append((score, url.split('?')[0], result))
+
+    # Sort by score descending
+    scored_results.sort(key=lambda x: x[0], reverse=True)
+
+    if scored_results:
+        logger.debug(f"Top match for '{name}': score={scored_results[0][0]}, url={scored_results[0][1]}")
+        return scored_results[0][1]
+
+    return None
+
+
+def is_valid_name(name: str) -> bool:
+    """Check if name is valid for LinkedIn search."""
+    if not name or pd.isna(name):
+        return False
+    name_lower = str(name).lower().strip()
+    if name_lower in INVALID_NAMES:
+        return False
+    if len(name_lower) < 3:
+        return False
+    if "'s listings" in name_lower:
+        return False
+    return True
+
+
+def enrich_linkedin_profiles(
+    csv_path: Path,
+    output_path: Optional[Path] = None,
+    limit: Optional[int] = None,
+    dry_run: bool = False,
+    delay: float = 0.5
+) -> Dict:
+    """
+    Enrich CSV with personal LinkedIn profile URLs.
+
+    Args:
+        csv_path: Input CSV with contact_name and page_name columns
+        output_path: Output CSV path (default: adds _linkedin suffix)
+        limit: Max contacts to process
+        dry_run: Preview without API calls
+        delay: Delay between API calls (seconds)
+
+    Returns:
+        Stats dictionary
+    """
+    # Load CSV
+    try:
+        df = pd.read_csv(csv_path, encoding='utf-8')
+    except Exception as e:
+        logger.error(f"Failed to read CSV: {e}")
+        return {'error': str(e)}
+
+    if 'contact_name' not in df.columns or 'page_name' not in df.columns:
+        logger.error("CSV must have 'contact_name' and 'page_name' columns")
+        return {'error': 'Missing required columns'}
+
+    # Add linkedin_profile column if not exists
+    if 'linkedin_profile' not in df.columns:
+        df['linkedin_profile'] = ''
+
+    # Stats
+    stats = {
+        'total': len(df),
+        'processed': 0,
+        'found': 0,
+        'skipped': 0,
+        'errors': 0,
+        'already_had': 0
+    }
+
+    # Filter rows to process
+    rows_to_process = []
+    for idx, row in df.iterrows():
+        # Skip if already has personal LinkedIn profile
+        existing = str(row.get('linkedin_profile', '') or row.get('linkedin_url', ''))
+        if existing and '/in/' in existing:
+            stats['already_had'] += 1
+            continue
+
+        name = str(row.get('contact_name', '')).strip()
+        company = str(row.get('page_name', '')).strip()
+
+        if not is_valid_name(name):
+            stats['skipped'] += 1
+            continue
+
+        rows_to_process.append((idx, name, company))
+
+    # Apply limit
+    if limit:
+        rows_to_process = rows_to_process[:limit]
+
+    logger.info(f"Processing {len(rows_to_process)} contacts for LinkedIn profiles")
+
+    if dry_run:
+        logger.info("DRY RUN - No API calls will be made")
+        for idx, name, company in rows_to_process[:10]:
+            logger.info(f"  Would search: \"{name}\" at \"{company}\"")
+        return stats
+
+    # Process each contact
+    for idx, name, company in tqdm(rows_to_process, desc="Finding LinkedIn profiles"):
+        try:
+            # Search Exa with company name
+            results = search_exa_linkedin(name, company)
+
+            # Extract best profile URL
+            profile_url = extract_linkedin_profile_url(results, name, company)
+
+            # Fallback: Try name-only search if no results
+            if not profile_url:
+                logger.debug(f"Trying fallback search for: {name}")
+                results_fallback = search_exa_linkedin(name, company=None)
+                profile_url = extract_linkedin_profile_url(results_fallback, name, company)
+                time.sleep(delay)  # Extra delay for fallback
+
+            if profile_url:
+                df.at[idx, 'linkedin_profile'] = profile_url
+                stats['found'] += 1
+                logger.debug(f"Found: {name} -> {profile_url}")
+            else:
+                logger.debug(f"Not found: {name} at {company}")
+
+            stats['processed'] += 1
+
+            # Rate limiting
+            time.sleep(delay)
+
+        except Exception as e:
+            logger.error(f"Error processing {name}: {e}")
+            stats['errors'] += 1
+
+    # Save output
+    if output_path is None:
+        output_path = csv_path.parent / f"{csv_path.stem}_linkedin{csv_path.suffix}"
+
+    df.to_csv(output_path, index=False, encoding='utf-8')
+    logger.info(f"Saved to {output_path}")
+
+    return stats
+
+
+def print_summary(stats: Dict):
+    """Print enrichment summary."""
+    print("\n" + "=" * 60)
+    print("LINKEDIN ENRICHMENT SUMMARY")
+    print("=" * 60)
+    print(f"Total contacts:      {stats.get('total', 0)}")
+    print(f"Already had profile: {stats.get('already_had', 0)}")
+    print(f"Processed:           {stats.get('processed', 0)}")
+    print(f"Found profiles:      {stats.get('found', 0)}")
+    print(f"Skipped (bad name):  {stats.get('skipped', 0)}")
+    print(f"Errors:              {stats.get('errors', 0)}")
+    print("=" * 60)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Enrich contacts with personal LinkedIn profiles via Exa',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Dry run to preview
+  python linkedin_enricher.py --csv output/legacy/merged_prospects_final.csv --dry-run
+
+  # Process first 10 contacts
+  python linkedin_enricher.py --csv output/legacy/merged_prospects_final.csv --limit 10
+
+  # Full run
+  python linkedin_enricher.py --csv output/legacy/merged_prospects_final.csv
+        """
+    )
+
+    parser.add_argument('--csv', type=str, required=True,
+                       help='Input CSV with contact_name and page_name columns')
+    parser.add_argument('--output', type=str,
+                       help='Output CSV path (default: input_linkedin.csv)')
+    parser.add_argument('--limit', type=int,
+                       help='Limit number of contacts to process')
+    parser.add_argument('--dry-run', action='store_true',
+                       help='Preview without making API calls')
+    parser.add_argument('--delay', type=float, default=0.5,
+                       help='Delay between API calls in seconds (default: 0.5)')
+    parser.add_argument('--retry-missing', action='store_true',
+                       help='Only process contacts that have no LinkedIn profile yet')
+
+    args = parser.parse_args()
+
+    # Validate paths
+    csv_path = Path(args.csv)
+    if not csv_path.is_absolute():
+        csv_path = BASE_DIR / args.csv
+
+    if not csv_path.exists():
+        print(f"ERROR: CSV file not found: {csv_path}")
+        sys.exit(1)
+
+    output_path = None
+    if args.output:
+        output_path = Path(args.output)
+        if not output_path.is_absolute():
+            output_path = BASE_DIR / args.output
+
+    # Check API key
+    if not EXA_API_KEY and not args.dry_run:
+        print("ERROR: EXA_API_KEY not found in environment")
+        print("Add it to your .env file")
+        sys.exit(1)
+
+    # Run enrichment
+    print(f"\nProcessing: {csv_path}")
+    if args.dry_run:
+        print("MODE: DRY RUN\n")
+
+    # For retry-missing, output to same file (update in place)
+    if args.retry_missing and output_path is None:
+        output_path = csv_path
+
+    stats = enrich_linkedin_profiles(
+        csv_path=csv_path,
+        output_path=output_path,
+        limit=args.limit,
+        dry_run=args.dry_run,
+        delay=args.delay
+    )
+
+    print_summary(stats)
+
+
+if __name__ == '__main__':
+    main()

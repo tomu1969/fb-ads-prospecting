@@ -1,0 +1,24 @@
+{
+  "phases": {
+    "1": {"action": "follow", "description": "Follow the prospect"},
+    "2": {"action": "like", "count": 2, "description": "Like 2 recent posts"},
+    "3": {"action": "like", "count": 2, "description": "Like 2 more posts"},
+    "4": {"action": "comment", "count": 1, "description": "Comment on 1 post"},
+    "5": {"action": "like", "count": 1, "description": "Like 1 post"},
+    "6": {"action": "comment", "count": 1, "optional": true, "description": "Optional second comment"},
+    "7": {"action": "ready", "description": "Ready for DM"}
+  },
+  "limits": {
+    "max_follows_per_day": 25,
+    "max_likes_per_day": 75,
+    "max_comments_per_day": 12,
+    "min_delay_seconds": 30,
+    "max_delay_seconds": 120
+  },
+  "apify_actors": {
+    "follow": "am_production/instagram-auto-follow-unfollow",
+    "like": "apify/instagram-post-scraper",
+    "comment": "deepanshusharm/instagram-comment-bot",
+    "scrape_posts": "apify/instagram-post-scraper"
+  }
+}

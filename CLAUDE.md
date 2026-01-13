@@ -31,6 +31,15 @@ python scripts/instagram_warmup/warmup_orchestrator.py --status             # Ch
 
 # Send Instagram DMs (only to warmed-up prospects)
 python scripts/apify_dm_sender.py --csv output/prospects_final.csv --message "Hi {contact_name}!" --dry-run
+
+# Contact Name Resolution (find names from multiple sources)
+python scripts/contact_name_resolver.py --csv output/prospects.csv --dry-run
+python scripts/contact_name_resolver.py --csv output/prospects.csv --use-exa  # Use Exa API for owner search
+
+# LinkedIn Profile Enrichment (find personal LinkedIn profiles)
+python scripts/linkedin_enricher.py --csv output/prospects.csv --dry-run
+python scripts/linkedin_enricher.py --csv output/prospects.csv --limit 10
+python scripts/linkedin_enricher.py --csv output/prospects.csv --retry-missing  # Re-process unfound
 ```
 
 ## Project Structure
@@ -46,6 +55,8 @@ python scripts/apify_dm_sender.py --csv output/prospects_final.csv --message "Hi
 │   ├── contact_enricher_pipeline.py  # Module 3.6: AI agent enrichment (Exa + OpenAI)
 │   ├── apollo_enricher.py   # Module 3.6.5: Apollo.io B2B contact database
 │   ├── instagram_enricher.py # Module 3.7: Instagram handle discovery
+│   ├── contact_name_resolver.py # Module 3.8: Multi-source contact name finder
+│   ├── linkedin_enricher.py  # Module 3.9: Personal LinkedIn profile finder (Exa)
 │   ├── exporter.py          # Module 4: CSV/Excel/HubSpot export
 │   ├── validator.py         # Module 5: Quality validation
 │   ├── fb_ads_scraper.py    # Facebook Ads Library scraper
@@ -90,7 +101,9 @@ python scripts/apify_dm_sender.py --csv output/prospects_final.csv --message "Hi
 4. **Hunter** - Verifies emails via Hunter.io
 5. **Contact Enricher** - Stage 0: Exa API, Stage 1+: OpenAI Agents fallback
 6. **Instagram Enricher** - Finds Instagram handles
-7. **Exporter** - Outputs CSV/Excel/HubSpot format
+7. **Contact Name Resolver** - Finds names from hunter, scraper, page_name, Exa owner search
+8. **LinkedIn Enricher** - Finds personal LinkedIn profiles via Exa
+9. **Exporter** - Outputs CSV/Excel/HubSpot format
 
 ## Key Files
 
