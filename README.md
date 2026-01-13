@@ -204,9 +204,10 @@ processed/03_contacts.csv   → + scraped emails, phones
 processed/03b_hunter.csv    → + Hunter.io verified emails
 processed/03d_final.csv     → Final merged data
 
-output/hubspot_contacts.csv → HubSpot-ready import file
-output/prospects_final.csv  → Complete prospect data
-output/prospects_final.xlsx → Excel version
+output/prospects_master.csv      → Primary contact database
+output/prospects_master.xlsx     → Excel version
+output/hubspot/contacts.csv      → HubSpot-ready import file
+output/email_campaign/drafts.csv → Email drafts for sending
 ```
 
 ### Enrichment Results
@@ -234,8 +235,8 @@ python scripts/email_verifier/verifier.py --email test@example.com
 
 # Verify CSV of emails (with scoring)
 python scripts/email_verifier/verifier.py \
-  --csv output/email_drafts_v2.csv \
-  --output output/verified_drafts.csv
+  --csv output/email_campaign/drafts.csv \
+  --output output/email_campaign/verified_drafts.csv
 
 # Show detailed analysis
 python scripts/email_verifier/verifier.py --email test@example.com --verbose
@@ -255,19 +256,19 @@ Send cold emails via Gmail with advanced verification:
 ```bash
 # Dry run (preview without sending)
 python scripts/gmail_sender/gmail_sender.py \
-  --csv output/verified_drafts.csv \
+  --csv output/email_campaign/verified_drafts.csv \
   --dry-run \
   --limit 5
 
 # Send emails (with built-in verification)
 python scripts/gmail_sender/gmail_sender.py \
-  --csv output/verified_drafts.csv \
+  --csv output/email_campaign/verified_drafts.csv \
   --limit 50 \
   --delay 10
 
 # Resume from failure
 python scripts/gmail_sender/gmail_sender.py \
-  --csv output/verified_drafts.csv \
+  --csv output/email_campaign/verified_drafts.csv \
   --resume
 ```
 
@@ -291,13 +292,12 @@ Recover bounced contacts by finding alternative emails:
 ```bash
 # Recover from bounced contacts CSV
 python scripts/bounce_recovery/bounce_recovery.py \
-  --input config/bounced_contacts.csv \
-  --output output/recovered_contacts.csv
+  --input config/bounced_contacts.csv
 
 # With specific strategies
 python scripts/bounce_recovery/bounce_recovery.py \
   --input config/bounced_contacts.csv \
-  --output output/recovered_contacts.csv \
+  --output output/email_campaign/recovered_contacts.csv \
   --strategies 0,1,2,3
 ```
 
@@ -370,7 +370,7 @@ python scripts/apify_dm_sender.py \
 
 ```bash
 python scripts/manychat_sender.py \
-  --csv output/hubspot_contacts.csv \
+  --csv output/hubspot/contacts.csv \
   --message "Hi {contact_name}! Interested in {company_name}?" \
   --dry-run
 ```
@@ -399,31 +399,30 @@ python run_pipeline.py \
   --input output/fb_ads_scraped_*.csv \
   --all
 
-# Step 3: Draft personalized emails
+# Step 3: Draft personalized emails (→ output/email_campaign/drafts.csv)
 python scripts/email_drafter/drafter.py \
   --input output/prospects_final.csv \
   --limit 5
 
 # Step 4: Verify emails (catch-all detection with MillionVerifier)
 python scripts/email_verifier/verifier.py \
-  --csv output/email_drafts_v2.csv \
-  --output output/verified_drafts.csv
+  --csv output/email_campaign/drafts.csv \
+  --output output/email_campaign/verified_drafts.csv
 
 # Step 5: Send emails via Gmail (dry-run first!)
 python scripts/gmail_sender/gmail_sender.py \
-  --csv output/verified_drafts.csv \
+  --csv output/email_campaign/verified_drafts.csv \
   --dry-run \
   --limit 5
 
 # Step 6: Send emails for real
 python scripts/gmail_sender/gmail_sender.py \
-  --csv output/verified_drafts.csv \
+  --csv output/email_campaign/verified_drafts.csv \
   --limit 50
 
-# Step 7 (if bounces occur): Recover bounced contacts
+# Step 7 (if bounces occur): Recover bounced contacts (→ output/email_campaign/)
 python scripts/bounce_recovery/bounce_recovery.py \
-  --input config/bounced_contacts.csv \
-  --output output/recovered_contacts.csv
+  --input config/bounced_contacts.csv
 
 # Alternative: Send Instagram DMs instead
 python scripts/apify_dm_sender.py \
@@ -472,8 +471,12 @@ fb-ads-prospecting/
 ├── input/                       # Source files
 ├── processed/                   # Intermediate pipeline files
 │   └── legacy/                  # Archived intermediate files
-├── output/                      # Final exports
-│   └── legacy/                  # Archived output files
+├── output/                      # Final exports (organized by type)
+│   ├── prospects_master.csv    # Primary contact database
+│   ├── email_campaign/         # Email drafts & campaign files
+│   ├── gmail_logs/             # Gmail inbox snapshots
+│   ├── hubspot/                # HubSpot CRM exports
+│   └── legacy/                 # Archived output files
 ├── config/
 │   ├── website_overrides.csv    # Manual website mappings
 │   ├── manual_contacts.csv      # Manual contact data

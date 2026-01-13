@@ -157,12 +157,16 @@ def export_hubspot(df: pd.DataFrame, output_dir: Path, run_id: str = None) -> Pa
     - phone: first phone from phones array
     - Custom properties: fb_ad_count, fb_page_likes, ad_platforms, etc.
     """
-    base_name = 'hubspot_contacts.csv'
+    # Create hubspot subdirectory
+    hubspot_dir = output_dir / 'hubspot'
+    hubspot_dir.mkdir(exist_ok=True)
+
+    base_name = 'contacts.csv'
     if run_id:
         filename = get_versioned_filename(base_name, run_id)
     else:
         filename = base_name
-    output_path = output_dir / filename
+    output_path = hubspot_dir / filename
 
     hubspot_df = pd.DataFrame()
 
@@ -448,11 +452,11 @@ def export_all(df: pd.DataFrame, output_dir: str = 'output') -> dict:
     # Create latest symlinks for all output files
     if run_id:
         base_files = {
-            'HubSpot': 'hubspot_contacts.csv',
+            'HubSpot': 'contacts.csv',  # Goes to hubspot/ subdirectory
             'CSV': 'prospects_final.csv',
             'Excel': 'prospects_final.xlsx',
         }
-        
+
         for key, base_name in base_files.items():
             if key in output_paths:
                 latest_path = create_latest_symlink(Path(output_paths[key]), base_name)

@@ -8,7 +8,7 @@ Attempts to recover bounced contacts by:
 Usage:
     python scripts/bounce_recovery/bounce_recovery.py \
         --input config/bounced_contacts.csv \
-        --output output/recovered_contacts.csv
+        --output output/email_campaign/recovered_contacts.csv
 """
 
 import argparse
@@ -483,8 +483,7 @@ def main():
     # Set default output path if not specified
     output_path = args.output
     if not output_path:
-        base = os.path.splitext(args.input)[0]
-        output_path = f"{base}_recovered.csv"
+        output_path = "output/email_campaign/recovered_contacts.csv"
 
     logger.info("=" * 60)
     logger.info("BOUNCE RECOVERY")

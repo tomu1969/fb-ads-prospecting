@@ -32,7 +32,7 @@ from composer import compose_email
 # Default paths
 DEFAULT_INPUT = "processed/03d_final.csv"
 ALT_INPUT = "output/prospects_final.csv"
-DEFAULT_OUTPUT = "output/email_drafts.csv"
+DEFAULT_OUTPUT = "output/email_campaign/drafts.csv"
 DEFAULT_SENDER = "Tomas"
 DEFAULT_LIMIT = 3
 

@@ -11,19 +11,25 @@ python run_pipeline.py --input input/your_file.csv
 # Scrape Facebook Ads Library
 python scripts/fb_ads_scraper.py --search "real estate Miami" --limit 100
 
-# Draft personalized emails
+# Draft personalized emails (outputs to output/email_campaign/drafts.csv)
 python scripts/email_drafter/drafter.py --input output/prospects_final.csv --limit 5
 
 # Verify emails before sending (catch-all detection)
-python scripts/email_verifier/verifier.py --csv output/email_drafts_v2.csv --output output/verified_drafts.csv
+python scripts/email_verifier/verifier.py --csv output/email_campaign/drafts.csv --output output/email_campaign/verified_drafts.csv
 
 # Send cold emails via Gmail (dry-run first!)
-python scripts/gmail_sender/gmail_sender.py --csv output/verified_drafts.csv --dry-run --limit 5
+python scripts/gmail_sender/gmail_sender.py --csv output/email_campaign/verified_drafts.csv --dry-run --limit 5
 
-# Recover bounced contacts
-python scripts/bounce_recovery/bounce_recovery.py --input config/bounced_contacts.csv --output output/recovered_contacts.csv
+# Recover bounced contacts (outputs to output/email_campaign/recovered_contacts.csv)
+python scripts/bounce_recovery/bounce_recovery.py --input config/bounced_contacts.csv
 
-# Send Instagram DMs
+# Instagram Warm-Up (5-7 days before DM) - MANUAL MODE
+python scripts/instagram_warmup/warmup_orchestrator.py --init --csv output/prospects_master.csv
+python scripts/instagram_warmup/warmup_orchestrator.py --manual --limit 10  # Generate today's checklist
+python scripts/instagram_warmup/warmup_orchestrator.py --mark-done          # After completing tasks
+python scripts/instagram_warmup/warmup_orchestrator.py --status             # Check progress
+
+# Send Instagram DMs (only to warmed-up prospects)
 python scripts/apify_dm_sender.py --csv output/prospects_final.csv --message "Hi {contact_name}!" --dry-run
 ```
 
@@ -50,17 +56,30 @@ python scripts/apify_dm_sender.py --csv output/prospects_final.csv --message "Hi
 │   ├── gmail_sender/        # Gmail email sender (SMTP with app password)
 │   ├── smtp_verifier/       # SMTP email verifier (no external API)
 │   ├── bounce_recovery/     # Bounce recovery (find alternative emails)
+│   ├── instagram_warmup/    # Instagram warm-up automation (follow, like, comment)
 │   └── _archived/           # Legacy scripts (superseded implementations)
 ├── config/
 │   ├── field_mappings/      # Auto-generated field mappings
 │   ├── website_overrides.csv # Manual website corrections
 │   ├── do_not_contact.csv   # Exclusion list
-│   └── bounced_contacts.csv # Track bounced emails for recovery
+│   ├── bounced_contacts.csv # Track bounced emails for recovery
+│   ├── warmup_state.csv     # Instagram warm-up progress tracker
+│   └── warmup_config.json   # Warm-up phase configuration
 ├── input/                   # Raw input files
 ├── processed/               # Intermediate pipeline outputs
 │   └── legacy/              # Archived intermediate files
-└── output/                  # Final exports
-    └── legacy/              # Archived output files
+└── output/                  # Final exports (organized by type)
+    ├── prospects_master.csv     # Primary contact database
+    ├── prospects_master.xlsx    # Excel version
+    ├── prospects_final.csv      # Symlink → master
+    ├── email_campaign/          # Email drafts & campaign files
+    │   ├── drafts.csv           # Generated email drafts
+    │   ├── campaign_log.md      # Campaign tracking
+    │   └── warmup/              # Daily warmup checklists
+    ├── gmail_logs/              # Gmail inbox snapshots
+    ├── hubspot/                 # HubSpot CRM exports
+    │   └── contacts.csv         # HubSpot-compatible format
+    └── legacy/                  # Archived output files
 ```
 
 ## Pipeline Stages
@@ -86,7 +105,9 @@ python scripts/apify_dm_sender.py --csv output/prospects_final.csv --message "Hi
 ```
 input/*.csv → processed/01_loaded.csv → 02_enriched.csv → 03_contacts.csv
     → 03b_hunter.csv → 03c_enriched.csv (Exa + Agents) → 03d_final.csv
-    → output/prospects_final.csv
+    → output/prospects_master.csv         # Primary contacts
+    → output/hubspot/contacts.csv         # CRM export
+    → output/email_campaign/drafts.csv    # Email drafts
 ```
 
 ## Development Practices
