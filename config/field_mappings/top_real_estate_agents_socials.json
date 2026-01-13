@@ -1,0 +1,22 @@
+{
+  "source_file": "top_real_estate_agents_socials.csv",
+  "source_path": "/Users/tomas/Desktop/fb-ads-prospecting/input/top_real_estate_agents_socials.csv",
+  "file_format": "csv",
+  "created_date": "2026-01-13T12:00:00.000000",
+  "pipeline_version": "3.9",
+  "field_mappings": {
+    "page_name": "Company",
+    "ad_count": null,
+    "total_page_likes": null,
+    "ad_texts": null,
+    "platforms": null,
+    "is_active": null,
+    "first_ad_date": null,
+    "primary_email": null,
+    "phones": null,
+    "contact_name": "Name",
+    "contact_position": null,
+    "instagram_handles": "Instagram Handle",
+    "linkedin_profile": "LinkedIn Profile"
+  }
+}

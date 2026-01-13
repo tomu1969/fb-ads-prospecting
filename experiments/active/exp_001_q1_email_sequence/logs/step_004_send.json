@@ -1,0 +1,60 @@
+{
+  "step": 4,
+  "name": "Send initial batch",
+  "status": "completed",
+  "script": "scripts/gmail_sender/gmail_sender.py",
+  "command": "python scripts/gmail_sender/gmail_sender.py --csv output/email_campaign/drafts_batch2_ready_to_send.csv",
+  "started_at": "2026-01-13T11:55:39Z",
+  "completed_at": "2026-01-13T11:57:06Z",
+  "duration_seconds": 87.5,
+  "exit_code": 0,
+  "output_summary": "31 emails sent successfully, 0 failed, 0 skipped",
+
+  "metrics": {
+    "total_to_process": 31,
+    "sent": 31,
+    "failed": 0,
+    "skipped": 0,
+    "success_rate": 1.0
+  },
+
+  "recipients": [
+    "victoria@reepequity.com",
+    "jeremy@truckparkingclub.com",
+    "chirag@easysell.in",
+    "madison@greatlakes-film.com",
+    "bob@noteschool.com",
+    "peter.conway@akersellis.com",
+    "keveanu.duncan@keetonco.com",
+    "lcetera@agentelite.com",
+    "jen@silvercreekrealty.com",
+    "dean.brandt@basecampcountry.com",
+    "indywest.sales@signarama.com",
+    "emily@delriotitle.net",
+    "roy@pursuitrealestate.com",
+    "wendy@martingroupproperties.com",
+    "charlee@brandch.com",
+    "mboulos@weichert.com",
+    "hoshyar.hormozian@crestico.com",
+    "carroll.lockett@coldwellbanker.com",
+    "terrance@eveloteam.com",
+    "tia@gottesmanresidential.com",
+    "camille@kiermanagement.com",
+    "joe@lfglending.com",
+    "stevie.mcneill@maderacounty.com",
+    "kelly@marycheathamking.com",
+    "kim@newchapterrealty.ca",
+    "jesus@outliance.com",
+    "richard@prestigelistingphotos.com",
+    "mscott@rise-residential.com",
+    "tom@spokanerealtors.com",
+    "jessica@sunrizonre.com",
+    "erin.shepard@theceshop.com"
+  ],
+
+  "artifacts": [
+    "output/email_campaign/drafts_batch2_ready_to_send.csv"
+  ],
+  "errors": [],
+  "warnings": []
+}

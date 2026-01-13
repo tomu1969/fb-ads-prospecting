@@ -1,0 +1,64 @@
+{
+  "template_name": "ab_test",
+  "description": "A/B test comparing two variants of messaging or approach",
+  "default_steps": [
+    {
+      "step": 1,
+      "name": "Define variants and split audience",
+      "type": "manual",
+      "params": {
+        "variants": ["A", "B"],
+        "split_ratio": [0.5, 0.5]
+      },
+      "metrics_to_track": ["variant_a_size", "variant_b_size"]
+    },
+    {
+      "step": 2,
+      "name": "Draft emails for variant A",
+      "script": "scripts/email_drafter/drafter.py",
+      "params": {
+        "variant": "A"
+      },
+      "metrics_to_track": ["drafted", "avg_confidence"]
+    },
+    {
+      "step": 3,
+      "name": "Draft emails for variant B",
+      "script": "scripts/email_drafter/drafter.py",
+      "params": {
+        "variant": "B"
+      },
+      "metrics_to_track": ["drafted", "avg_confidence"]
+    },
+    {
+      "step": 4,
+      "name": "Send both variants",
+      "script": "scripts/gmail_sender/gmail_sender.py",
+      "params": {},
+      "metrics_to_track": ["sent_a", "sent_b", "send_success_rate"]
+    },
+    {
+      "step": 5,
+      "name": "Measure responses (72h wait)",
+      "script": "scripts/gmail_sender/inbox_checker.py",
+      "params": {
+        "hours": 72
+      },
+      "wait_hours": 72,
+      "metrics_to_track": ["replies_a", "replies_b", "reply_rate_a", "reply_rate_b"]
+    },
+    {
+      "step": 6,
+      "name": "Analyze results and determine winner",
+      "type": "analysis",
+      "metrics_to_track": ["winner", "lift_percentage", "statistical_significance", "p_value"]
+    }
+  ],
+  "default_metrics": {
+    "primary": "reply_rate_difference",
+    "secondary": ["statistical_significance", "lift_percentage"]
+  },
+  "minimum_sample_size": 50,
+  "confidence_level": 0.95,
+  "typical_duration_days": 5
+}

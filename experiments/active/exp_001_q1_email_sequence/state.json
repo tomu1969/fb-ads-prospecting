@@ -1,0 +1,136 @@
+{
+  "id": "exp_001",
+  "name": "Q1 Cold Email Campaign - FB Ads Prospects",
+  "status": "in_progress",
+  "phase": "execution",
+
+  "hypothesis": "Personalized cold email campaign targeting FB/IG advertisers will achieve >= 10% reply rate",
+  "success_criteria": {
+    "primary": {"metric": "reply_rate", "target": 0.10, "operator": ">="},
+    "secondary": [
+      {"metric": "bounce_rate", "target": 0.05, "operator": "<="}
+    ]
+  },
+
+  "batches": [
+    {
+      "batch_id": "batch_1",
+      "name": "Initial Campaign",
+      "date": "2026-01-11",
+      "drafted": 93,
+      "sent": 69,
+      "initial_bounces": 24,
+      "resends": [
+        {"date": "2026-01-11T19:04:00Z", "count": 24, "reason": "bounce_recovery", "bounces": 15},
+        {"date": "2026-01-11T19:14:00Z", "count": 15, "reason": "dmarc_fix_attempt", "bounces": 14},
+        {"date": "2026-01-13T09:55:00Z", "count": 14, "reason": "second_bounce_recovery", "bounces": 0}
+      ],
+      "final_delivered": 69,
+      "status": "delivered"
+    },
+    {
+      "batch_id": "batch_2",
+      "name": "Additional Prospects",
+      "date": "2026-01-13",
+      "drafted": 42,
+      "excluded": 11,
+      "sent": 31,
+      "bounces": 1,
+      "final_delivered": 30,
+      "status": "monitoring"
+    }
+  ],
+
+  "timeline": [
+    {"event": "batch_1_drafted", "at": "2026-01-11T12:00:00Z", "note": "93 emails drafted"},
+    {"event": "batch_1_sent", "at": "2026-01-11T13:00:00Z", "note": "69 emails sent"},
+    {"event": "bounces_detected", "at": "2026-01-11T17:00:00Z", "note": "24 bounces discovered"},
+    {"event": "bounce_recovery_1", "at": "2026-01-11T18:59:00Z", "note": "24 contacts recovered"},
+    {"event": "resend_1", "at": "2026-01-11T19:04:00Z", "note": "24 resent from lahaus.ai"},
+    {"event": "dmarc_failure", "at": "2026-01-11T19:05:00Z", "note": "15 bounces - DMARC issue"},
+    {"event": "dmarc_fix_attempt", "at": "2026-01-11T19:13:00Z", "note": "Changed sender to lahaus.com"},
+    {"event": "resend_2", "at": "2026-01-11T19:14:00Z", "note": "15 resent from lahaus.com"},
+    {"event": "dmarc_fix_failed", "at": "2026-01-11T19:25:00Z", "note": "Only 1 delivered, 14 still bouncing"},
+    {"event": "bounce_recovery_2", "at": "2026-01-13T09:26:00Z", "note": "14 contacts recovered (11 re-verified, 3 new)"},
+    {"event": "resend_3", "at": "2026-01-13T09:55:00Z", "note": "14 resent - all delivered"},
+    {"event": "batch_2_drafted", "at": "2026-01-13T10:39:00Z", "note": "42 new emails drafted"},
+    {"event": "batch_2_verified", "at": "2026-01-13T11:30:00Z", "note": "58 issues found, 46 fixed (79%)"},
+    {"event": "batch_2_excluded", "at": "2026-01-13T11:52:00Z", "note": "11 contacts excluded (domain mismatch)"},
+    {"event": "batch_2_sent", "at": "2026-01-13T11:57:06Z", "note": "31 emails sent"},
+    {"event": "batch_2_bounce", "at": "2026-01-13T11:58:00Z", "note": "1 bounce: emily@delriotitle.net"}
+  ],
+
+  "current_step": "monitoring",
+  "next_action": {
+    "type": "wait",
+    "description": "Monitor for replies - check inbox in 48h",
+    "ready_at": "2026-01-15T12:00:00Z",
+    "hours_remaining": 46
+  },
+
+  "cumulative_metrics": {
+    "total_contacts": 124,
+    "total_drafted": 135,
+    "total_excluded": 11,
+    "total_sent_attempts": 153,
+    "unique_emails_sent": 100,
+    "total_bounces": 40,
+    "successful_deliveries": 99,
+    "delivery_rate": 0.99,
+    "replies": 0,
+    "reply_rate": 0.0
+  },
+
+  "issues_encountered": [
+    {
+      "issue": "High initial bounce rate (35%)",
+      "cause": "Temporary failures marked as bounces",
+      "fix": "Added re-verification to bounce recovery",
+      "result": "17/24 'bounced' emails were valid"
+    },
+    {
+      "issue": "DMARC rejection (15 bounces)",
+      "cause": "lahaus.ai strict DMARC policy, sent via lahaus.com SMTP",
+      "fix_attempted": "Changed GMAIL_SEND_AS to lahaus.com",
+      "result": "Fix did not work - needed bounce recovery with alternative addresses"
+    },
+    {
+      "issue": "Domain mismatch (11 contacts)",
+      "cause": "Email domains unrelated to company names",
+      "fix": "Excluded from campaign",
+      "result": "Improved email quality, reduced bounce risk"
+    }
+  ],
+
+  "learnings_so_far": [
+    "MillionVerifier re-verification catches false-positive bounces",
+    "DMARC issues require sender domain alignment, not just alias change",
+    "Domain mismatch check prevents sending to wrong recipients",
+    "Email verification pipeline reduces critical issues by 79%"
+  ],
+
+  "artifacts": {
+    "batch_1": {
+      "drafts": "output/email_campaign/drafts_v2.csv",
+      "resend_1": "output/email_campaign/drafts_resend.csv",
+      "resend_2": "output/email_campaign/drafts_resend_bounced.csv",
+      "resend_3": "output/email_campaign/resend_drafts.csv"
+    },
+    "batch_2": {
+      "drafts_original": "output/email_campaign/drafts_batch2.csv",
+      "drafts_fixed": "output/email_campaign/drafts_batch2_fixed_v2.csv",
+      "drafts_sent": "output/email_campaign/drafts_batch2_ready_to_send.csv",
+      "excluded": "output/email_campaign/excluded_contacts.csv"
+    },
+    "templates": {
+      "followup_1": "scripts/email_drafter/templates/followup_1.txt",
+      "followup_2": "scripts/email_drafter/templates/followup_2.txt",
+      "followup_value": "scripts/email_drafter/templates/followup_value.txt"
+    },
+    "campaign_log": "output/email_campaign/campaign_log.md",
+    "bounced_contacts": "config/bounced_contacts.csv"
+  },
+
+  "created_at": "2026-01-11T12:00:00Z",
+  "updated_at": "2026-01-13T12:00:00Z"
+}

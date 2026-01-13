@@ -1,0 +1,66 @@
+{
+  "template_name": "email_sequence",
+  "description": "Multi-touch email campaign with response tracking",
+  "default_steps": [
+    {
+      "step": 1,
+      "name": "Draft personalized emails",
+      "script": "scripts/email_drafter/drafter.py",
+      "params": {
+        "limit": 50
+      },
+      "success_criteria": "avg_confidence >= 70",
+      "metrics_to_track": ["total_drafted", "high_confidence_count", "avg_confidence", "hook_sources"]
+    },
+    {
+      "step": 2,
+      "name": "Verify and fix emails",
+      "script": "scripts/email_verifier/verifier.py",
+      "params": {},
+      "success_criteria": "critical_issues == 0",
+      "metrics_to_track": ["issues_found", "issues_fixed", "critical_issues"]
+    },
+    {
+      "step": 3,
+      "name": "Send initial batch",
+      "script": "scripts/gmail_sender/gmail_sender.py",
+      "params": {},
+      "success_criteria": "send_success_rate >= 0.95",
+      "metrics_to_track": ["sent", "failed", "skipped", "bounce_rate"]
+    },
+    {
+      "step": 4,
+      "name": "Check responses (48h wait)",
+      "script": "scripts/gmail_sender/inbox_checker.py",
+      "params": {
+        "hours": 48
+      },
+      "wait_hours": 48,
+      "metrics_to_track": ["bounces", "replies", "reply_rate"]
+    },
+    {
+      "step": 5,
+      "name": "Send follow-up to non-responders",
+      "script": "scripts/gmail_sender/gmail_sender.py",
+      "params": {
+        "filter": "no_reply"
+      },
+      "metrics_to_track": ["sent", "failed", "cumulative_reply_rate"]
+    },
+    {
+      "step": 6,
+      "name": "Final response check (48h wait)",
+      "script": "scripts/gmail_sender/inbox_checker.py",
+      "params": {
+        "hours": 48
+      },
+      "wait_hours": 48,
+      "metrics_to_track": ["total_replies", "final_reply_rate", "conversion_rate"]
+    }
+  ],
+  "default_metrics": {
+    "primary": "reply_rate",
+    "secondary": ["bounce_rate", "conversion_rate"]
+  },
+  "typical_duration_days": 7
+}

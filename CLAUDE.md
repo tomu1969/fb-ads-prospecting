@@ -65,6 +65,36 @@ python scripts/linkedin_enricher.py --all         # Process all contacts
 python scripts/linkedin_enricher.py --csv output/prospects.csv  # Standalone mode
 ```
 
+## Claude Code Agents
+
+Custom agents available via Claude Code's Task tool:
+
+### Growth Analyst (`@growth-analyst`)
+Designs, executes, and analyzes growth experiments. Manages multi-step experiments (email sequences, A/B tests, channel comparisons), tracks metrics at each step, and extracts learnings.
+
+```bash
+# Invoke via conversation:
+"Design an email sequence experiment for real estate leads"
+"What experiments should we run to improve response rates?"
+"Check the status of experiment 001"
+"Analyze the results of the completed experiment"
+```
+
+Experiment state is stored in `experiments/` folder:
+- `experiments/index.json` - Master registry of all experiments
+- `experiments/active/` - Running experiments with state.json
+- `experiments/completed/` - Finished experiments with results.md
+- `experiments/templates/` - Reusable experiment templates
+
+### Hygiene Master (`@hygiene-master`)
+Performs comprehensive repository maintenance, cleanup, and organization.
+
+```bash
+# Invoke via conversation:
+"Clean up the repository"
+"Archive legacy scripts"
+```
+
 ## Project Structure
 
 ```
@@ -106,6 +136,11 @@ python scripts/linkedin_enricher.py --csv output/prospects.csv  # Standalone mod
 ├── docs/
 │   ├── PRD.md               # Product Requirements Document
 │   └── ARCHITECTURE.md      # Technical architecture details
+├── experiments/             # Growth experiment tracking
+│   ├── index.json           # Master registry of all experiments
+│   ├── active/              # Running experiments (state.json, logs/)
+│   ├── completed/           # Finished experiments (results.md)
+│   └── templates/           # Reusable experiment templates
 ├── input/                   # Raw input files
 ├── processed/               # Intermediate pipeline outputs
 │   └── legacy/              # Archived intermediate files
