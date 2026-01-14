@@ -50,8 +50,35 @@ GMAIL_SEND_AS = os.getenv('GMAIL_SEND_AS', GMAIL_ADDRESS)  # "From" address (ali
 SMTP_SERVER = 'smtp.gmail.com'
 SMTP_PORT = 587
 
+# Do not contact list path
+DO_NOT_CONTACT_PATH = 'config/do_not_contact.csv'
+
 # Module logger
 logger = logging.getLogger(__name__)
+
+
+def load_do_not_contact_list() -> set:
+    """
+    Load the do_not_contact list from CSV.
+
+    Returns:
+        Set of email addresses that should not be contacted.
+    """
+    blocked_emails = set()
+
+    if not os.path.exists(DO_NOT_CONTACT_PATH):
+        logger.debug(f"No do_not_contact file found at {DO_NOT_CONTACT_PATH}")
+        return blocked_emails
+
+    try:
+        df = pd.read_csv(DO_NOT_CONTACT_PATH)
+        if 'email' in df.columns:
+            blocked_emails = set(df['email'].dropna().str.lower().str.strip())
+            logger.info(f"Loaded {len(blocked_emails)} emails from do_not_contact list")
+    except Exception as e:
+        logger.warning(f"Error loading do_not_contact list: {e}")
+
+    return blocked_emails
 
 
 def setup_logging(verbose: bool = False) -> logging.Logger:
@@ -285,8 +312,12 @@ def process_csv(
         'skipped': already_sent if skip_sent else 0,
         'skipped_low_score': 0,
         'skipped_catch_all': 0,
+        'skipped_unsubscribed': 0,
         'duration': 0
     }
+
+    # Load do_not_contact list
+    do_not_contact = load_do_not_contact_list()
 
     # Check if API verification is available
     if verify_api and not EMAIL_VERIFIER_AVAILABLE:
@@ -311,6 +342,15 @@ def process_csv(
             df.loc[idx, 'send_status'] = 'failed'
             df.loc[idx, 'send_error'] = 'Invalid email format'
             results['failed'] += 1
+            df.to_csv(csv_path, index=False)
+            continue
+
+        # Check do_not_contact list (unsubscribes)
+        if email.lower().strip() in do_not_contact:
+            logger.warning(f"⛔ BLOCKED: {email} is on do_not_contact list (unsubscribed)")
+            df.loc[idx, 'send_status'] = 'blocked_unsubscribed'
+            df.loc[idx, 'send_error'] = 'On do_not_contact list'
+            results['skipped_unsubscribed'] += 1
             df.to_csv(csv_path, index=False)
             continue
 
@@ -432,6 +472,8 @@ def print_results_summary(results: Dict[str, Any]) -> None:
     logger.info("RESULTS SUMMARY")
     logger.info(f"Total processed: {results['total']}")
     logger.info(f"Sent: {results['sent']} | Failed: {results['failed']} | Skipped: {results['skipped']}")
+    if results.get('skipped_unsubscribed', 0) > 0:
+        logger.info(f"⛔ Blocked (unsubscribed): {results['skipped_unsubscribed']}")
     if results.get('skipped_low_score', 0) > 0:
         logger.info(f"Skipped (low score): {results['skipped_low_score']}")
     if results.get('skipped_catch_all', 0) > 0:

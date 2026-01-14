@@ -38,6 +38,55 @@
       "bounces": 1,
       "final_delivered": 30,
       "status": "monitoring"
+    },
+    {
+      "batch_id": "batch_3",
+      "name": "New Prospects (Exa MCP Research)",
+      "date": "2026-01-13",
+      "drafted": 21,
+      "excluded": 1,
+      "excluded_reason": "sirisha.deevi@sothebys.com is IT engineer at auction house, not realtor",
+      "final_count": 20,
+      "sent": 20,
+      "bounces": 1,
+      "bounced_emails": ["david@homesusa.com"],
+      "bounce_notes": "david@homesusa.com - wrong persona (Software Consultant at B2B tech company, not realtor)",
+      "high_confidence": 12,
+      "medium_confidence": 8,
+      "verified": true,
+      "fixes_applied": 3,
+      "status": "monitoring"
+    },
+    {
+      "batch_id": "batch_4",
+      "name": "Bounce Recovery Batch",
+      "date": "2026-01-14",
+      "source": "bounced emails from batches 1-3",
+      "total_bounced": 50,
+      "recovered": 45,
+      "recovery_rate": "90%",
+      "recovery_methods": {
+        "generic_email": 32,
+        "hunter_alt": 10,
+        "apollo_alt": 3
+      },
+      "drafted": 45,
+      "fixes_applied": 24,
+      "sent": 45,
+      "new_bounces": 21,
+      "new_bounced_emails": [
+        "contact@reddoorrealtyandassociates.com",
+        "info@reddoorrealtyandassociates.com",
+        "contact@keyrealtyschool.com",
+        "info@keyrealtyschool.com",
+        "contact@idealista.com",
+        "info@angelathompsongroup.com",
+        "kimlawrence@therightmoverealty.com",
+        "aracely@delriotitle.net",
+        "stuart@homesusa.com",
+        "david@homesusa.com"
+      ],
+      "status": "bounce_recovery_needed"
     }
   ],
 
@@ -57,28 +106,44 @@
     {"event": "batch_2_verified", "at": "2026-01-13T11:30:00Z", "note": "58 issues found, 46 fixed (79%)"},
     {"event": "batch_2_excluded", "at": "2026-01-13T11:52:00Z", "note": "11 contacts excluded (domain mismatch)"},
     {"event": "batch_2_sent", "at": "2026-01-13T11:57:06Z", "note": "31 emails sent"},
-    {"event": "batch_2_bounce", "at": "2026-01-13T11:58:00Z", "note": "1 bounce: emily@delriotitle.net"}
+    {"event": "batch_2_bounce", "at": "2026-01-13T11:58:00Z", "note": "1 bounce: emily@delriotitle.net"},
+    {"event": "batch_3_drafted", "at": "2026-01-13T14:00:00Z", "note": "21 new emails drafted with Exa MCP research"},
+    {"event": "batch_3_verified", "at": "2026-01-13T14:01:00Z", "note": "3 name mismatches fixed, ready to send"},
+    {"event": "batch_3_contact_removed", "at": "2026-01-13T16:15:00Z", "note": "Removed sirisha.deevi@sothebys.com - IT engineer at auction house, not realtor"},
+    {"event": "batch_3_sent", "at": "2026-01-13T16:48:14Z", "note": "20 emails sent - all successful"},
+    {"event": "inbox_check", "at": "2026-01-13T16:55:00Z", "note": "1 bounce (david@homesusa.com), 1 auto-reply (support@champion.com), 0 human replies"},
+    {"event": "inbox_check_2", "at": "2026-01-14T10:00:00Z", "note": "0 human replies, 1 auto-reply (support@champion.com)"},
+    {"event": "followup_1_drafted", "at": "2026-01-14T10:05:00Z", "note": "69 follow-up emails drafted for Batch 1 non-responders"},
+    {"event": "followup_1_sent", "at": "2026-01-14T11:16:33Z", "note": "63 follow-ups sent (6 bounced emails excluded)"},
+    {"event": "batch_4_recovery", "at": "2026-01-14T08:20:00Z", "note": "Bounce recovery on 50 bounces - 45 recovered (90%)"},
+    {"event": "batch_4_drafted", "at": "2026-01-14T08:22:00Z", "note": "45 personalized emails drafted for recovered contacts"},
+    {"event": "batch_4_fixed", "at": "2026-01-14T08:33:00Z", "note": "24 fixes applied (20 name fixes, 4 greeting fixes)"},
+    {"event": "batch_4_sent", "at": "2026-01-14T11:17:52Z", "note": "45 emails sent to recovered contacts"},
+    {"event": "inbox_check_3", "at": "2026-01-14T11:19:00Z", "note": "21 new bounces detected, 3 potential replies (Bob Woerner, Signarama, Moxi Works)"},
+    {"event": "bounce_recovery_3", "at": "2026-01-14T11:33:38Z", "note": "67 total bounces processed - 44 recovered (65.7%), 23 unrecoverable"}
   ],
 
-  "current_step": "monitoring",
+  "current_step": "bounce_recovery",
   "next_action": {
-    "type": "wait",
-    "description": "Monitor for replies - check inbox in 48h",
-    "ready_at": "2026-01-15T12:00:00Z",
-    "hours_remaining": 46
+    "type": "draft_and_send",
+    "description": "Draft emails for 44 recovered contacts and send",
+    "ready_at": "2026-01-14T12:00:00Z"
   },
 
   "cumulative_metrics": {
-    "total_contacts": 124,
-    "total_drafted": 135,
-    "total_excluded": 11,
-    "total_sent_attempts": 153,
-    "unique_emails_sent": 100,
-    "total_bounces": 40,
-    "successful_deliveries": 99,
-    "delivery_rate": 0.99,
-    "replies": 0,
-    "reply_rate": 0.0
+    "total_contacts": 210,
+    "total_drafted": 201,
+    "total_excluded": 12,
+    "total_sent_attempts": 218,
+    "unique_emails_sent": 165,
+    "total_bounces": 62,
+    "bounce_recovery_attempts": 2,
+    "recovered_contacts": 89,
+    "unrecoverable_contacts": 23,
+    "successful_deliveries": 144,
+    "delivery_rate": 0.87,
+    "potential_replies": 3,
+    "reply_rate": 0.02
   },
 
   "issues_encountered": [
@@ -99,6 +164,18 @@
       "cause": "Email domains unrelated to company names",
       "fix": "Excluded from campaign",
       "result": "Improved email quality, reduced bounce risk"
+    },
+    {
+      "issue": "Wrong person (sirisha.deevi@sothebys.com)",
+      "cause": "sothebys.com is auction house domain, not sothebysrealty.com (real estate)",
+      "fix": "Removed from batch 3 after Exa research confirmed IT engineer, not realtor",
+      "result": "Prevented sending to completely wrong recipient"
+    },
+    {
+      "issue": "High bounce rate on recovered emails (47%)",
+      "cause": "Generic emails (info@, contact@) often catch-all but don't deliver; accept_all domains may still reject",
+      "fix": "Need to verify recovered emails before sending, or use personal emails only",
+      "result": "21 of 45 recovered emails bounced again"
     }
   ],
 
@@ -106,7 +183,15 @@
     "MillionVerifier re-verification catches false-positive bounces",
     "DMARC issues require sender domain alignment, not just alias change",
     "Domain mismatch check prevents sending to wrong recipients",
-    "Email verification pipeline reduces critical issues by 79%"
+    "Email verification pipeline reduces critical issues by 79%",
+    "Exa MCP tool provides better research when script-based Exa API quota is exhausted",
+    "For franchise agents (RE/MAX, Coldwell Banker, etc.), research should find agent's personal/team website, not franchise homepage",
+    "Verify sothebys.com vs sothebysrealty.com - auction house vs real estate franchise are different companies",
+    "LLM-powered writing quality check catches spam triggers and awkward phrasing that regex misses",
+    "Cold email CTAs should focus on the problem being solved, not product claims",
+    "Generic emails (info@, contact@) have ~50% secondary bounce rate even when verified as accept_all",
+    "Bounce recovery is more effective with Hunter/Apollo personal emails than generic emails",
+    "Some domains (keyrealtyschool.com, idealista.com, reddoorrealtyandassociates.com) consistently bounce all variants - may be blocking cold outreach"
   ],
 
   "artifacts": {
@@ -122,15 +207,28 @@
       "drafts_sent": "output/email_campaign/drafts_batch2_ready_to_send.csv",
       "excluded": "output/email_campaign/excluded_contacts.csv"
     },
+    "batch_3": {
+      "prospects": "output/to_email_batch3.csv",
+      "drafts": "output/email_campaign/drafts_batch3.csv"
+    },
     "templates": {
       "followup_1": "scripts/email_drafter/templates/followup_1.txt",
       "followup_2": "scripts/email_drafter/templates/followup_2.txt",
       "followup_value": "scripts/email_drafter/templates/followup_value.txt"
+    },
+    "followups": {
+      "followup_1_batch1": "output/email_campaign/followup_1_batch1.csv"
+    },
+    "batch_4": {
+      "input": "output/email_campaign/to_draft_recovered.csv",
+      "drafts": "output/email_campaign/drafts_recovered.csv",
+      "drafts_fixed": "output/email_campaign/drafts_recovered_fixed.csv",
+      "recovery_output": "output/email_campaign/recovered_batch2.csv"
     },
     "campaign_log": "output/email_campaign/campaign_log.md",
     "bounced_contacts": "config/bounced_contacts.csv"
   },
 
   "created_at": "2026-01-11T12:00:00Z",
-  "updated_at": "2026-01-13T12:00:00Z"
+  "updated_at": "2026-01-14T11:35:00Z"
 }

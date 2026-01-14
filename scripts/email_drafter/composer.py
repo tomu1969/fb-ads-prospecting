@@ -7,6 +7,7 @@ import os
 import re
 from typing import Dict, Any, Tuple
 from openai import AsyncOpenAI
+from groq import AsyncGroq
 
 from dotenv import load_dotenv
 
@@ -15,10 +16,13 @@ load_dotenv()
 # Configuration
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 OPENAI_MODEL = os.getenv('OPENAI_MODEL', 'gpt-4o')
+GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+GROQ_MODEL = os.getenv('GROQ_MODEL', 'llama-3.3-70b-versatile')
 DEFAULT_SENDER_NAME = os.getenv('EMAIL_SENDER_NAME', 'Tomas')
 
-# Initialize OpenAI client
-openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+# Initialize clients
+openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
+groq_client = AsyncGroq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
 # The standard offer (constant across all emails)
 STANDARD_OFFER = """We help 100+ businesses running Facebook and Instagram ads close more deals by responding to leads instantly and nurturing them automatically until they're ready to buy. Would you be open to seeing how they do it?"""
@@ -228,48 +232,78 @@ async def compose_email(
     if sender_name is None:
         sender_name = DEFAULT_SENDER_NAME
 
-    if not OPENAI_API_KEY:
-        print("    [Composer] No OpenAI API key configured")
-        return get_fallback_email(contact, sender_name)
+    prompt = build_composer_prompt(contact, hook, sender_name)
+    system_msg = "You are an expert cold email copywriter specializing in real estate services. Write concise, personalized emails that reference specific details about the recipient."
 
-    try:
-        prompt = build_composer_prompt(contact, hook, sender_name)
+    # Try OpenAI first, then fall back to Groq
+    openai_error = None
+    if openai_client:
+        try:
+            print(f"    [Composer] Generating email for {contact.get('contact_name', 'Unknown')}...")
 
-        print(f"    [Composer] Generating email for {contact.get('contact_name', 'Unknown')}...")
+            response = await openai_client.chat.completions.create(
+                model=OPENAI_MODEL,
+                messages=[
+                    {"role": "system", "content": system_msg},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=400
+            )
 
-        response = await openai_client.chat.completions.create(
-            model=OPENAI_MODEL,
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are an expert cold email copywriter specializing in real estate services. Write concise, personalized emails that reference specific details about the recipient."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            temperature=0.7,
-            max_tokens=400
-        )
+            content = response.choices[0].message.content
+            subject, body = parse_email_response(content)
 
-        content = response.choices[0].message.content
-        subject, body = parse_email_response(content)
+            result = {
+                'subject_line': subject,
+                'email_body': body,
+                'hook_used': hook.get('chosen_hook', ''),
+                'hook_source': hook.get('hook_source', '')
+            }
 
-        result = {
-            'subject_line': subject,
-            'email_body': body,
-            'hook_used': hook.get('chosen_hook', ''),
-            'hook_source': hook.get('hook_source', '')
-        }
+            print(f"    [Composer] Generated email with subject: {subject[:40]}...")
+            return result
 
-        print(f"    [Composer] Generated email with subject: {subject[:40]}...")
+        except Exception as e:
+            openai_error = str(e)
+            print(f"    [Composer] OpenAI error: {e}")
 
-        return result
+    # Fall back to Groq
+    if groq_client:
+        try:
+            print(f"    [Composer] Falling back to Groq for {contact.get('contact_name', 'Unknown')}...")
 
-    except Exception as e:
-        print(f"    [Composer] Error: {e}")
-        return get_fallback_email(contact, sender_name)
+            response = await groq_client.chat.completions.create(
+                model=GROQ_MODEL,
+                messages=[
+                    {"role": "system", "content": system_msg},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=400
+            )
+
+            content = response.choices[0].message.content
+            subject, body = parse_email_response(content)
+
+            result = {
+                'subject_line': subject,
+                'email_body': body,
+                'hook_used': hook.get('chosen_hook', ''),
+                'hook_source': hook.get('hook_source', '')
+            }
+
+            print(f"    [Composer] (Groq) Generated email with subject: {subject[:40]}...")
+            return result
+
+        except Exception as e:
+            print(f"    [Composer] Groq error: {e}")
+
+    # No LLM available
+    if not openai_client and not groq_client:
+        print("    [Composer] No LLM API keys configured")
+
+    return get_fallback_email(contact, sender_name)
 
 
 # For direct testing

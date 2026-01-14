@@ -268,6 +268,21 @@ async def process_prospect(
         # 2. ANALYSIS PHASE
         hook = await analyze_and_select_hook(research)
 
+        # If analyzer returned empty/low confidence, use existing hook from input data
+        existing_hook = prospect.get('hook', '') or prospect.get('hook_used', '')
+        existing_hook_source = prospect.get('hook_source', 'ad')
+
+        if (not hook.get('chosen_hook') or hook.get('confidence', 0) < 30) and existing_hook:
+            print(f"    [Drafter] Using existing hook from input data")
+            hook = {
+                'chosen_hook': existing_hook,
+                'hook_source': existing_hook_source,
+                'hook_type': 'offer',  # Default type
+                'problem_framing': 'More leads and success means more opportunities that need instant follow-up to convert.',
+                'confidence': 60,  # Medium confidence for existing hooks
+                'reasoning': 'Using pre-existing hook from input data (Exa research unavailable)'
+            }
+
         result['hook_used'] = hook.get('chosen_hook', '')
         result['hook_source'] = hook.get('hook_source', '')
         result['hook_type'] = hook.get('hook_type', '')

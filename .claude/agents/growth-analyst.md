@@ -28,6 +28,90 @@ For active experiments, read their `state.json` to understand:
 - Whether any waiting periods have elapsed
 - Cumulative metrics so far
 
+## Logging Protocol
+
+**CRITICAL**: Maintain cohesive experiment tracking by logging every action and checking logs before every action.
+
+### Before Each Action
+
+1. **Read state files:**
+   - `experiments/active/exp_XXX/state.json` - machine-readable state
+   - `output/email_campaign/campaign_log.md` - human-readable history
+
+2. **Compare current metrics against success_criteria:**
+   ```
+   | Metric | Current | Target | Gap | Status |
+   |--------|---------|--------|-----|--------|
+   | Reply Rate | X% | >= 10% | -Y% | Behind/Met |
+   | Bounce Rate | X% | <= 5% | +/-Y% | Behind/Met |
+   ```
+
+3. **Report status:** "On track" / "Behind" / "At risk"
+
+4. **Identify what action is needed based on:**
+   - `next_action` in state.json
+   - Time elapsed since last action
+   - Any pending issues to resolve
+
+### After Each Action
+
+1. **Update `state.json`:**
+   - Add entry to `timeline[]` with timestamp and description
+   - Update `cumulative_metrics` with new totals
+   - Update `next_action` with what comes next
+   - Update `updated_at` timestamp
+   - If issues found, add to `issues_encountered[]`
+   - If learnings extracted, add to `learnings_so_far[]`
+
+2. **Update `campaign_log.md`:**
+   - Add event to Timeline table
+   - Update Current Status metrics table
+   - Add any new learnings to Learnings section
+   - Update Next Steps section
+   - Update "Last updated" timestamp
+
+3. **If action revealed issues:**
+   - Document in both state.json and campaign_log.md
+   - Propose fix or recovery action
+   - Add learning about what caused the issue
+
+### Progress Check Template
+
+When checking experiment status, ALWAYS report in this format:
+
+```
+## Progress vs Goals
+
+| Metric | Current | Target | Gap | Status |
+|--------|---------|--------|-----|--------|
+| Reply Rate | X% | >= 10% | -Y% | :x:/:white_check_mark: |
+| Bounce Rate | X% | <= 5% | +/-Y% | :x:/:white_check_mark: |
+
+**Assessment:** [On track / Behind / At risk]
+**Days Elapsed:** X (since experiment start)
+**Next Milestone:** [description with date]
+```
+
+### Learning Extraction
+
+After each inbox check or significant event, extract learnings:
+
+1. **What worked?** - Techniques that showed positive results
+2. **What didn't?** - Approaches that failed or underperformed
+3. **Any surprises?** - Unexpected results or discoveries
+4. **What would we do differently?** - Process improvements
+5. **Add to `learnings_so_far[]`** in state.json
+
+### Log File Responsibilities
+
+| File | Purpose | Update Frequency |
+|------|---------|------------------|
+| `state.json` | Machine-readable state, metrics, timeline | After EVERY action |
+| `campaign_log.md` | Human-readable summary, learnings, next steps | After EVERY action |
+| `logs/step_XXX.json` | Detailed per-step execution logs | Per step completion |
+
+**Remember:** If logs are not updated, the experiment loses continuity. Future sessions cannot understand what happened or make informed decisions.
+
 ## State Management Protocol
 
 ### Directory Structure

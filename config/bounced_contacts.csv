@@ -1,25 +1,68 @@
-page_name,contact_name,primary_email,hook_used,hook_source,website_url
-Red Door Realty & Associates,Luiz Pizzamiglio,luiz@reddoorrealtyandassociates.com,The Houston Chronicle has recognized Red Door as a Top Workplace by Engage and Workplace Dynamics for the past 10 years.,website,https://reddoorrealtyandassociates.com/meet-our-agents/
-Carpenter Coaching Group,,sales@carpentercoachinggroup.com,Stop Letting 'Perfect' Real Estate Deals Slip Away While You're Still Figuring Out Where to Start!,ad,https://carpentercoachinggroup.com/
-John Wyche,John Wyche,info@smbfunds.net,The initiative includes 132 rooms and space to accommodate wraparound services for those who are without shelter.,website,https://popculture.com/celebrity-couples/news/mc-lytes-marriage-divorce-john-wyche/
-Sound Performance / The Tint Guys,,info@soundperformance.us,"The Tint Guys a division of Sound Performance Inc have continued to ensure our staff is knowledgeable, professional and helpful for the past 18 years.",website,https://www.soundperformance.us/
-Houses Near You,,vsantos@idealista.com,"Connect with a real estate expert in Logan, North Logan, North Ogden, Providence, Tremonton, or nearby and find your next home!",ad,https://www.idealista.com/en/venta-viviendas/cordoba-cordoba/
-NoteSchool,Suzanne Parker,suzanne@noteschool.com,Eddie Speed's creative real estate strategies stand the test of time.,website,https://noteschool.com/
-Key Realty School,Mike Federwitz,mike@keyrealtyschool.com,Key Realty School offers a Career Expo once a quarter at their campus for students.,website,https://keyrealtyschool.com/
-East Alabama Homes for Sale,,tsharley@realtysouth.com,We get 250% more website traffic than our closest competitor,website,https://www.realtysouth.com/east-alabama-homes-for-sale
-Akers Ellis Real Estate & Rentals,Lindsey Butler,lindsey.butler@akersellis.com,"Browse our wide selection of Kiawah Island vacation rentals including oceanfront views, homes with private pools, pet-friendly options, rentals on the beach and much more!",ad,https://www.akersellis.com/
-Angela Thompson Realtor,Angela Thompson,angela@angelathompsongroup.com,From First Meeting to Closing Day - I'm Here Every Step of the Way!,ad,https://www.angelathompsongroup.com/
-California Real Estate Service,None None,domains@ca.gov,Headline: The Surprising Truth: NaN in JavaScript is Not Equal to Itself!,linkedin,https://www.ca.gov/departments/40/
-Staub Real Estate- Silvercreek Realty Group,Mary O'Neill,mary@silvercreekrealty.com,"Your First Steps Deserve the Right Foundation. Whether you’re buying your very first home or starting fresh in a new one, the journey starts with smart guidance and a solid plan.",ad,https://www.silvercreekrealty.com/
-Base Camp Country Real Estate,Curt Myers,curt.myers@basecampcountry.com,Now Hiring in Iowa,ad,https://www.basecampcountry.com/
-"Signarama Lansing East, Michigan",None None,sarasotafl@signarama.com,Custom Signs That Get You Noticed - Stand out from the crowd with signage designed to perform.,ad,https://signarama.com/locations/mi-lansing-east/
-Del Rio Title Company,None None,orderdesk@delriotitle.com,"We offer customers complete real estate services such as: Title Insurance, Closing Services, Abstractors Reports, Insured Closing Letters, Real Estate Reports",ad,https://www.delriotitle.com/
-Aimee Ness Realty Group - Lafayette Real Estate,Aimee Ness,aimee@aimeeness.com,Personal story about learning to swim at 40,ad,https://aimeeness.com/buy-with-us/
-Coldwell Banker Home Town Realty,Matthew Parrott,matthewparrott@coldwellbanker.com,Coldwell Banker Agents and Teams Honored in 2025 RealTrends Verified Ranking,website,https://www.coldwellbanker.com/company/coldwell-banker-home-town-realty/cid-P00500000FDdqWVbjUMyGxCbXxpN4CczqOjea7RW
-Florida Connexion Realty,Rosana Almeida,rosana@floridaconnexion.com,Florida Connexion Group is actively hiring as indicated by their website.,website,https://floridaconnexion.com/
-Growthland,Richard Zollinger,richard@growthland.com,Landbase Emerges from Stealth with $12.5M Seed Round to Intelligently Automate Your Go-to-Market,website,https://www.growthland.com/
-Kier Property Management & Real Estate LLC,Bonnie Kier,bonnie@kiermanagement.com,Affordable Subsidized 55+ Housing in South Salt Lake! Are you a low-income senior looking for an affordable place to call home? Our subsidized 55+ community offers the perfect blend of affordability and amenities.,ad,https://www.kiermanagement.com/
-Percent One Real Estate,None None,agent@percentone.com,"Percent Closes Oversubscribed, Nearly $30M Series B Funding to Meet Industry Demand",website,https://www.percentone.com/about
-Rise Residential,None None,dstevens@rise-residential.com,"The St. James Condominiums is a premier investment opportunity in the heart of Fort Worth, TX",ad,https://www.rise-residential.com/
-Spokane Real Estate Listings,Tiffany Claxton,tiffany@spokanerealtors.com,Denise Ware presented 'Intro to MLS/Paragon' at Spokane Association of Realtors,website,https://www.spokanerealtors.com/
-The Right Move Real Estate Inc.,None None,kimcrews@therightmoverealty.com,If You Are Tired of Your Commissions Being Chiseled Away - Check Out What We Offer!,website,http://therightmoverealty.com/
+page_name,contact_name,primary_email,hook_used,hook_source,website_url,bounce_date
+Red Door Realty & Associates,Luiz Pizzamiglio,luiz@reddoorrealtyandassociates.com,The Houston Chronicle has recognized Red Door as a Top Workplace by Engage and Workplace Dynamics for the past 10 years.,website,https://reddoorrealtyandassociates.com/meet-our-agents/,2026-01-11
+Carpenter Coaching Group,,sales@carpentercoachinggroup.com,Stop Letting 'Perfect' Real Estate Deals Slip Away While You're Still Figuring Out Where to Start!,ad,https://carpentercoachinggroup.com/,2026-01-11
+John Wyche,John Wyche,info@smbfunds.net,The initiative includes 132 rooms and space to accommodate wraparound services for those who are without shelter.,website,https://popculture.com/celebrity-couples/news/mc-lytes-marriage-divorce-john-wyche/,2026-01-11
+Sound Performance / The Tint Guys,,info@soundperformance.us,"The Tint Guys a division of Sound Performance Inc have continued to ensure our staff is knowledgeable, professional and helpful for the past 18 years.",website,https://www.soundperformance.us/,2026-01-11
+Houses Near You,,vsantos@idealista.com,"Connect with a real estate expert in Logan, North Logan, North Ogden, Providence, Tremonton, or nearby and find your next home!",ad,https://www.idealista.com/en/venta-viviendas/cordoba-cordoba/,2026-01-11
+NoteSchool,Suzanne Parker,suzanne@noteschool.com,Eddie Speed's creative real estate strategies stand the test of time.,website,https://noteschool.com/,2026-01-11
+Key Realty School,Mike Federwitz,mike@keyrealtyschool.com,Key Realty School offers a Career Expo once a quarter at their campus for students.,website,https://keyrealtyschool.com/,2026-01-11
+East Alabama Homes for Sale,,tsharley@realtysouth.com,We get 250% more website traffic than our closest competitor,website,https://www.realtysouth.com/east-alabama-homes-for-sale,2026-01-11
+Akers Ellis Real Estate & Rentals,Lindsey Butler,lindsey.butler@akersellis.com,"Browse our wide selection of Kiawah Island vacation rentals including oceanfront views, homes with private pools, pet-friendly options, rentals on the beach and much more!",ad,https://www.akersellis.com/,2026-01-11
+Angela Thompson Realtor,Angela Thompson,angela@angelathompsongroup.com,From First Meeting to Closing Day - I'm Here Every Step of the Way!,ad,https://www.angelathompsongroup.com/,2026-01-11
+California Real Estate Service,None None,domains@ca.gov,Headline: The Surprising Truth: NaN in JavaScript is Not Equal to Itself!,linkedin,https://www.ca.gov/departments/40/,2026-01-11
+Staub Real Estate- Silvercreek Realty Group,Mary O'Neill,mary@silvercreekrealty.com,"Your First Steps Deserve the Right Foundation. Whether you’re buying your very first home or starting fresh in a new one, the journey starts with smart guidance and a solid plan.",ad,https://www.silvercreekrealty.com/,2026-01-11
+Base Camp Country Real Estate,Curt Myers,curt.myers@basecampcountry.com,Now Hiring in Iowa,ad,https://www.basecampcountry.com/,2026-01-11
+"Signarama Lansing East, Michigan",None None,sarasotafl@signarama.com,Custom Signs That Get You Noticed - Stand out from the crowd with signage designed to perform.,ad,https://signarama.com/locations/mi-lansing-east/,2026-01-11
+Del Rio Title Company,None None,orderdesk@delriotitle.com,"We offer customers complete real estate services such as: Title Insurance, Closing Services, Abstractors Reports, Insured Closing Letters, Real Estate Reports",ad,https://www.delriotitle.com/,2026-01-11
+Aimee Ness Realty Group - Lafayette Real Estate,Aimee Ness,aimee@aimeeness.com,Personal story about learning to swim at 40,ad,https://aimeeness.com/buy-with-us/,2026-01-11
+Coldwell Banker Home Town Realty,Matthew Parrott,matthewparrott@coldwellbanker.com,Coldwell Banker Agents and Teams Honored in 2025 RealTrends Verified Ranking,website,https://www.coldwellbanker.com/company/coldwell-banker-home-town-realty/cid-P00500000FDdqWVbjUMyGxCbXxpN4CczqOjea7RW,2026-01-11
+Florida Connexion Realty,Rosana Almeida,rosana@floridaconnexion.com,Florida Connexion Group is actively hiring as indicated by their website.,website,https://floridaconnexion.com/,2026-01-11
+Growthland,Richard Zollinger,richard@growthland.com,Landbase Emerges from Stealth with $12.5M Seed Round to Intelligently Automate Your Go-to-Market,website,https://www.growthland.com/,2026-01-11
+Kier Property Management & Real Estate LLC,Bonnie Kier,bonnie@kiermanagement.com,Affordable Subsidized 55+ Housing in South Salt Lake! Are you a low-income senior looking for an affordable place to call home? Our subsidized 55+ community offers the perfect blend of affordability and amenities.,ad,https://www.kiermanagement.com/,2026-01-11
+Percent One Real Estate,None None,agent@percentone.com,"Percent Closes Oversubscribed, Nearly $30M Series B Funding to Meet Industry Demand",website,https://www.percentone.com/about,2026-01-11
+Rise Residential,None None,dstevens@rise-residential.com,"The St. James Condominiums is a premier investment opportunity in the heart of Fort Worth, TX",ad,https://www.rise-residential.com/,2026-01-11
+Spokane Real Estate Listings,Tiffany Claxton,tiffany@spokanerealtors.com,Denise Ware presented 'Intro to MLS/Paragon' at Spokane Association of Realtors,website,https://www.spokanerealtors.com/,2026-01-11
+The Right Move Real Estate Inc.,None None,kimcrews@therightmoverealty.com,If You Are Tired of Your Commissions Being Chiseled Away - Check Out What We Offer!,website,http://therightmoverealty.com/,2026-01-11
+Del Rio Title Company,Emily,emily@delriotitle.net,2026-01-13,address_not_found,,2026-01-11
+david@homesusa.com,HomesUSA.com Inc.,David Klein,hard_bounce,batch_3,2026-01-13,2026-01-11
+Paul Brar - Mortgage Broker,,paulbrar@mortgagecentre.ca,"Whether you're buying your first home, looking to access your home equity, exploring reverse mortgages, need financing for a commercial property, or a construction loan. I'm here to help you find the right solution.",ad,,2026-01-13
+Key Realty School,Mike Federwitz,info@keyrealtyschool.com,Career Expo once a quarter at our campus to give our students a forum,website,,2026-01-13
+,,info@rise-residential.com,,,https://rise-residential.com,2026-01-13
+,,contact@keyrealtyschool.com,,,https://keyrealtyschool.com,2026-01-13
+Houses Near You,,info@idealista.com,A guide to luxury real estate agencies in Spain,website,,2026-01-13
+Red Door Realty & Associates,Luiz Pizzamiglio,info@reddoorrealtyandassociates.com,Red Door Realty & Associates recognized as a Top Workplace by the Houston Chronicle for 10 years,website,,2026-01-13
+David Lecko,,steve@podcast.disruptors.com,John Gluch with the Gluch Group Shares How His Team Sold 255 Units Last Year for over $76MM in Sales Volume,website,,2026-01-13
+Keeton & Co Real Estate,None None,rachel@keetonandcompany.com,"We're Hiring: Serving People, Selling Property",website,,2026-01-13
+,,edward@spokanerealtors.com,,,https://spokanerealtors.com,2026-01-13
+,,info@noteschool.com,,,https://noteschool.com,2026-01-13
+,,info@basecampcountry.com,,,https://basecampcountry.com,2026-01-13
+,,info@kiermanagement.com,,,https://kiermanagement.com,2026-01-13
+Nelson Real Estate,Tony Nelson,legal@unitedrealestate.com,Highly tillable farm tracts are hard to come by these days! This 99-acre m/l farm is 90% tillable and offers strong dirt!,ad,,2026-01-13
+Jeremy Krulikowski - High Performance Wealth Coach,Jeremy Krulikowski,support@kingdomcashflow.com,How Smartify Helped Jeremy Scale to 885% Revenue Growth,website,,2026-01-13
+"HomesUSA.com, Inc.",David Klein,david@homesusa.com,SpecDeck platform helping 70+ Texas homebuilders reduce Days on Market by 14-40 days,website,,2026-01-13
+,,contact@reddoorrealtyandassociates.com,,,https://reddoorrealtyandassociates.com,2026-01-13
+Financial Strength Coaching,,gio@financialstrengthcoaching.org,Glastonbury press release indicating recent activity in 2023,website,,2026-01-13
+,,admin@ca.gov,,,https://ca.gov,2026-01-13
+,,info@growthland.com,,,https://growthland.com,2026-01-13
+,,contact@idealista.com,,,https://idealista.com,2026-01-13
+,,info@realtysouth.com,,,https://realtysouth.com,2026-01-13
+,,admin@coldwellbanker.com,,,https://coldwellbanker.com,2026-01-13
+,,info@floridaconnexion.com,,,https://floridaconnexion.com,2026-01-13
+Angela Thompson Realtor,Angela Thompson,info@angelathompsongroup.com,hiring: we are hiring,linkedin,,2026-01-13
+,,info@percentone.com,,,https://percentone.com,2026-01-13
+contact@reddoorrealtyandassociates.com,Red Door Realty & Associates,2026-01-14
+info@reddoorrealtyandassociates.com,Red Door Realty & Associates,2026-01-14
+contact@keyrealtyschool.com,Key Realty School,2026-01-14
+info@keyrealtyschool.com,Key Realty School,2026-01-14
+contact@idealista.com,Houses Near You,2026-01-14
+info@angelathompsongroup.com,Angela Thompson Realtor,2026-01-14
+kimlawrence@therightmoverealty.com,The Right Move Real Estate Inc.,2026-01-14
+aracely@delriotitle.net,Del Rio Title Company,2026-01-14
+stuart@homesusa.com,HomesUSA.com Inc.,2026-01-14
+david@homesusa.com,HomesUSA.com Inc.,2026-01-14
+emily@delriotitle.net,Del Rio Title Company,2026-01-14
+steve@podcast.disruptors.com,Disruptors Podcast,2026-01-14
+paulbrar@mortgagecentre.ca,Mortgage Centre,2026-01-14
+rachel@keetonandcompany.com,Keeton and Company,2026-01-14
+support@kingdomcashflow.com,Kingdom Cash Flow,2026-01-14
+gio@financialstrengthcoaching.org,Financial Strength Coaching,2026-01-14

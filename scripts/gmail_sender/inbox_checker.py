@@ -26,20 +26,45 @@ GMAIL_APP_PASSWORD = os.getenv('GMAIL_APP_PASSWORD')
 BOUNCE_SENDERS = [
     'mailer-daemon@',
     'postmaster@',
-    'mail-delivery-subsystem@',
-    'noreply@',
+    'mail-delivery-subsystem@googlemail.com',
 ]
 
 # Bounce subject patterns
 BOUNCE_SUBJECTS = [
-    'delivery status notification',
-    'undeliverable',
+    'delivery status notification (failure)',
+    'undeliverable:',
     'mail delivery failed',
     'returned mail',
     'delivery failure',
     'message not delivered',
     'delivery has failed',
     'could not be delivered',
+    'undeliverable mail:',
+]
+
+# Patterns that indicate NOT a bounce (false positives)
+NOT_BOUNCE_SENDERS = [
+    'drive-shares',
+    'docs.google.com',
+    'calendar-notification',
+    '@google.com',
+    'comments-noreply@docs.google.com',
+    'noreply@google.com',
+    '@metabase',
+]
+
+NOT_BOUNCE_SUBJECTS = [
+    'documento compartido',
+    'shared with you',
+    'document shared',
+    'invitation:',
+    'invitación:',
+    'kpi dashboard',
+    'proposal',
+    'plan recaudo',
+    'proactive weekly',
+    'notification proposal',
+    'from metabase',
 ]
 
 
@@ -59,40 +84,104 @@ def decode_mime_header(header_value):
 
 def extract_bounced_email(msg):
     """Extract the bounced recipient email from a bounce notification."""
-    # Check body for bounced address
     bounced_email = None
 
+    # 1. Check headers first (most reliable)
+    # X-Failed-Recipients header (common in Gmail bounces)
+    failed_recipients = msg.get('X-Failed-Recipients')
+    if failed_recipients:
+        match = re.search(r'([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})', failed_recipients)
+        if match:
+            return match.group(1)
+
+    # 2. Check for delivery-status parts (RFC 3464)
     if msg.is_multipart():
         for part in msg.walk():
             content_type = part.get_content_type()
-            if content_type == 'text/plain':
+
+            # Check message/delivery-status parts
+            if content_type == 'message/delivery-status':
                 try:
-                    body = part.get_payload(decode=True).decode('utf-8', errors='replace')
-                    # Look for email patterns after common bounce phrases
-                    patterns = [
-                        r'(?:could not be delivered to|failed for|rejected by|undeliverable to)[:\s]+<?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>?',
-                        r'(?:recipient|address)[:\s]+<?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>?',
-                        r'<([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>.*(?:rejected|failed|undeliverable)',
-                    ]
-                    for pattern in patterns:
-                        match = re.search(pattern, body, re.IGNORECASE)
+                    payload = part.get_payload()
+                    if isinstance(payload, list):
+                        for subpart in payload:
+                            if hasattr(subpart, 'items'):
+                                for key, value in subpart.items():
+                                    if key.lower() in ['final-recipient', 'original-recipient']:
+                                        match = re.search(r'([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})', str(value))
+                                        if match:
+                                            return match.group(1)
+                    elif hasattr(payload, 'as_string'):
+                        payload_str = payload.as_string()
+                        match = re.search(r'Final-Recipient:.*?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})', payload_str, re.IGNORECASE)
                         if match:
-                            bounced_email = match.group(1)
-                            break
-                    if bounced_email:
-                        break
+                            return match.group(1)
                 except:
                     pass
+
+            # Check text/plain parts for email patterns
+            if content_type == 'text/plain':
+                try:
+                    body = part.get_payload(decode=True)
+                    if body:
+                        body = body.decode('utf-8', errors='replace')
+                        email_match = extract_email_from_body(body)
+                        if email_match:
+                            return email_match
+                except:
+                    pass
+
+    # 3. For non-multipart messages
     else:
         try:
-            body = msg.get_payload(decode=True).decode('utf-8', errors='replace')
-            match = re.search(r'<([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>', body)
-            if match:
-                bounced_email = match.group(1)
+            body = msg.get_payload(decode=True)
+            if body:
+                body = body.decode('utf-8', errors='replace')
+                return extract_email_from_body(body)
         except:
             pass
 
     return bounced_email
+
+
+def extract_email_from_body(body):
+    """Extract bounced email address from message body text."""
+    # Patterns ordered by specificity (most specific first)
+    patterns = [
+        # Microsoft Office 365 / Exchange format
+        r'Remote Server returned[^<]*<([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>',
+        r"couldn't be delivered to\s*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})",
+        r'Delivery has failed to these recipients.*?<([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>',
+
+        # Gmail DSN format
+        r'Address not found.*?<([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>',
+        r'The email account.*?<([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>.*?does not exist',
+
+        # Standard DSN patterns
+        r'Final-Recipient:.*?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})',
+        r'Original-Recipient:.*?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})',
+
+        # Generic bounce patterns
+        r'(?:could not be delivered to|failed for|rejected by|undeliverable to)[:\s]*<?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>?',
+        r'(?:recipient|to address)[:\s]*<?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>?',
+
+        # "Your message to X" pattern
+        r'Your message to\s+<?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>?',
+        r'message sent to\s+<?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>?',
+
+        # Fallback: first email in angle brackets (but not sender addresses)
+        r'<([a-zA-Z0-9._%+-]+@(?!lahaus\.com|googlemail\.com|google\.com)[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>',
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, body, re.IGNORECASE | re.DOTALL)
+        if match:
+            email = match.group(1).lower().strip()
+            # Skip common false positives
+            if not any(skip in email for skip in ['mailer-daemon', 'postmaster', 'noreply', 'lahaus.com']):
+                return email
+
+    return None
 
 
 def is_bounce(from_addr, subject):
@@ -100,12 +189,21 @@ def is_bounce(from_addr, subject):
     from_lower = from_addr.lower()
     subject_lower = subject.lower()
 
-    # Check sender
+    # First, check for false positives (Google Docs, etc.)
+    for pattern in NOT_BOUNCE_SENDERS:
+        if pattern in from_lower:
+            return False
+
+    for pattern in NOT_BOUNCE_SUBJECTS:
+        if pattern in subject_lower:
+            return False
+
+    # Check sender for bounce indicators
     for pattern in BOUNCE_SENDERS:
         if pattern in from_lower:
             return True
 
-    # Check subject
+    # Check subject for bounce indicators
     for pattern in BOUNCE_SUBJECTS:
         if pattern in subject_lower:
             return True

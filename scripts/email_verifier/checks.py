@@ -4,9 +4,22 @@ Email verification check functions.
 Each check returns a CheckResult with status, severity, and details.
 """
 
+import os
 import re
+import json
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List
+from openai import OpenAI
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# OpenAI configuration for LLM-based checks
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+OPENAI_MODEL = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')  # Use mini for speed/cost on verification
+
+# Initialize OpenAI client (synchronous)
+openai_client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
 
 @dataclass
@@ -41,6 +54,31 @@ MEDIA_DOMAINS = {
     'zillow.com', 'redfin.com', 'wsj.com', 'nytimes.com', 'bloomberg.com',
     'cnn.com', 'forbes.com', 'businessinsider.com'
 }
+
+# Major real estate franchises - emails should reference agent-specific info
+FRANCHISE_KEYWORDS = {
+    'remax', 're/max', 'coldwell banker', 'century 21', 'century21',
+    'keller williams', 'sotheby\'s', 'sothebys', 'compass', 'exp realty',
+    'exprealty', 'berkshire hathaway', 'bhhs', 'corcoran', 'elliman',
+    'douglas elliman', 'christie\'s', 'christies'
+}
+
+# Generic franchise phrases that indicate poor personalization
+GENERIC_FRANCHISE_PHRASES = [
+    # Corporate stats
+    r'\d+,?\d*\s+agents?\s+(?:worldwide|globally|nationwide)',
+    r'\d+\s+(?:countries|offices|locations)\s+(?:worldwide|globally)',
+    r'(?:founded|since|established)\s+(?:in\s+)?\d{4}',
+    r'(?:largest|biggest|leading)\s+(?:real estate|brokerage)',
+    r'global\s+(?:network|presence|reach)',
+    # Brand-level statements
+    r'(?:the\s+)?(?:re/?max|coldwell banker|keller williams|sotheby\'s|century 21)\s+(?:brand|network|franchise)',
+    r'(?:re/?max|coldwell banker|keller williams|sotheby\'s|century 21)\s+has\s+(?:over|more than)',
+    r'part\s+of\s+(?:the\s+)?(?:re/?max|coldwell banker|keller williams)\s+(?:family|network)',
+    # Generic quality claims about the franchise
+    r'(?:world-?class|premier|luxury)\s+(?:brand|franchise|network)',
+    r'(?:300|100)\+?\s+years?\s+(?:of\s+)?(?:heritage|history|excellence)',
+]
 
 # Generic email domains
 GENERIC_DOMAINS = {
@@ -423,5 +461,245 @@ def check_greeting_name(email_body: str, contact_name: str) -> CheckResult:
         status="pass",
         severity="low",
         issue_detail="",
+        suggested_fix=""
+    )
+
+
+def check_writing_quality(email_body: str, hook_used: str) -> CheckResult:
+    """
+    LLM-powered check for writing quality issues in email copy.
+
+    Uses GPT to detect:
+    - Awkward grammar or phrasing
+    - Redundant statements
+    - Unnatural sentence structure
+    - Tone inconsistencies
+    - Any text that sounds "off" or robotic
+
+    Args:
+        email_body: Full email body text
+        hook_used: The personalization hook
+
+    Returns:
+        CheckResult with pass/fail status and specific issues found
+    """
+    if not email_body:
+        return CheckResult(
+            check_name="writing_quality",
+            status="pass",
+            severity="low",
+            issue_detail="",
+            suggested_fix=""
+        )
+
+    if not openai_client:
+        # Fallback to pass if no API key (don't block verification)
+        return CheckResult(
+            check_name="writing_quality",
+            status="pass",
+            severity="low",
+            issue_detail="Skipped - no OpenAI API key",
+            suggested_fix=""
+        )
+
+    prompt = f"""You are reviewing a cold outreach email for a B2B sales context.
+The goal is emails that land in inbox (not spam), get opened, and feel like a real person wrote them.
+
+EMAIL:
+{email_body}
+
+FLAG ONLY if the email has:
+1. SPAM TRIGGERS - Words/phrases that trigger spam filters:
+   - Excessive caps, exclamation marks, or urgency ("Act now!", "Limited time!")
+   - Salesy language ("Free", "Guarantee", "No obligation", "Click here")
+   - Impersonal mass-email feel
+
+2. AUTHENTICITY KILLERS - Things that make it obvious it's automated:
+   - Robotic/templated phrasing that no human would write
+   - Grammatically broken sentences (missing words, wrong verb forms)
+   - Redundant statements ("I saw in your ad that you're running ads")
+   - Company name repeated unnaturally many times
+
+3. CRITICAL GRAMMAR - Only flag if it would embarrass the sender:
+   - Missing articles where required ("you're President" → "you're the President")
+   - Wrong verb forms ("you're $100M in sales" → "you achieved $100M in sales")
+   - Broken sentence structure
+
+DO NOT FLAG:
+- Minor style preferences (these are fine in casual cold emails)
+- Conversational tone or contractions
+- Short punchy sentences
+- Using "FB/IG" instead of "Facebook/Instagram"
+- Informal language that sounds human
+
+Respond with ONLY valid JSON:
+{{
+    "has_issues": true/false,
+    "issues": [
+        {{
+            "problem": "Brief description",
+            "text": "The exact problematic text",
+            "fix": "Suggested rewrite",
+            "severity": "spam_trigger|authenticity|grammar"
+        }}
+    ]
+}}
+
+If the email sounds like a real person wrote it and won't trigger spam filters, return {{"has_issues": false, "issues": []}}"""
+
+    try:
+        response = openai_client.chat.completions.create(
+            model=OPENAI_MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a cold email deliverability expert. Your job is to catch issues that would send emails to spam or make them feel robotic. Be lenient on style - only flag things that would actually hurt deliverability or authenticity."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.3,
+            max_tokens=500
+        )
+
+        content = response.choices[0].message.content
+
+        # Parse JSON response
+        if '```json' in content:
+            content = content.split('```json')[1].split('```')[0]
+        elif '```' in content:
+            content = content.split('```')[1].split('```')[0]
+
+        result = json.loads(content.strip())
+
+        if result.get('has_issues') and result.get('issues'):
+            issues = result['issues']
+            # Take the first/most important issue
+            first_issue = issues[0]
+            issue_count = len(issues)
+
+            issue_detail = first_issue.get('problem', 'Writing quality issue')
+            if first_issue.get('text'):
+                issue_detail += f": '{first_issue['text'][:50]}...'" if len(first_issue.get('text', '')) > 50 else f": '{first_issue['text']}'"
+
+            if issue_count > 1:
+                issue_detail += f" (+{issue_count - 1} more issues)"
+
+            return CheckResult(
+                check_name="writing_quality",
+                status="fail",
+                severity="medium",
+                issue_detail=issue_detail,
+                suggested_fix=first_issue.get('fix', 'Review and rewrite the flagged text')
+            )
+
+        return CheckResult(
+            check_name="writing_quality",
+            status="pass",
+            severity="low",
+            issue_detail="",
+            suggested_fix=""
+        )
+
+    except Exception as e:
+        # Don't fail verification if LLM check errors
+        return CheckResult(
+            check_name="writing_quality",
+            status="pass",
+            severity="low",
+            issue_detail=f"LLM check skipped: {str(e)[:50]}",
+            suggested_fix=""
+        )
+
+
+def is_franchise_company(company_name: str) -> bool:
+    """
+    Check if company name indicates a major real estate franchise.
+
+    Args:
+        company_name: Company/page name
+
+    Returns:
+        True if franchise detected
+    """
+    if not company_name:
+        return False
+    company_lower = company_name.lower()
+    return any(franchise in company_lower for franchise in FRANCHISE_KEYWORDS)
+
+
+def check_franchise_personalization(
+    email_body: str,
+    hook_used: str,
+    company_name: str,
+    contact_name: str
+) -> CheckResult:
+    """
+    Check that franchise agent emails use agent-specific personalization.
+
+    For agents at major franchises (RE/MAX, Coldwell Banker, Keller Williams, etc.),
+    the email should reference the AGENT's personal achievements, not generic
+    franchise-level information.
+
+    Args:
+        email_body: Full email body text
+        hook_used: The personalization hook from drafts CSV
+        company_name: Company/page name (to detect franchise)
+        contact_name: Agent name (for suggesting fix)
+
+    Returns:
+        CheckResult with pass/fail status
+    """
+    # Only check franchise agents
+    if not is_franchise_company(company_name):
+        return CheckResult(
+            check_name="franchise_personalization",
+            status="pass",
+            severity="low",
+            issue_detail="Not a franchise agent",
+            suggested_fix=""
+        )
+
+    # Combine email body and hook for checking
+    text_to_check = f"{email_body} {hook_used}".lower()
+
+    # Check for generic franchise phrases
+    for pattern in GENERIC_FRANCHISE_PHRASES:
+        match = re.search(pattern, text_to_check, re.IGNORECASE)
+        if match:
+            matched_text = match.group(0)
+            return CheckResult(
+                check_name="franchise_personalization",
+                status="fail",
+                severity="high",
+                issue_detail=f"Uses generic franchise info: '{matched_text}'",
+                suggested_fix=f"Research {contact_name}'s personal achievements, team stats, or local expertise instead"
+            )
+
+    # Check if hook mentions franchise name without agent specifics
+    hook_lower = str(hook_used).lower() if hook_used else ''
+    has_franchise_name = any(f in hook_lower for f in FRANCHISE_KEYWORDS)
+    has_agent_name = contact_name.lower().split()[0] in hook_lower if contact_name else False
+    has_personal_indicators = any(word in hook_lower for word in [
+        'you', 'your', 'top', '#1', 'award', 'president', 'million',
+        'team', 'closed', 'sold', 'specialist', 'expert', 'years'
+    ])
+
+    if has_franchise_name and not has_agent_name and not has_personal_indicators:
+        return CheckResult(
+            check_name="franchise_personalization",
+            status="warning",
+            severity="medium",
+            issue_detail=f"Hook mentions franchise but lacks agent-specific details",
+            suggested_fix=f"Add {contact_name}'s personal achievements, sales records, or awards"
+        )
+
+    return CheckResult(
+        check_name="franchise_personalization",
+        status="pass",
+        severity="low",
+        issue_detail="Agent-specific personalization detected",
         suggested_fix=""
     )

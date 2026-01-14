@@ -80,6 +80,24 @@ def extract_domain(url: str) -> Optional[str]:
         return None
 
 
+# Major real estate franchises - search for agent's personal site instead
+FRANCHISE_DOMAINS = {
+    'remax.com', 'remax.ca', 'coldwellbanker.com', 'century21.com',
+    'kellerwilliams.com', 'kw.com', 'sothebysrealty.com', 'compass.com',
+    'realogy.com', 'exp.com', 'exprealty.com', 'berkshirehathaway.com',
+    'bhhs.com', 'corcoran.com', 'elliman.com', 'christies.com',
+    'onesothebysrealty.com', 'sothebys.com'
+}
+
+
+def is_franchise_domain(domain: str) -> bool:
+    """Check if domain belongs to a major franchise."""
+    if not domain:
+        return False
+    domain_lower = domain.lower()
+    return any(franchise in domain_lower for franchise in FRANCHISE_DOMAINS)
+
+
 def extract_findings_from_text(text: str) -> List[str]:
     """
     Extract hook-worthy findings from text.
@@ -129,14 +147,19 @@ def extract_findings_from_text(text: str) -> List[str]:
 
 async def research_company_website(
     company_name: str,
-    website_url: str
+    website_url: str,
+    contact_name: str = None
 ) -> Dict[str, Any]:
     """
     Research company website for personalization hooks.
 
+    For franchise agents (RE/MAX, Coldwell Banker, etc.), searches for
+    the agent's personal website or team page instead of franchise homepage.
+
     Args:
         company_name: Company name
         website_url: Company website URL
+        contact_name: Agent's name (for franchise personalization)
 
     Returns:
         Dict with 'findings' and 'sources'
@@ -148,12 +171,23 @@ async def research_company_website(
     if not domain:
         return {'findings': [], 'sources': []}
 
-    # Search queries for company website
-    queries = [
-        f'site:{domain} hiring join team careers',
-        f'site:{domain} about team agents',
-        f'"{company_name}" announcement news',
-    ]
+    # Check if this is a franchise agent
+    if is_franchise_domain(domain) and contact_name:
+        # For franchise agents, search for their personal site/team page
+        print(f"    [Exa] Detected franchise domain, searching for agent's personal site...")
+        queries = [
+            f'"{contact_name}" realtor website',           # Agent's personal site
+            f'"{contact_name}" "{company_name}" team',     # Agent's team page
+            f'site:{domain} "{contact_name}"',             # Profile on franchise site
+            f'"{contact_name}" real estate achievements awards',  # Personal achievements
+        ]
+    else:
+        # Standard company website search
+        queries = [
+            f'site:{domain} hiring join team careers',
+            f'site:{domain} about team agents',
+            f'"{company_name}" announcement news',
+        ]
 
     for query in queries:
         print(f"    [Exa] Searching: {query[:50]}...")
@@ -173,7 +207,7 @@ async def research_company_website(
             # Also store raw text snippets if interesting
             if text and len(text) > 50:
                 # Look for quotable phrases
-                if any(kw in text.lower() for kw in ['hiring', 'team', 'agent', 'lead', 'surplus']):
+                if any(kw in text.lower() for kw in ['hiring', 'team', 'agent', 'lead', 'surplus', 'award', 'top', 'million']):
                     findings.append(text[:200])
 
     return {
@@ -327,7 +361,7 @@ async def research_prospect(
     # Company website research
     company_data = {'website_findings': [], 'recent_news': []}
     if website_url:
-        web_result = await research_company_website(company_name, website_url)
+        web_result = await research_company_website(company_name, website_url, contact_name)
         company_data['website_findings'] = web_result.get('findings', [])
         all_sources.extend(web_result.get('sources', []))
 

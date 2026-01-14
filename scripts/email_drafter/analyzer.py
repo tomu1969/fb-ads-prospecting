@@ -115,6 +115,13 @@ HOOK CRITERIA (ranked by priority):
 4. **Growth signals** - Hiring, expansion, achievements
 5. **Specific numbers/quotes** - Exact phrases we can reference
 
+IMPORTANT - FRANCHISE AGENTS:
+If this agent works for a major franchise (RE/MAX, Coldwell Banker, Keller Williams, Sotheby's, etc.):
+- PRIORITIZE the agent's PERSONAL achievements, team page, or individual website
+- AVOID using generic franchise-level information (corporate stats, franchise history)
+- Look for: their personal sales records, team awards, local market expertise, personal story
+- The hook should feel personalized to THIS specific agent, not their franchise
+
 OUTPUT FORMAT (respond with ONLY valid JSON):
 {
     "chosen_hook": "The specific detail to reference in the email",
@@ -131,11 +138,15 @@ EXAMPLES OF GOOD HOOKS:
 - "Just closed 50th deal this year" LinkedIn post -> success that could scale with better lead conversion
 - Hiring post for 2 new agents -> growing team needs systems to respond to leads faster
 - High ad spend or multiple platforms -> investing in leads that need instant response to convert
+- [FRANCHISE] "Top 1% agent in Denver market" on their team page -> personal achievement, not franchise stat
+- [FRANCHISE] "The Smith Team closed $50M in 2025" -> team-specific, not Coldwell Banker corporate
 
 AVOID:
 - Generic facts anyone could find
 - Old/stale information
 - Things that don't connect to lead response speed or conversion challenges
+- [FRANCHISE] Generic franchise stats like "RE/MAX has 100,000 agents worldwide"
+- [FRANCHISE] Corporate franchise news that doesn't mention the specific agent
 
 If no good hooks are available, set confidence to 0 and explain why in reasoning.
 

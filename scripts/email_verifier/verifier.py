@@ -28,6 +28,8 @@ from checks import (
     check_no_template_vars,
     check_domain_match,
     check_greeting_name,
+    check_writing_quality,
+    check_franchise_personalization,
 )
 
 # Setup logging
@@ -82,6 +84,7 @@ def verify_single_draft(draft: Dict[str, Any], prospect: Optional[Dict[str, Any]
     email = str(draft.get('primary_email', ''))
     email_body = str(draft.get('email_body', ''))
     page_name = str(draft.get('page_name', ''))
+    hook_used = str(draft.get('hook_used', ''))
 
     # 1. Check contact name validity
     results.append(check_contact_name(contact_name))
@@ -97,6 +100,12 @@ def verify_single_draft(draft: Dict[str, Any], prospect: Optional[Dict[str, Any]
 
     # 5. Check greeting name
     results.append(check_greeting_name(email_body, contact_name))
+
+    # 6. Check writing quality (awkward/redundant phrasing)
+    results.append(check_writing_quality(email_body, hook_used))
+
+    # 7. Check franchise personalization (agent-specific vs generic franchise info)
+    results.append(check_franchise_personalization(email_body, hook_used, page_name, contact_name))
 
     return results
 
