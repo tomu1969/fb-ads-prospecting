@@ -1,11 +1,17 @@
 """Composer module - Email generation using LLM.
 
 Takes contact data and selected hook, generates personalized cold email.
+
+NEW APPROACH (v2):
+- No templated pitch - every email is unique
+- Lead with curiosity about THEIR situation
+- Soft mention of what we do, not a hard pitch
+- Question-based CTA instead of "would you be open to"
 """
 
 import os
-import re
-from typing import Dict, Any, Tuple
+import json
+from typing import Dict, Any
 from openai import AsyncOpenAI
 from groq import AsyncGroq
 
@@ -24,8 +30,10 @@ DEFAULT_SENDER_NAME = os.getenv('EMAIL_SENDER_NAME', 'Tomas')
 openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 groq_client = AsyncGroq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
-# The standard offer (constant across all emails)
-STANDARD_OFFER = """We help 100+ businesses running Facebook and Instagram ads close more deals by responding to leads instantly and nurturing them automatically until they're ready to buy. Would you be open to seeing how they do it?"""
+# What we do (context for the LLM, not to be used verbatim)
+PRODUCT_CONTEXT = """LaHaus AI helps real estate teams respond to leads in under 60 seconds
+using AI-powered instant response. Teams using it typically see 2x conversion rates because
+speed-to-lead matters more than almost anything else in real estate."""
 
 
 def get_first_name(full_name) -> str:
@@ -44,15 +52,13 @@ def build_composer_prompt(
     sender_name: str
 ) -> str:
     """
-    Build the email composition prompt.
+    Build the email composition prompt using the new approach.
 
-    Args:
-        contact: Contact dict with contact_name, page_name, etc.
-        hook: Hook dict from analyzer with chosen_hook, problem_framing, etc.
-        sender_name: Name to sign the email with
-
-    Returns:
-        Formatted prompt string for the LLM
+    New approach:
+    - Genuinely personalized (no template pitch)
+    - Lead with curiosity about their business
+    - Ask a real question (don't assume pain)
+    - Soft mention of what we do
     """
     first_name = get_first_name(contact.get('contact_name'))
     company_name = contact.get('page_name', 'your company')
@@ -60,144 +66,170 @@ def build_composer_prompt(
     chosen_hook = hook.get('chosen_hook', '')
     hook_source = hook.get('hook_source', 'ad')
     hook_type = hook.get('hook_type', 'offer')
-    problem_framing = hook.get('problem_framing', '')
 
     # Map hook source to natural language
     source_phrases = {
-        'ad': 'in your Facebook ad',
-        'website': 'on your website',
-        'linkedin': 'on your LinkedIn profile',
-        'instagram': 'on your Instagram',
-        'twitter': 'on your Twitter'
+        'ad': 'their Facebook ad',
+        'website': 'their website',
+        'linkedin': 'their LinkedIn',
+        'instagram': 'their Instagram',
+        'twitter': 'their Twitter'
     }
     source_phrase = source_phrases.get(hook_source, 'online')
 
-    prompt = f"""You write hyper-personalized cold emails for real estate lead services.
+    prompt = f"""Write a cold email that feels genuinely personal, not templated.
 
 RECIPIENT:
-- First Name: {first_name}
+- Name: {first_name}
 - Company: {company_name}
+- Notable detail: {chosen_hook}
+- Found on: {source_phrase}
+- Detail type: {hook_type}
 
-PERSONALIZATION HOOK:
-- Detail: {chosen_hook}
-- Found: {source_phrase}
-- Type: {hook_type}
-- Why it matters: {problem_framing}
+WHAT WE DO (for context - don't copy this verbatim):
+{PRODUCT_CONTEXT}
 
-STANDARD OFFER (use exactly):
-"{STANDARD_OFFER}"
-
-SENDER NAME: {sender_name}
+SENDER: {sender_name}
 
 ---
 
-YOUR TASK:
-Write a short email (~80 words max) following this EXACT structure:
+WRITE AN EMAIL FOLLOWING THESE PRINCIPLES:
 
-1. **SUBJECT LINE**: Short, specific reference to the hook (5-8 words)
+1. **SUBJECT LINE** (4-7 words)
+   - Reference their specific situation
+   - No clickbait, no emojis, no "Quick question"
+   - Examples: "5 years at #1", "San Antonio's fastest growing", "10 years as Top Workplace"
 
-2. **HOOK** (1-2 sentences): Reference the specific detail from above.
-   - Quote exact phrases when possible (use quotation marks)
-   - Be specific about where you found it: {source_phrase}
-   - Example: 'I was on your site and saw the banner regarding your "50% lead surplus"'
+2. **OPENING** (1-2 sentences)
+   - Acknowledge their achievement/situation genuinely
+   - Show you actually understand what it means
+   - NO "I noticed" or "I came across" - just state the observation directly
 
-3. **PROBLEM** (1-2 sentences): Connect that detail to the need for faster lead response and better conversion.
-   - Frame it as: more leads/success means more opportunities slipping through without instant follow-up
-   - Use the problem framing provided: "{problem_framing}"
+3. **CURIOUS QUESTION** (1-2 sentences)
+   - Ask something that shows you understand their world
+   - Frame it as genuine curiosity, not a leading sales question
+   - Connect naturally to lead response/speed IF it makes sense
+   - Examples:
+     - "At that growth rate, is your team keeping up with inbound inquiries?"
+     - "Do you find high-end buyers expect faster response times?"
+     - "With a larger team, is consistent response time harder or easier?"
 
-4. **OFFER** (exactly this text): "{STANDARD_OFFER}"
+4. **SOFT CONTEXT** (1 sentence max)
+   - Briefly mention what we do in context of their situation
+   - NOT a pitch - just context
+   - Examples:
+     - "We've been helping a few fast-scaling teams with that exact problem."
+     - "We work with some teams on instant lead response."
+     - "It's something we help brokerages solve."
 
-5. **SIGN OFF**: "Thanks,\\n{sender_name}\\nCofounder, LaHaus AI"
+5. **WARM CLOSE** (1 sentence)
+   - End with warmth, not a sales push
+   - Examples: "Either way, congrats on the momentum." / "Curious to hear how you've approached it."
+
+6. **SIGN OFF** (EXACTLY this format)
+   {sender_name}
+   LaHaus Co-Founder
+
+---
 
 RULES:
-- Start with "Subject: " followed by the subject line, then a blank line, then the email body
-- Never use generic phrases like "I came across your company" or "Hope this finds you well"
-- The hook must reference the SPECIFIC detail provided above
-- Keep total body under 100 words
-- Be conversational but professional
-- DO NOT use bullet points or numbered lists in the email body
+- Total email body: 50-70 words MAX
+- Sound like a human, not a sales robot
+- Don't force a connection if it doesn't make sense
+- Never use: "Would you be open to", "I'd love to", "Let me know if", "I noticed", "I came across"
+- The entire email should feel written specifically for THIS person
+- ALWAYS end with "{sender_name}\\nLaHaus Co-Founder" - never omit the title
 
-OUTPUT FORMAT:
-Subject: [your subject line here]
+---
 
-Hi {first_name},
-
-[Hook paragraph]
-
-[Problem paragraph]
-
-[Offer paragraph - use EXACTLY the standard offer text]
-
-Thanks,
-{sender_name}
-Cofounder, LaHaus AI"""
+OUTPUT FORMAT (respond with valid JSON only):
+{{
+  "subject_line": "your subject here",
+  "email_body": "Hi [Name],\\n\\n[Your email here]\\n\\n[Sender name]\\nLaHaus Co-Founder"
+}}
+"""
 
     return prompt
 
 
-def parse_email_response(response: str) -> Tuple[str, str]:
+def parse_json_response(response: str) -> Dict[str, str]:
     """
-    Parse the LLM response to extract subject and body.
+    Parse LLM response as JSON.
 
-    Args:
-        response: Raw LLM response string
-
-    Returns:
-        Tuple of (subject_line, email_body)
+    Returns dict with subject_line and email_body.
     """
     response = response.strip()
 
-    subject = ""
-    body = ""
+    # Try to find JSON in the response
+    try:
+        # Handle case where response might have markdown code blocks
+        if '```json' in response:
+            start = response.find('```json') + 7
+            end = response.find('```', start)
+            response = response[start:end].strip()
+        elif '```' in response:
+            start = response.find('```') + 3
+            end = response.find('```', start)
+            response = response[start:end].strip()
 
-    # Try to extract subject line
-    if response.lower().startswith('subject:'):
-        lines = response.split('\n', 1)
-        subject_line = lines[0]
-        # Remove "Subject:" prefix
-        subject = re.sub(r'^subject:\s*', '', subject_line, flags=re.IGNORECASE).strip()
-
-        if len(lines) > 1:
-            body = lines[1].strip()
-    else:
-        # No subject line found, use entire response as body
+        data = json.loads(response)
+        return {
+            'subject_line': data.get('subject_line', 'Quick question'),
+            'email_body': data.get('email_body', '')
+        }
+    except json.JSONDecodeError:
+        # Fallback: try to extract subject and body manually
+        lines = response.split('\n')
+        subject = "Quick question"
         body = response
-        # Try to generate a subject from the first line
-        first_line = body.split('\n')[0] if body else ""
-        if first_line.startswith('Hi ') or first_line.startswith('Hello '):
-            subject = "Quick question"
-        else:
-            subject = first_line[:50] if first_line else "Quick question"
 
-    return subject, body
+        for i, line in enumerate(lines):
+            if line.lower().startswith('subject:'):
+                subject = line.split(':', 1)[1].strip()
+                body = '\n'.join(lines[i+1:]).strip()
+                break
+
+        return {
+            'subject_line': subject,
+            'email_body': body
+        }
 
 
-def get_fallback_email(contact: Dict[str, Any], sender_name: str) -> Dict[str, Any]:
+def get_fallback_email(contact: Dict[str, Any], hook: Dict[str, Any], sender_name: str) -> Dict[str, Any]:
     """
     Return a fallback email when generation fails.
-
-    Args:
-        contact: Contact dict
-        sender_name: Sender name
-
-    Returns:
-        Fallback email dict
+    Uses the new approach style.
     """
     first_name = get_first_name(contact.get('contact_name'))
+    company_name = contact.get('page_name', 'your company')
+    chosen_hook = hook.get('chosen_hook', '')
+
+    # Create a simple but genuine fallback
+    if chosen_hook:
+        hook_summary = chosen_hook[:50] + '...' if len(chosen_hook) > 50 else chosen_hook
+        body = f"""Hi {first_name},
+
+{hook_summary} — that caught my attention.
+
+Curious: how does your team handle lead response when things get busy? It's a challenge I hear about a lot.
+
+{sender_name}
+LaHaus Co-Founder"""
+    else:
+        body = f"""Hi {first_name},
+
+Came across {company_name} and was curious about something.
+
+How does your team handle lead response when things get busy? It's a challenge I hear about a lot in real estate.
+
+{sender_name}
+LaHaus Co-Founder"""
 
     return {
-        'subject_line': 'Quick question',
-        'email_body': f"""Hi {first_name},
-
-[Error generating personalized email - please compose manually]
-
-{STANDARD_OFFER}
-
-Thanks,
-{sender_name}
-Cofounder, LaHaus AI""",
-        'hook_used': '',
-        'hook_source': '',
+        'subject_line': f'{company_name[:30]}' if company_name else 'Quick question',
+        'email_body': body,
+        'hook_used': chosen_hook,
+        'hook_source': hook.get('hook_source', ''),
         'error': True
     }
 
@@ -208,70 +240,34 @@ async def compose_email(
     sender_name: str = None
 ) -> Dict[str, Any]:
     """
-    Generate a personalized cold email using the selected hook.
+    Generate a personalized cold email using the new approach.
+
+    New approach:
+    - No templated pitch
+    - Genuinely personalized
+    - Question-based CTA
+    - Soft mention of what we do
 
     Args:
-        contact: Contact dict with:
-            - contact_name: Recipient's name
-            - page_name: Company name
-            - primary_email: Email address
-        hook: Hook dict from analyzer with:
-            - chosen_hook: The specific detail to reference
-            - hook_source: Where the hook was found
-            - hook_type: Category of hook
-            - problem_framing: How to connect to lead overflow
-        sender_name: Name to sign the email with (default from config)
+        contact: Contact dict with contact_name, page_name, primary_email
+        hook: Hook dict with chosen_hook, hook_source, hook_type
+        sender_name: Name to sign email with
 
     Returns:
-        Dict with:
-            - subject_line: Email subject
-            - email_body: Full email text
-            - hook_used: The hook that was referenced
-            - hook_source: Source of the hook
+        Dict with subject_line, email_body, hook_used, hook_source
     """
     if sender_name is None:
         sender_name = DEFAULT_SENDER_NAME
 
     prompt = build_composer_prompt(contact, hook, sender_name)
-    system_msg = "You are an expert cold email copywriter specializing in real estate services. Write concise, personalized emails that reference specific details about the recipient."
+    system_msg = """You are an expert at writing cold emails that feel personal and human.
+Your emails get responses because they show genuine curiosity about the recipient's business,
+not because they have clever sales tactics. You write like a peer, not a salesperson."""
 
-    # Try OpenAI first, then fall back to Groq
-    openai_error = None
-    if openai_client:
-        try:
-            print(f"    [Composer] Generating email for {contact.get('contact_name', 'Unknown')}...")
-
-            response = await openai_client.chat.completions.create(
-                model=OPENAI_MODEL,
-                messages=[
-                    {"role": "system", "content": system_msg},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                max_tokens=400
-            )
-
-            content = response.choices[0].message.content
-            subject, body = parse_email_response(content)
-
-            result = {
-                'subject_line': subject,
-                'email_body': body,
-                'hook_used': hook.get('chosen_hook', ''),
-                'hook_source': hook.get('hook_source', '')
-            }
-
-            print(f"    [Composer] Generated email with subject: {subject[:40]}...")
-            return result
-
-        except Exception as e:
-            openai_error = str(e)
-            print(f"    [Composer] OpenAI error: {e}")
-
-    # Fall back to Groq
+    # Try Groq first (faster, usually available), then OpenAI
     if groq_client:
         try:
-            print(f"    [Composer] Falling back to Groq for {contact.get('contact_name', 'Unknown')}...")
+            print(f"    [Composer] Generating email for {contact.get('contact_name', 'Unknown')}...")
 
             response = await groq_client.chat.completions.create(
                 model=GROQ_MODEL,
@@ -279,31 +275,62 @@ async def compose_email(
                     {"role": "system", "content": system_msg},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.7,
+                temperature=0.8,
                 max_tokens=400
             )
 
             content = response.choices[0].message.content
-            subject, body = parse_email_response(content)
+            parsed = parse_json_response(content)
 
             result = {
-                'subject_line': subject,
-                'email_body': body,
+                'subject_line': parsed['subject_line'],
+                'email_body': parsed['email_body'],
                 'hook_used': hook.get('chosen_hook', ''),
                 'hook_source': hook.get('hook_source', '')
             }
 
-            print(f"    [Composer] (Groq) Generated email with subject: {subject[:40]}...")
+            print(f"    [Composer] Generated: {parsed['subject_line'][:40]}...")
             return result
 
         except Exception as e:
             print(f"    [Composer] Groq error: {e}")
 
+    # Fallback to OpenAI
+    if openai_client:
+        try:
+            print(f"    [Composer] Trying OpenAI for {contact.get('contact_name', 'Unknown')}...")
+
+            response = await openai_client.chat.completions.create(
+                model=OPENAI_MODEL,
+                messages=[
+                    {"role": "system", "content": system_msg},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.8,
+                max_tokens=400
+            )
+
+            content = response.choices[0].message.content
+            parsed = parse_json_response(content)
+
+            result = {
+                'subject_line': parsed['subject_line'],
+                'email_body': parsed['email_body'],
+                'hook_used': hook.get('chosen_hook', ''),
+                'hook_source': hook.get('hook_source', '')
+            }
+
+            print(f"    [Composer] (OpenAI) Generated: {parsed['subject_line'][:40]}...")
+            return result
+
+        except Exception as e:
+            print(f"    [Composer] OpenAI error: {e}")
+
     # No LLM available
     if not openai_client and not groq_client:
         print("    [Composer] No LLM API keys configured")
 
-    return get_fallback_email(contact, sender_name)
+    return get_fallback_email(contact, hook, sender_name)
 
 
 # For direct testing
@@ -311,26 +338,44 @@ if __name__ == "__main__":
     import asyncio
 
     async def test():
-        test_contact = {
-            'contact_name': 'John Doe',
-            'page_name': 'Example Realty',
-            'primary_email': 'john@example.com'
-        }
+        # Test with real-ish data
+        test_cases = [
+            {
+                'contact': {
+                    'contact_name': 'Tim Ellis',
+                    'page_name': 'REEP Equity',
+                    'primary_email': 'tim@reepequity.com'
+                },
+                'hook': {
+                    'chosen_hook': 'Named Top 5 Fastest Growing Business in San Antonio two years in a row',
+                    'hook_source': 'website',
+                    'hook_type': 'achievement'
+                }
+            },
+            {
+                'contact': {
+                    'contact_name': 'Ross Howatt',
+                    'page_name': 'The Newcomer Group',
+                    'primary_email': 'ross@thenewcomergroup.com'
+                },
+                'hook': {
+                    'chosen_hook': '#1 real estate team for high-end properties in St. Augustine for 5 years',
+                    'hook_source': 'ad',
+                    'hook_type': 'achievement'
+                }
+            }
+        ]
 
-        test_hook = {
-            'chosen_hook': '50% lead surplus and hiring 2 new agents',
-            'hook_source': 'website',
-            'hook_type': 'hiring',
-            'problem_framing': 'When hiring while having lead surplus, response times suffer'
-        }
+        for i, case in enumerate(test_cases, 1):
+            print(f"\n{'='*60}")
+            print(f"TEST {i}: {case['contact']['contact_name']} @ {case['contact']['page_name']}")
+            print('='*60)
 
-        result = await compose_email(test_contact, test_hook)
-        print("\nGenerated Email:")
-        print(f"Subject: {result['subject_line']}")
-        print("-" * 40)
-        print(result['email_body'])
-        print("-" * 40)
-        print(f"Hook used: {result['hook_used']}")
-        print(f"Hook source: {result['hook_source']}")
+            result = await compose_email(case['contact'], case['hook'])
+
+            print(f"\nSubject: {result['subject_line']}")
+            print("-" * 40)
+            print(result['email_body'])
+            print("-" * 40)
 
     asyncio.run(test())
