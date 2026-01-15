@@ -1,0 +1,25 @@
+page_name,contact_name,email,check_name,status,severity,issue_detail,suggested_fix
+John Wyche,John Wyche,support@smbfunds.net,domain_match,fail,high,Email domain 'smbfunds.net' doesn't appear related to company 'John Wyche',Verify email belongs to this company
+,Paul Bortz,paul.bortz@coldwellbanker.com,domain_match,fail,high,Email domain 'coldwellbanker.com' doesn't appear related to company 'nan',Verify email belongs to this company
+,,hello@realtysouth.com,domain_match,fail,high,Email domain 'realtysouth.com' doesn't appear related to company 'nan',Verify email belongs to this company
+,,info@idealista.com,domain_match,fail,high,Email domain 'idealista.com' doesn't appear related to company 'nan',Verify email belongs to this company
+,,admin@growthland.com,domain_match,fail,high,Email domain 'growthland.com' doesn't appear related to company 'nan',Verify email belongs to this company
+,,domains@ca.gov,domain_match,fail,high,Email domain 'ca.gov' doesn't appear related to company 'nan',Verify email belongs to this company
+,,info@reddoorrealtyandassociates.com,domain_match,fail,high,Email domain 'reddoorrealtyandassociates.com' doesn't appear related to company 'nan',Verify email belongs to this company
+Nelson Real Estate,Tony Nelson,info@unitedrealestate.com,domain_match,fail,high,Email domain 'unitedrealestate.com' doesn't appear related to company 'Nelson Real Estate',Verify email belongs to this company
+,Bonnie Kier,bonnie@kiermanagement.com,domain_match,fail,high,Email domain 'kiermanagement.com' doesn't appear related to company 'nan',Verify email belongs to this company
+,Craig Zwiers,craig.zwiers@basecampcountry.com,domain_match,fail,high,Email domain 'basecampcountry.com' doesn't appear related to company 'nan',Verify email belongs to this company
+,,sales@noteschool.com,domain_match,fail,high,Email domain 'noteschool.com' doesn't appear related to company 'nan',Verify email belongs to this company
+,Shayla Price,shayla@spokanerealtors.com,domain_match,fail,high,Email domain 'spokanerealtors.com' doesn't appear related to company 'nan',Verify email belongs to this company
+David Lecko,Lewis Denton-Burke,lewis.denton-burke@disruptorscyber.com,domain_match,fail,high,Email domain 'disruptorscyber.com' doesn't appear related to company 'David Lecko',Verify email belongs to this company
+Houses Near You,,contact@idealista.com,domain_match,fail,high,Email domain 'idealista.com' doesn't appear related to company 'Houses Near You',Verify email belongs to this company
+,,info@keyrealtyschool.com,domain_match,fail,high,Email domain 'keyrealtyschool.com' doesn't appear related to company 'nan',Verify email belongs to this company
+,,mscott@rise-residential.com,domain_match,fail,high,Email domain 'rise-residential.com' doesn't appear related to company 'nan',Verify email belongs to this company
+Key Realty School,Mike Federwitz,contact@keyrealtyschool.com,domain_match,fail,high,Email domain 'keyrealtyschool.com' doesn't appear related to company 'Key Realty School',Verify email belongs to this company
+david@homesusa.com,,be@breakthroughenergy.org,domain_match,fail,high,Email domain 'breakthroughenergy.org' doesn't appear related to company 'david@homesusa.com',Verify email belongs to this company
+California Real Estate Service,,admin@ca.gov,domain_match,fail,high,Email domain 'ca.gov' doesn't appear related to company 'California Real Estate Service',Verify email belongs to this company
+East Alabama Homes for Sale,,info@realtysouth.com,domain_match,fail,high,Email domain 'realtysouth.com' doesn't appear related to company 'East Alabama Homes for Sale',Verify email belongs to this company
+Key Realty School,Mike Federwitz,info@keyrealtyschool.com,domain_match,fail,high,Email domain 'keyrealtyschool.com' doesn't appear related to company 'Key Realty School',Verify email belongs to this company
+Houses Near You,,info@idealista.com,domain_match,fail,high,Email domain 'idealista.com' doesn't appear related to company 'Houses Near You',Verify email belongs to this company
+,,contact@floridaconnexion.com,domain_match,fail,high,Email domain 'floridaconnexion.com' doesn't appear related to company 'nan',Verify email belongs to this company
+,,agent@percentone.com,domain_match,fail,high,Email domain 'percentone.com' doesn't appear related to company 'nan',Verify email belongs to this company

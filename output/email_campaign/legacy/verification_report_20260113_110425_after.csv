@@ -1,0 +1,25 @@
+page_name,contact_name,email,check_name,status,severity,issue_detail,suggested_fix
+Hailey Lebel of Hearth & Key Realty,,csteam@harborone.com,contact_name,fail,critical,Invalid contact name: 'nan',Remove contact name or find valid name
+Financial Strength Coaching,,giosavo21@gmail.com,contact_name,fail,critical,Invalid contact name: 'nan',Remove contact name or find valid name
+Francisco Ruvalcaba Realtor,Seth Patterson,sethpatterson@metrolist.com,domain_match,fail,high,Email domain 'metrolist.com' doesn't appear related to company 'Francisco Ruvalcaba Realtor',Verify email belongs to this company
+Mercedes-Benz of Springfield,Peter Wirth,abailey@mbspringfield.com,domain_match,fail,high,Email domain 'mbspringfield.com' doesn't appear related to company 'Mercedes-Benz of Springfield',Verify email belongs to this company
+Mercedes-Benz of Springfield,Peter Wirth,abailey@mbspringfield.com,email_name_match,fail,high,Email 'abailey@...' doesn't match contact name 'Peter Wirth',"Verify email belongs to Peter Wirth, or update contact name"
+Hailey Lebel of Hearth & Key Realty,,csteam@harborone.com,greeting_name,fail,high,Greeting uses 'there' but contact is 'nan',Change greeting to match contact name
+Hailey Lebel of Hearth & Key Realty,,csteam@harborone.com,domain_match,fail,high,Email domain 'harborone.com' doesn't appear related to company 'Hailey Lebel of Hearth & Key Realty',Verify email belongs to this company
+Financial Strength Coaching,,giosavo21@gmail.com,greeting_name,fail,high,Greeting uses 'there' but contact is 'nan',Change greeting to match contact name
+"C. Alex Tovar Real Estate Broker, Weichert Realtors-Tovar Properties",Bill Scott,mboulos@weichert.com,email_name_match,fail,high,Email 'mboulos@...' doesn't match contact name 'Bill Scott',"Verify email belongs to Bill Scott, or update contact name"
+Paul Brar - Mortgage Broker,Paul Brar,paul@legacymortgagegroup.ca,domain_match,fail,high,Email domain 'legacymortgagegroup.ca' doesn't appear related to company 'Paul Brar - Mortgage Broker',Verify email belongs to this company
+David Baer Properties,Aspen,aspen@evrealestate.com,domain_match,fail,high,Email domain 'evrealestate.com' doesn't appear related to company 'David Baer Properties',Verify email belongs to this company
+"Agent Elite, Inc.",Nick Reis,lcetera@agentelite.com,email_name_match,fail,high,Email 'lcetera@...' doesn't match contact name 'Nick Reis',"Verify email belongs to Nick Reis, or update contact name"
+East Alabama Homes for Sale,Todd Sharley,jbrown@realtysouth.com,domain_match,fail,high,Email domain 'realtysouth.com' doesn't appear related to company 'East Alabama Homes for Sale',Verify email belongs to this company
+East Alabama Homes for Sale,Todd Sharley,jbrown@realtysouth.com,email_name_match,fail,high,Email 'jbrown@...' doesn't match contact name 'Todd Sharley',"Verify email belongs to Todd Sharley, or update contact name"
+Houses Near You,Vanessa Santos,dcorzo@idealista.com,domain_match,fail,high,Email domain 'idealista.com' doesn't appear related to company 'Houses Near You',Verify email belongs to this company
+Houses Near You,Vanessa Santos,dcorzo@idealista.com,email_name_match,fail,high,Email 'dcorzo@...' doesn't match contact name 'Vanessa Santos',"Verify email belongs to Vanessa Santos, or update contact name"
+Adwerx Enterprise,Sarah Wheeler,dsanchez@housingwire.com,domain_match,fail,high,"Email domain 'housingwire.com' appears to be a media site, not 'Adwerx Enterprise'",Find correct company email address
+Adwerx Enterprise,Sarah Wheeler,dsanchez@housingwire.com,email_name_match,fail,high,Email 'dsanchez@...' doesn't match contact name 'Sarah Wheeler',"Verify email belongs to Sarah Wheeler, or update contact name"
+John Wyche,Anna Rumer,editor@popculture.com,domain_match,fail,high,"Email domain 'popculture.com' appears to be a media site, not 'John Wyche'",Find correct company email address
+John Wyche,Anna Rumer,editor@popculture.com,email_name_match,fail,high,Email 'editor@...' doesn't match contact name 'Anna Rumer',"Verify email belongs to Anna Rumer, or update contact name"
+"Signarama Lansing East, Michigan",Sarah Sanders,indywest.sales@signarama.com,email_name_match,fail,high,Email 'indywest.sales@...' doesn't match contact name 'Sarah Sanders',"Verify email belongs to Sarah Sanders, or update contact name"
+Rise Residential,Jerry Enders,mscott@rise-residential.com,email_name_match,fail,high,Email 'mscott@...' doesn't match contact name 'Jerry Enders',"Verify email belongs to Jerry Enders, or update contact name"
+Amber Bartholomew - Desert Sun Realty,Amber Bartholomew,amberb.realtor@gmail.com,domain_match,warning,medium,Generic email domain: gmail.com,Consider finding company email address
+Financial Strength Coaching,,giosavo21@gmail.com,domain_match,warning,medium,Generic email domain: gmail.com,Consider finding company email address
