@@ -726,7 +726,7 @@ def check_fb_ads_format(df: pd.DataFrame) -> bool:
 def load_fb_ads_format(input_path: Path) -> pd.DataFrame:
     """Load FB Ads Library format using legacy logic."""
     import importlib.util
-    legacy_path = BASE_DIR / "scripts" / "legacy" / "loader_fb_ads.py"
+    legacy_path = BASE_DIR / "scripts" / "_archived" / "loader_fb_ads.py"
     spec = importlib.util.spec_from_file_location("loader_fb_ads", legacy_path)
     loader_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(loader_module)

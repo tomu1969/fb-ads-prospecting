@@ -128,6 +128,7 @@ Performs comprehensive repository maintenance, cleanup, and organization.
 │   └── _archived/           # Legacy scripts (superseded implementations)
 ├── config/
 │   ├── field_mappings/      # Auto-generated field mappings
+│   ├── legacy/              # Archived config files
 │   ├── website_overrides.csv # Manual website corrections
 │   ├── do_not_contact.csv   # Exclusion list
 │   ├── bounced_contacts.csv # Track bounced emails for recovery
@@ -142,6 +143,7 @@ Performs comprehensive repository maintenance, cleanup, and organization.
 │   ├── completed/           # Finished experiments (results.md)
 │   └── templates/           # Reusable experiment templates
 ├── input/                   # Raw input files
+│   └── legacy/              # Archived input files
 ├── processed/               # Intermediate pipeline outputs
 │   └── legacy/              # Archived intermediate files
 └── output/                  # Final exports (organized by type)
@@ -151,7 +153,8 @@ Performs comprehensive repository maintenance, cleanup, and organization.
     ├── email_campaign/          # Email drafts & campaign files
     │   ├── drafts.csv           # Generated email drafts
     │   ├── campaign_log.md      # Campaign tracking
-    │   └── warmup/              # Daily warmup checklists
+    │   ├── warmup/              # Daily warmup checklists
+    │   └── legacy/              # Archived campaign files
     ├── gmail_logs/              # Gmail inbox snapshots
     ├── hubspot/                 # HubSpot CRM exports
     │   └── contacts.csv         # HubSpot-compatible format

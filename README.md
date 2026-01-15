@@ -485,27 +485,25 @@ fb-ads-prospecting/
 │   ├── utils/                   # Shared utilities
 │   └── _archived/               # Legacy scripts (superseded)
 ├── config/
+│   ├── field_mappings/          # Saved field mappings
+│   ├── legacy/                  # Archived config files
 │   ├── website_overrides.csv    # Manual website mappings
 │   ├── manual_contacts.csv      # Manual contact data
-│   ├── bounced_contacts.csv     # Track bounced emails for recovery
-│   └── field_mappings/          # Saved field mappings
+│   └── bounced_contacts.csv     # Track bounced emails for recovery
 ├── docs/
 │   ├── PRD.md                   # Product Requirements Document
 │   └── ARCHITECTURE.md          # Technical architecture details
 ├── input/                       # Source files
+│   └── legacy/                  # Archived input files
 ├── processed/                   # Intermediate pipeline files
 │   └── legacy/                  # Archived intermediate files
 ├── output/                      # Final exports (organized by type)
 │   ├── prospects_master.csv    # Primary contact database
 │   ├── email_campaign/         # Email drafts & campaign files
+│   │   └── legacy/              # Archived campaign files
 │   ├── gmail_logs/             # Gmail inbox snapshots
 │   ├── hubspot/                # HubSpot CRM exports
 │   └── legacy/                 # Archived output files
-├── config/
-│   ├── website_overrides.csv    # Manual website mappings
-│   ├── manual_contacts.csv      # Manual contact data
-│   ├── bounced_contacts.csv     # Track bounced emails for recovery
-│   └── field_mappings/          # Saved field mappings
 └── tests/                       # Unit tests
 ```
 

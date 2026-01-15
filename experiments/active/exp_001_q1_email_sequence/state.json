@@ -120,14 +120,15 @@
     {"event": "batch_4_fixed", "at": "2026-01-14T08:33:00Z", "note": "24 fixes applied (20 name fixes, 4 greeting fixes)"},
     {"event": "batch_4_sent", "at": "2026-01-14T11:17:52Z", "note": "45 emails sent to recovered contacts"},
     {"event": "inbox_check_3", "at": "2026-01-14T11:19:00Z", "note": "21 new bounces detected, 3 potential replies (Bob Woerner, Signarama, Moxi Works)"},
-    {"event": "bounce_recovery_3", "at": "2026-01-14T11:33:38Z", "note": "67 total bounces processed - 44 recovered (65.7%), 23 unrecoverable"}
+    {"event": "bounce_recovery_3", "at": "2026-01-14T11:33:38Z", "note": "67 total bounces processed - 44 recovered (65.7%), 23 unrecoverable"},
+    {"event": "inbox_check_4", "at": "2026-01-14T17:30:00Z", "note": "2 replies received - both unsubscribe requests (Bob Woerner, Donald McVicar). Added to do_not_contact.csv"}
   ],
 
-  "current_step": "bounce_recovery",
+  "current_step": "analysis",
   "next_action": {
-    "type": "draft_and_send",
-    "description": "Draft emails for 44 recovered contacts and send",
-    "ready_at": "2026-01-14T12:00:00Z"
+    "type": "wait",
+    "description": "Wait for more follow-up #1 responses before deciding on follow-up #2",
+    "ready_at": "2026-01-16T10:00:00Z"
   },
 
   "cumulative_metrics": {
@@ -142,8 +143,11 @@
     "unrecoverable_contacts": 23,
     "successful_deliveries": 144,
     "delivery_rate": 0.87,
-    "potential_replies": 3,
-    "reply_rate": 0.02
+    "total_replies": 2,
+    "positive_replies": 0,
+    "unsubscribes": 2,
+    "reply_rate": 0.014,
+    "positive_reply_rate": 0.0
   },
 
   "issues_encountered": [
@@ -176,6 +180,12 @@
       "cause": "Generic emails (info@, contact@) often catch-all but don't deliver; accept_all domains may still reject",
       "fix": "Need to verify recovered emails before sending, or use personal emails only",
       "result": "21 of 45 recovered emails bounced again"
+    },
+    {
+      "issue": "Follow-up emails triggered unsubscribes (100% of replies)",
+      "cause": "Follow-up #1 may feel too pushy; 'Quick follow-up' subject line perceived as sales pressure",
+      "fix": "Consider softer follow-up approach, longer wait time, or value-add content instead of reminder",
+      "result": "2 unsubscribes, 0 positive replies from follow-up #1"
     }
   ],
 
@@ -191,7 +201,9 @@
     "Cold email CTAs should focus on the problem being solved, not product claims",
     "Generic emails (info@, contact@) have ~50% secondary bounce rate even when verified as accept_all",
     "Bounce recovery is more effective with Hunter/Apollo personal emails than generic emails",
-    "Some domains (keyrealtyschool.com, idealista.com, reddoorrealtyandassociates.com) consistently bounce all variants - may be blocking cold outreach"
+    "Some domains (keyrealtyschool.com, idealista.com, reddoorrealtyandassociates.com) consistently bounce all variants - may be blocking cold outreach",
+    "Follow-up emails with 'Quick follow-up' subject triggered 100% unsubscribe rate - consider value-add approach instead of reminder",
+    "Both unsubscribes came from follow-up #1 (3 days after initial), not from initial emails - timing or tone issue"
   ],
 
   "artifacts": {
@@ -230,5 +242,5 @@
   },
 
   "created_at": "2026-01-11T12:00:00Z",
-  "updated_at": "2026-01-14T11:35:00Z"
+  "updated_at": "2026-01-14T17:35:00Z"
 }
