@@ -15,29 +15,31 @@
 
 | Metric | Current | Target | Status |
 |--------|---------|--------|--------|
-| Reply Rate | **1.4%** (2/144) | >= 10% | :x: Behind |
+| Reply Rate | **1.3%** (2/150) | >= 10% | :x: Behind |
 | Positive Reply Rate | **0%** | >= 10% | :x: Behind |
 | Unsubscribes | **2** | - | :warning: |
 | Bounce Rate | **2%** | <= 5% | :white_check_mark: Met |
-| Unique Emails Sent | 165 | - | - |
-| Successful Deliveries | 144 | - | - |
-| Total Touches | 228 | - | (includes follow-ups) |
+| Unique Emails Sent | 171 | - | - |
+| Successful Deliveries | 150 | - | - |
+| Total Touches | 283 | - | (includes follow-ups) |
 
-**Assessment:** Behind on primary goal. 2 replies received but both were unsubscribe requests.
-**Days Elapsed:** 3 (Jan 11-14)
-**Next Milestone:** Wait until Jan 16 for more follow-up responses before deciding on follow-up #2
+**Assessment:** Behind on primary goal. Testing new approaches: batch 5 (new composer) + value-add follow-ups.
+**Days Elapsed:** 4 (Jan 11-15)
+**Next Milestone:** Monitor batch 5 + value-add follow-ups for responses by Jan 17
 
 ---
 
 ## Batches Summary
 
-| Batch | Date | Drafted | Sent | Delivered | Bounced | Replies |
-|-------|------|---------|------|-----------|---------|---------|
-| Batch 1 | Jan 11 | 93 | 69 | 69 | 0 (recovered) | 0 |
-| Batch 2 | Jan 13 | 42 | 31 | 30 | 1 | 0 |
-| Batch 3 | Jan 13 | 21 | 20 | 19 | 1 | 0 |
-| **Follow-up #1** | Jan 14 | 69 | 63 | 63 | 0 | 2 (unsubscribes) |
-| **Total** | - | **225** | **183** | **181** | **2** | **2** |
+| Batch | Date | Drafted | Sent | Delivered | Bounced | Replies | Approach |
+|-------|------|---------|------|-----------|---------|---------|----------|
+| Batch 1 | Jan 11 | 93 | 69 | 69 | 0 (recovered) | 0 | old |
+| Batch 2 | Jan 13 | 42 | 31 | 30 | 1 | 0 | old |
+| Batch 3 | Jan 13 | 21 | 20 | 19 | 1 | 0 | old |
+| Follow-up #1 | Jan 14 | 69 | 63 | 63 | 0 | 2 (unsub) | old |
+| **Batch 5** | Jan 15 | 6 | 6 | 6 | 0 | TBD | **new_v2** |
+| **Follow-up Value** | Jan 15 | 49 | 49 | TBD | TBD | TBD | **value_add** |
+| **Total** | - | **280** | **238** | **187+** | **2+** | **2** | - |
 
 ### Batch Details
 
@@ -64,6 +66,30 @@
 - 63 sent, 63 delivered
 - 2 replies: both unsubscribe requests (Bob Woerner, Donald McVicar)
 - Added to do_not_contact.csv
+
+**Batch 5 (New Composer A/B Test)**
+- 6 drafted with NEW approach (new_v2)
+- Changes from old approach:
+  - Removed templated STANDARD_OFFER pitch
+  - Question-based CTAs instead of "Would you be open to"
+  - Shorter emails (50-70 words vs 120)
+  - Genuine curiosity tone vs sales robot
+  - Title "LaHaus Co-Founder" in signature
+- Recipients: HomesUSA, Corcoran, Beycome, RE/MAX, Christian Angle, ONE Sotheby's
+- 6 sent, 0 bounces
+- Monitoring for responses to compare vs old approach
+
+**Follow-up Value-Add (Batches 2 & 3)**
+- 49 drafted with VALUE-ADD approach (not "Quick follow-up")
+- Key changes from old follow-up approach:
+  - Lead with stats/insights, not "following up" or "circling back"
+  - Short questions about their lead response approach
+  - No direct reference to previous email
+  - Provides genuine value (industry stat or observation)
+- Batch 2: 30 follow-ups sent
+- Batch 3: 19 follow-ups sent
+- 49 sent, 0 failures
+- Testing if value-add approach avoids unsubscribes from old follow-up style
 
 ---
 
@@ -96,6 +122,13 @@
 | 2026-01-14 10:05 | followup_1_drafted | 69 follow-up emails drafted for Batch 1 non-responders |
 | 2026-01-14 11:16 | followup_1_sent | 63 follow-ups sent (6 bounced emails excluded) |
 | 2026-01-14 17:30 | inbox_check_4 | 2 replies - both unsubscribes (Bob Woerner, Donald McVicar). Added to do_not_contact.csv |
+| 2026-01-15 09:00 | new_composer_analysis | Analyzed 0% positive reply rate - identified templated pitch as likely cause |
+| 2026-01-15 09:03 | composer_rewrite | Rewrote composer.py: removed STANDARD_OFFER, added question-based CTAs |
+| 2026-01-15 09:04 | batch_5_drafted | 6 emails drafted with new composer approach (new_v2) |
+| 2026-01-15 09:08 | batch_5_sent | 6 emails sent - new composer A/B test batch |
+| 2026-01-15 09:14 | followup_value_drafted | 49 value-add follow-ups drafted for batches 2 & 3 |
+| 2026-01-15 09:17 | followup_value_verified | Verification passed - 0 critical issues |
+| 2026-01-15 09:23 | followup_value_sent | 49 value-add follow-ups sent (30 batch 2 + 19 batch 3) |
 
 ---
 
@@ -146,16 +179,23 @@
 9. **Cold email CTAs should focus on the problem being solved, not product claims**
 10. **Follow-up emails with "Quick follow-up" subject triggered 100% unsubscribe rate** - Consider value-add approach instead of reminder
 11. **Both unsubscribes came from follow-up #1, not initial emails** - Timing (3 days) or tone may be the issue
+12. **100% templated pitch (STANDARD_OFFER) likely caused 0% positive reply rate** - Emails felt robotic, not human
+13. **New approach: question-based CTAs, shorter emails (50-70 words), genuine curiosity tone** - Testing with batch 5
+14. **Batch 5 tests new composer** - Will compare reply rate vs batches 1-4 (old approach)
+15. **Value-add follow-ups lead with stats/insights** - Avoids pushy "following up" tone that triggered unsubscribes
 
 ---
 
 ## Next Steps
 
 - [x] ~~Monitor for replies to Follow-up #1~~ - 2 unsubscribes received
-- [ ] Wait until Jan 16 for more responses before deciding on follow-up #2
-- [ ] Reconsider follow-up strategy: value-add content vs. reminder approach
-- [ ] Analyze if initial email messaging needs improvement (0 positive replies total)
-- [ ] Consider A/B testing subject lines on new prospects
+- [x] ~~Analyze why 0% positive reply rate~~ - Identified templated pitch as likely cause
+- [x] ~~Rewrite composer with new approach~~ - Removed STANDARD_OFFER, added question CTAs
+- [x] ~~Send test batch with new approach~~ - Batch 5 sent (6 emails)
+- [x] ~~Reconsider follow-up strategy~~ - Created value-add follow-up approach (49 sent)
+- [ ] Monitor batch 5 for responses by Jan 17 (compare vs old approach)
+- [ ] Monitor value-add follow-ups for responses (compare vs "Quick follow-up" unsubscribe rate)
+- [ ] If new approaches show improvement, apply to remaining uncontacted prospects
 
 ---
 
@@ -167,9 +207,12 @@
 | Batch 2 Drafts | output/email_campaign/drafts_batch2_ready_to_send.csv |
 | Batch 3 Drafts | output/email_campaign/drafts_batch3.csv |
 | Follow-up #1 | output/email_campaign/followup_1_batch1.csv |
+| **Batch 5 Drafts (new_v2)** | output/email_campaign/drafts_fresh_batch.csv |
+| **Value-Add Follow-ups** | output/email_campaign/followup_value_batches_2_3.csv |
+| Old vs New Comparison | output/email_campaign/old_vs_new_comparison.md |
 | State File | experiments/active/exp_001_q1_email_sequence/state.json |
 | Bounced Contacts | config/bounced_contacts.csv |
 
 ---
 
-*Last updated: 2026-01-14 17:35*
+*Last updated: 2026-01-15 09:23*

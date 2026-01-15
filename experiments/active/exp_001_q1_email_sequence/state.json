@@ -87,6 +87,32 @@
         "david@homesusa.com"
       ],
       "status": "bounce_recovery_needed"
+    },
+    {
+      "batch_id": "batch_5",
+      "name": "New Composer A/B Test",
+      "date": "2026-01-15",
+      "approach": "new_v2",
+      "changes": [
+        "Removed templated STANDARD_OFFER pitch",
+        "Question-based CTAs instead of 'Would you be open to'",
+        "Shorter emails (50-70 words vs 120)",
+        "Genuine curiosity tone vs sales robot",
+        "Title 'LaHaus Co-Founder' in signature"
+      ],
+      "source": "Uncontacted prospects from master file",
+      "drafted": 6,
+      "sent": 6,
+      "bounces": 0,
+      "recipients": [
+        "david@homesusa.com",
+        "alexandra.lanci@corcoran.com",
+        "steve@beycome.com",
+        "wadep@remax.ca",
+        "cjangle@anglerealestate.com",
+        "ggiusti@onesothebysrealty.com"
+      ],
+      "status": "monitoring"
     }
   ],
 
@@ -121,33 +147,54 @@
     {"event": "batch_4_sent", "at": "2026-01-14T11:17:52Z", "note": "45 emails sent to recovered contacts"},
     {"event": "inbox_check_3", "at": "2026-01-14T11:19:00Z", "note": "21 new bounces detected, 3 potential replies (Bob Woerner, Signarama, Moxi Works)"},
     {"event": "bounce_recovery_3", "at": "2026-01-14T11:33:38Z", "note": "67 total bounces processed - 44 recovered (65.7%), 23 unrecoverable"},
-    {"event": "inbox_check_4", "at": "2026-01-14T17:30:00Z", "note": "2 replies received - both unsubscribe requests (Bob Woerner, Donald McVicar). Added to do_not_contact.csv"}
+    {"event": "inbox_check_4", "at": "2026-01-14T17:30:00Z", "note": "2 replies received - both unsubscribe requests (Bob Woerner, Donald McVicar). Added to do_not_contact.csv"},
+    {"event": "new_composer_analysis", "at": "2026-01-15T09:00:00Z", "note": "Analyzed 0% positive reply rate - identified templated pitch as likely cause"},
+    {"event": "composer_rewrite", "at": "2026-01-15T09:03:00Z", "note": "Rewrote composer.py: removed STANDARD_OFFER, added question-based CTAs, shorter emails"},
+    {"event": "batch_5_drafted", "at": "2026-01-15T09:04:00Z", "note": "6 emails drafted with new composer approach (new_v2)"},
+    {"event": "batch_5_sent", "at": "2026-01-15T09:08:49Z", "note": "6 emails sent - new composer A/B test batch"},
+    {"event": "followup_value_drafted", "at": "2026-01-15T09:14:00Z", "note": "49 value-add follow-ups drafted for batches 2 & 3 (new approach - stats/insights, not 'following up')"},
+    {"event": "followup_value_verified", "at": "2026-01-15T09:17:00Z", "note": "Verification passed - 0 critical issues, 3 false positive domain warnings"},
+    {"event": "followup_value_sent", "at": "2026-01-15T09:23:11Z", "note": "49 value-add follow-ups sent (30 batch 2 + 19 batch 3) - 0 failures"}
   ],
 
-  "current_step": "analysis",
+  "current_step": "ab_testing",
   "next_action": {
     "type": "wait",
-    "description": "Wait for more follow-up #1 responses before deciding on follow-up #2",
-    "ready_at": "2026-01-16T10:00:00Z"
+    "description": "Monitor batch_5 (new composer) and value-add follow-ups for responses",
+    "ready_at": "2026-01-17T09:00:00Z"
   },
 
   "cumulative_metrics": {
-    "total_contacts": 210,
-    "total_drafted": 201,
+    "total_contacts": 216,
+    "total_drafted": 256,
     "total_excluded": 12,
-    "total_sent_attempts": 218,
-    "unique_emails_sent": 165,
+    "total_sent_attempts": 273,
+    "unique_emails_sent": 171,
     "total_bounces": 62,
     "bounce_recovery_attempts": 2,
     "recovered_contacts": 89,
     "unrecoverable_contacts": 23,
-    "successful_deliveries": 144,
-    "delivery_rate": 0.87,
+    "successful_deliveries": 150,
+    "delivery_rate": 0.88,
     "total_replies": 2,
     "positive_replies": 0,
     "unsubscribes": 2,
-    "reply_rate": 0.014,
-    "positive_reply_rate": 0.0
+    "reply_rate": 0.013,
+    "positive_reply_rate": 0.0,
+    "batch_5_new_approach": {
+      "sent": 6,
+      "bounces": 0,
+      "replies": 0,
+      "reply_rate": 0.0
+    },
+    "followup_value_add": {
+      "batch_2": 30,
+      "batch_3": 19,
+      "total_sent": 49,
+      "approach": "value_add_stats_insights",
+      "bounces": 0,
+      "replies": 0
+    }
   },
 
   "issues_encountered": [
@@ -203,7 +250,11 @@
     "Bounce recovery is more effective with Hunter/Apollo personal emails than generic emails",
     "Some domains (keyrealtyschool.com, idealista.com, reddoorrealtyandassociates.com) consistently bounce all variants - may be blocking cold outreach",
     "Follow-up emails with 'Quick follow-up' subject triggered 100% unsubscribe rate - consider value-add approach instead of reminder",
-    "Both unsubscribes came from follow-up #1 (3 days after initial), not from initial emails - timing or tone issue"
+    "Both unsubscribes came from follow-up #1 (3 days after initial), not from initial emails - timing or tone issue",
+    "100% templated pitch (STANDARD_OFFER) likely caused 0% positive reply rate - emails felt robotic",
+    "New approach: question-based CTAs, shorter emails (50-70 words), genuine curiosity tone vs sales pitch",
+    "Batch 5 tests new composer - will compare reply rate vs batches 1-4 (old approach)",
+    "Value-add follow-ups lead with stats/insights instead of 'following up' - avoids pushy tone that triggered unsubscribes"
   ],
 
   "artifacts": {
@@ -238,9 +289,17 @@
       "recovery_output": "output/email_campaign/recovered_batch2.csv"
     },
     "campaign_log": "output/email_campaign/campaign_log.md",
-    "bounced_contacts": "config/bounced_contacts.csv"
+    "bounced_contacts": "config/bounced_contacts.csv",
+    "batch_5": {
+      "drafts": "output/email_campaign/drafts_fresh_batch.csv",
+      "comparison": "output/email_campaign/old_vs_new_comparison.md"
+    },
+    "followup_value_add": {
+      "drafts": "output/email_campaign/followup_value_batches_2_3.csv",
+      "script": "scripts/email_drafter/draft_value_followups.py"
+    }
   },
 
   "created_at": "2026-01-11T12:00:00Z",
-  "updated_at": "2026-01-14T17:35:00Z"
+  "updated_at": "2026-01-15T09:23:11Z"
 }
