@@ -33,3 +33,6 @@ config/field_mappings/fb_ads_*.json
 
 # Archived scripts
 scripts/_archived/
+
+# Ralph loop state (local only)
+.claude/ralph-loop.local.md
