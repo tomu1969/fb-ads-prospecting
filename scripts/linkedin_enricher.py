@@ -4,6 +4,9 @@ LinkedIn Profile Enricher - Module 3.9 - Find personal LinkedIn profiles via Exa
 Runs automatically after Contact Name Resolver (Module 3.8) in the pipeline.
 Searches for personal LinkedIn profiles (/in/) using contact name + company.
 
+Primary: Exa API (fast, accurate)
+Fallback: Apify actor harvestapi/linkedin-profile-search-by-name (when Exa exhausted)
+
 Input: processed/03e_names.csv (from Module 3.8)
 Output: processed/03f_linkedin.csv
 
@@ -28,6 +31,7 @@ import pandas as pd
 import requests
 from dotenv import load_dotenv
 from tqdm import tqdm
+from apify_client import ApifyClient
 
 # Add scripts directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
@@ -58,6 +62,14 @@ OUTPUT_BASE = "03f_linkedin.csv"
 # Exa API
 EXA_API_KEY = os.getenv('EXA_API_KEY')
 EXA_API_URL = "https://api.exa.ai/search"
+
+# Apify API (fallback when Exa is exhausted)
+APIFY_API_KEY = os.getenv('APIFY_API_TOKEN') or os.getenv('APIFY_API_KEY')
+APIFY_LINKEDIN_ACTOR = "harvestapi/linkedin-profile-search-by-name"
+
+# Track if Exa API is exhausted (402 error) or --apify-only mode
+_exa_exhausted = False
+_apify_only_mode = False
 
 # Invalid names to skip
 INVALID_NAMES = {
@@ -105,7 +117,13 @@ def search_exa_linkedin(name: str, company: str = None, num_results: int = 5) ->
     Search Exa for LinkedIn profiles matching name + company.
 
     Returns list of results with URLs and text snippets.
+    Returns empty list and sets _exa_exhausted flag on 402 (credits exhausted).
     """
+    global _exa_exhausted
+
+    if _exa_exhausted:
+        return []
+
     if not EXA_API_KEY:
         logger.warning("EXA_API_KEY not configured")
         return []
@@ -138,12 +156,106 @@ def search_exa_linkedin(name: str, company: str = None, num_results: int = 5) ->
         if response.status_code == 200:
             data = response.json()
             return data.get("results", [])
+        elif response.status_code == 402:
+            # Credits exhausted - set flag and return empty
+            _exa_exhausted = True
+            logger.warning("Exa API credits exhausted (402). Switching to Apify fallback.")
+            return []
         else:
             logger.error(f"Exa API error: {response.status_code} - {response.text[:200]}")
             return []
     except Exception as e:
         logger.error(f"Exa search error: {e}")
         return []
+
+
+def search_linkedin_apify(name: str, company: str = None, max_results: int = 3) -> Optional[str]:
+    """
+    Fallback: Search LinkedIn via Apify when Exa is exhausted.
+
+    Uses harvestapi/linkedin-profile-search-by-name actor.
+    Returns the best matching LinkedIn profile URL or None.
+    """
+    if not APIFY_API_KEY:
+        logger.warning("APIFY_API_KEY not configured for LinkedIn fallback")
+        return None
+
+    try:
+        client = ApifyClient(APIFY_API_KEY)
+
+        # Parse name into first/last for Apify actor
+        name_parts = name.split()
+        first_name = name_parts[0] if name_parts else name
+        last_name = name_parts[-1] if len(name_parts) > 1 else ""
+
+        # Build search input for harvestapi/linkedin-profile-search-by-name actor
+        run_input = {
+            "firstName": first_name,
+            "lastName": last_name,
+            "profileScraperMode": "Short",  # Just need profile URLs, not full details
+            "maxResults": max_results,
+        }
+
+        # Add company filter if provided
+        if company:
+            cleaned_company = clean_company_name(company)
+            run_input["companyName"] = cleaned_company
+
+        logger.debug(f"Apify LinkedIn search: {name} at {company}")
+
+        run = client.actor(APIFY_LINKEDIN_ACTOR).call(
+            run_input=run_input,
+            timeout_secs=60,
+            memory_mbytes=256,
+        )
+
+        # Extract results
+        name_parts = name.lower().split()
+        first_name = name_parts[0] if name_parts else ''
+        last_name = name_parts[-1] if len(name_parts) > 1 else ''
+
+        best_url = None
+        best_score = 0
+
+        for item in client.dataset(run["defaultDatasetId"]).iterate_items():
+            url = item.get("url", "") or item.get("profileUrl", "")
+            if not url or "/in/" not in url:
+                continue
+
+            # Score the result
+            score = 0
+            url_lower = url.lower()
+
+            # Extract username from URL
+            username_match = re.search(r'/in/([^/?]+)', url_lower)
+            username = username_match.group(1) if username_match else ''
+
+            # Name matching in URL
+            if first_name and first_name in username:
+                score += 30
+            if last_name and last_name in username:
+                score += 30
+
+            # Name matching in profile data
+            profile_name = (item.get("name", "") or item.get("fullName", "")).lower()
+            if first_name and first_name in profile_name:
+                score += 20
+            if last_name and last_name in profile_name:
+                score += 20
+
+            if score > best_score:
+                best_score = score
+                best_url = url.split('?')[0]  # Remove query params
+
+        if best_url and best_score >= 30:
+            logger.debug(f"Apify found: {name} -> {best_url} (score: {best_score})")
+            return best_url
+
+        return None
+
+    except Exception as e:
+        logger.error(f"Apify LinkedIn search error: {e}")
+        return None
 
 
 def extract_linkedin_profile_url(results: List[Dict], name: str, company: str = None) -> Optional[str]:
@@ -311,21 +423,39 @@ def enrich_linkedin_profiles(
             logger.info(f"  Would search: \"{name}\" at \"{company}\"")
         return stats
 
+    # Track Apify usage for stats
+    apify_used = 0
+
     # Process each contact
     for idx, name, company in tqdm(rows_to_process, desc="Finding LinkedIn profiles"):
         try:
-            # Search Exa with company name
-            results = search_exa_linkedin(name, company)
+            profile_url = None
 
-            # Extract best profile URL
-            profile_url = extract_linkedin_profile_url(results, name, company)
+            # Try Exa first (unless exhausted or apify-only mode)
+            if not _exa_exhausted and not _apify_only_mode:
+                results = search_exa_linkedin(name, company)
+                profile_url = extract_linkedin_profile_url(results, name, company)
 
-            # Fallback: Try name-only search if no results
-            if not profile_url:
-                logger.debug(f"Trying fallback search for: {name}")
-                results_fallback = search_exa_linkedin(name, company=None)
-                profile_url = extract_linkedin_profile_url(results_fallback, name, company)
-                time.sleep(delay)  # Extra delay for fallback
+                # Exa fallback: Try name-only search if no results
+                if not profile_url and not _exa_exhausted and not _apify_only_mode:
+                    logger.debug(f"Trying Exa name-only search for: {name}")
+                    results_fallback = search_exa_linkedin(name, company=None)
+                    profile_url = extract_linkedin_profile_url(results_fallback, name, company)
+                    time.sleep(delay)
+
+            # Apify fallback: Use when Exa is exhausted, apify-only mode, or didn't find result
+            if not profile_url and APIFY_API_KEY:
+                if _apify_only_mode:
+                    logger.debug(f"Using Apify (apify-only mode) for: {name}")
+                elif _exa_exhausted:
+                    logger.debug(f"Using Apify fallback for: {name}")
+                else:
+                    logger.debug(f"Exa found nothing, trying Apify for: {name}")
+
+                profile_url = search_linkedin_apify(name, company)
+                if profile_url:
+                    apify_used += 1
+                time.sleep(delay * 2)  # Longer delay for Apify
 
             if profile_url:
                 df.at[idx, 'linkedin_profile'] = profile_url
@@ -342,6 +472,9 @@ def enrich_linkedin_profiles(
         except Exception as e:
             logger.error(f"Error processing {name}: {e}")
             stats['errors'] += 1
+
+    # Add Apify usage to stats
+    stats['apify_used'] = apify_used
 
     # Save output
     if output_path is None:
@@ -364,6 +497,12 @@ def print_summary(stats: Dict):
     print(f"Found profiles:      {stats.get('found', 0)}")
     print(f"Skipped (bad name):  {stats.get('skipped', 0)}")
     print(f"Errors:              {stats.get('errors', 0)}")
+    if stats.get('apify_used', 0) > 0:
+        print(f"Via Apify:           {stats.get('apify_used', 0)}")
+    if _apify_only_mode:
+        print("Note: Apify-only mode (Exa skipped)")
+    elif _exa_exhausted:
+        print("Note: Exa API credits exhausted, used Apify fallback")
     print("=" * 60)
 
 
@@ -400,8 +539,16 @@ def main():
                        help='Preview without making API calls')
     parser.add_argument('--delay', type=float, default=0.5,
                        help='Delay between API calls in seconds (default: 0.5)')
+    parser.add_argument('--apify-only', action='store_true',
+                       help='Use only Apify for LinkedIn search (skip Exa)')
 
     args = parser.parse_args()
+
+    # Set global flag for Apify-only mode
+    global _apify_only_mode
+    if args.apify_only:
+        _apify_only_mode = True
+        logger.info("Apify-only mode enabled (skipping Exa)")
 
     # Determine input file
     run_id = get_run_id_from_env()

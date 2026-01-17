@@ -63,6 +63,73 @@ python scripts/contact_name_resolver.py --all --use-exa  # Include Exa owner sea
 python scripts/linkedin_enricher.py               # Test mode (3 contacts)
 python scripts/linkedin_enricher.py --all         # Process all contacts
 python scripts/linkedin_enricher.py --csv output/prospects.csv  # Standalone mode
+
+# === LEAD SCORING PIPELINE ===
+
+# Google Maps Enrichment (Module 3.10 - review count, rating as lead volume proxy)
+python scripts/google_maps_enricher.py            # Test mode (3 contacts)
+python scripts/google_maps_enricher.py --all      # Process all contacts
+
+# Tech Stack Detection (Module 3.11 - CRM, pixels, scheduling tools)
+python scripts/tech_stack_enricher.py             # Test mode (3 contacts)
+python scripts/tech_stack_enricher.py --all       # Process all contacts
+
+# Lead Scoring (Module 3.12 - composite 0-15 score with tier classification)
+python scripts/lead_scorer.py                     # Test mode (3 contacts)
+python scripts/lead_scorer.py --all               # Score all contacts
+# Tiers: HOT (12-15), WARM (8-11), COOL (5-7), COLD (0-4)
+
+# === MASTER CSV MANAGEMENT ===
+
+# The master CSV (output/prospects_master.csv) is the single source of truth
+# for all prospecting contacts. All scrapes and enrichments flow into it.
+
+# Check enrichment status
+python scripts/master_manager.py status
+
+# Merge new pipeline output into master
+python scripts/master_manager.py merge --input processed/03i_scored.csv
+
+# Run all enrichments on contacts missing data
+python scripts/master_manager.py enrich --all
+
+# Run specific enrichment only
+python scripts/master_manager.py enrich --type google_maps
+python scripts/master_manager.py enrich --type tech_stack
+python scripts/master_manager.py enrich --type linkedin
+python scripts/master_manager.py enrich --type lead_score
+
+# Full sync: merge + enrich in one step
+python scripts/master_manager.py sync --input processed/03i_scored.csv
+
+# Deduplicate master only
+python scripts/master_manager.py dedupe
+
+# === ICP DISCOVERY PIPELINE ===
+# Behavior-based ICP identification from FB Ads Library data
+# Identifies advertisers with Money, Urgency, and Conversational Necessity
+
+# Full ICP discovery pipeline
+python scripts/icp_discovery/run_icp_pipeline.py --input output/fb_ads_scraped_broad.csv
+
+# Test mode (limit ads)
+python scripts/icp_discovery/run_icp_pipeline.py --input output/fb_ads.csv --limit 100
+
+# Check pipeline status
+python scripts/icp_discovery/run_icp_pipeline.py --status
+
+# Resume from specific module
+python scripts/icp_discovery/run_icp_pipeline.py --from m2
+
+# Run individual modules
+python scripts/icp_discovery/m0_normalizer.py --csv output/fb_ads_broad.csv        # Normalize + classify destinations
+python scripts/icp_discovery/m1_aggregator.py                                        # Aggregate to page level
+python scripts/icp_discovery/m2_conv_gate.py                                         # Filter transactional advertisers
+python scripts/icp_discovery/m3_money_score.py                                       # Score 0-50 (ad volume, velocity)
+python scripts/icp_discovery/m4_urgency_score.py                                     # Score 0-50 (MESSAGE/CALL share)
+
+# Run tests
+pytest scripts/icp_discovery/tests/ -v
 ```
 
 ## Claude Code Agents
@@ -110,6 +177,10 @@ Performs comprehensive repository maintenance, cleanup, and organization.
 │   ├── instagram_enricher.py # Module 3.7: Instagram handle discovery
 │   ├── contact_name_resolver.py # Module 3.8: Multi-source contact name finder
 │   ├── linkedin_enricher.py  # Module 3.9: Personal LinkedIn profile finder (Exa)
+│   ├── google_maps_enricher.py # Module 3.10: Google Maps data (reviews, rating)
+│   ├── tech_stack_enricher.py  # Module 3.11: Tech stack detection (CRM, pixels)
+│   ├── lead_scorer.py       # Module 3.12: Composite lead scoring (0-15)
+│   ├── master_manager.py    # Master CSV management (merge, dedupe, enrich)
 │   ├── exporter.py          # Module 4: CSV/Excel/HubSpot export
 │   ├── validator.py         # Module 5: Quality validation
 │   ├── fb_ads_scraper.py    # Facebook Ads Library scraper
@@ -125,6 +196,14 @@ Performs comprehensive repository maintenance, cleanup, and organization.
 │   ├── smtp_verifier/       # SMTP email verifier (no external API)
 │   ├── bounce_recovery/     # Bounce recovery (find alternative emails)
 │   ├── instagram_warmup/    # Instagram warm-up automation (follow, like, comment)
+│   ├── icp_discovery/       # ICP Discovery Pipeline (behavior-based)
+│   │   ├── run_icp_pipeline.py   # Pipeline orchestrator
+│   │   ├── m0_normalizer.py      # Normalize raw data, classify destinations
+│   │   ├── m1_aggregator.py      # Aggregate to page level
+│   │   ├── m2_conv_gate.py       # Conversational necessity filter
+│   │   ├── m3_money_score.py     # Money score (0-50)
+│   │   ├── m4_urgency_score.py   # Urgency score (0-50)
+│   │   └── constants.py          # CTA mappings, keywords, thresholds
 │   └── _archived/           # Legacy scripts (superseded implementations)
 ├── config/
 │   ├── field_mappings/      # Auto-generated field mappings
@@ -137,6 +216,8 @@ Performs comprehensive repository maintenance, cleanup, and organization.
 ├── docs/
 │   ├── PRD.md               # Product Requirements Document
 │   └── ARCHITECTURE.md      # Technical architecture details
+├── PRDs/                    # Feature PRDs
+│   └── lead_scoring_enrichment.md  # Google Maps + Tech Stack + Scoring
 ├── experiments/             # Growth experiment tracking
 │   ├── index.json           # Master registry of all experiments
 │   ├── active/              # Running experiments (state.json, logs/)
@@ -158,6 +239,13 @@ Performs comprehensive repository maintenance, cleanup, and organization.
     ├── gmail_logs/              # Gmail inbox snapshots
     ├── hubspot/                 # HubSpot CRM exports
     │   └── contacts.csv         # HubSpot-compatible format
+    ├── icp_discovery/           # ICP Discovery outputs
+    │   ├── 00_ads_normalized.csv    # Normalized ad-level data
+    │   ├── 01_pages_aggregated.csv  # Page-level aggregated
+    │   ├── 02_pages_candidate.csv   # Passed conv. gate
+    │   ├── 03_money_scored.csv      # With money scores
+    │   ├── 04_urgency_scored.csv    # Final with rankings
+    │   └── icp_report.md            # Summary report
     └── legacy/                  # Archived output files
 ```
 
@@ -171,7 +259,10 @@ Performs comprehensive repository maintenance, cleanup, and organization.
 6. **Instagram Enricher** - Finds Instagram handles
 7. **Contact Name Resolver** - Finds names from hunter, scraper, page_name, Exa owner search
 8. **LinkedIn Enricher** - Finds personal LinkedIn profiles via Exa
-9. **Exporter** - Outputs CSV/Excel/HubSpot format
+9. **Google Maps Enricher** - Adds review count, rating (lead volume proxy)
+10. **Tech Stack Enricher** - Detects CRM, pixels, scheduling tools
+11. **Lead Scorer** - Calculates composite 0-15 score with tier classification
+12. **Exporter** - Outputs CSV/Excel/HubSpot format
 
 ## Key Files
 
@@ -183,6 +274,7 @@ Performs comprehensive repository maintenance, cleanup, and organization.
 - `CLAUDE.md` - Quick reference and development practices (this file)
 - `docs/PRD.md` - Product requirements and feature specifications
 - `docs/ARCHITECTURE.md` - Technical architecture and design decisions
+- `PRDs/lead_scoring_enrichment.md` - Google Maps + Tech Stack + Lead Scoring PRD
 
 ## Data Flow
 
@@ -190,7 +282,9 @@ Performs comprehensive repository maintenance, cleanup, and organization.
 input/*.csv → processed/01_loaded.csv → 02_enriched.csv → 03_contacts.csv
     → 03b_hunter.csv → 03c_enriched.csv (Exa + Agents) → 03d_final.csv
     → 03e_names.csv (Contact Name Resolver) → 03f_linkedin.csv (LinkedIn Enricher)
-    → output/prospects_master.csv         # Primary contacts
+    → 03g_gmaps.csv (Google Maps) → 03h_techstack.csv (Tech Stack)
+    → 03i_scored.csv (Lead Scoring)
+    → output/prospects_master.csv         # Primary contacts (with lead_score, lead_tier)
     → output/hubspot/contacts.csv         # CRM export
 
 Email Campaign Flow:
