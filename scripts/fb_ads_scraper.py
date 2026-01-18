@@ -1,7 +1,7 @@
 """
 Facebook Ad Library Scraper
 
-Scrapes Facebook advertisers using the Apify actor dz_omar/facebook-ads-scraper-pro.
+Scrapes Facebook advertisers using the Apify actor curious_coder/facebook-ads-library-scraper.
 Supports interactive mode with preview counts and keyword modification.
 
 Usage:
@@ -11,22 +11,13 @@ Usage:
     # CLI mode
     python scripts/fb_ads_scraper.py --query "real estate miami" --count 50
 
-    # Housing ads (uses keyword workaround - see note below)
+    # Housing ads
     python scripts/fb_ads_scraper.py --ad-type housing_ads --query "miami" --count 50
 
     # Dry run
     python scripts/fb_ads_scraper.py --query "test" --dry-run
 
-Note on Housing Ads:
-    The Apify actor has a known bug where it converts HOUSING_ADS to HOUSING
-    internally, which Facebook's API doesn't recognize (returns 0 results).
-
-    Workaround: When --ad-type housing_ads is selected, the script automatically:
-    1. Changes ad_type to 'all'
-    2. Adds 'real estate' keyword if no housing-related terms are present
-
-    This returns real estate advertisers via keyword filtering instead of
-    the broken category filter.
+Output includes rich data: spend, reach, impressions, targeted countries, and more.
 """
 
 import os
@@ -51,7 +42,7 @@ OUTPUT_DIR = BASE_DIR / 'output'
 HISTORY_FILE = CONFIG_DIR / 'scraped_advertisers.json'
 
 APIFY_API_TOKEN = os.getenv('APIFY_API_TOKEN') or os.getenv('APIFY_API_KEY')
-APIFY_ACTOR_ID = 'dz_omar/facebook-ads-scraper-pro'
+APIFY_ACTOR_ID = 'curious_coder/facebook-ads-library-scraper'
 
 # Search parameter options
 AD_TYPES = {
@@ -76,33 +67,13 @@ MEDIA_TYPES = {
 
 PLATFORMS = ['facebook', 'instagram', 'messenger', 'audience_network']
 
-# Map our values to Apify actor's expected format
-ACTOR_AD_TYPE_MAP = {
-    'all': 'ALL',
-    'political_and_issue_ads': 'POLITICAL_AND_ISSUE_ADS',
-    'housing_ads': 'HOUSING_ADS',
-    'employment_ads': 'EMPLOYMENT_ADS',
-    'credit_ads': 'CREDIT_ADS',
-}
-
-# WORKAROUND: The dz_omar actor has a bug where it converts HOUSING_ADS to HOUSING
-# internally, causing 0 results. Use keywords to filter housing-related ads instead.
-HOUSING_KEYWORDS = [
-    'real estate', 'realtor', 'home for sale', 'house for sale', 'property',
-    'apartment', 'condo', 'rental', 'mortgage', 'buy home', 'sell home',
-    'listing', 'open house', 'mls', 'broker', 'realty'
-]
-
-ACTOR_STATUS_MAP = {
-    'active': 'ACTIVE',
-    'inactive': 'INACTIVE',
-    'all': 'ALL',
-}
-
-ACTOR_MEDIA_TYPE_MAP = {
-    'all': 'ALL',
-    'video': 'VIDEO',
-    'image': 'IMAGE',
+# URL parameter mappings for curious_coder actor
+AD_TYPE_URL_MAP = {
+    'all': 'all',
+    'political_and_issue_ads': 'political_and_issue_ads',
+    'housing_ads': 'housing',
+    'employment_ads': 'employment',
+    'credit_ads': 'credit',
 }
 
 # Location presets for quick selection
@@ -170,7 +141,7 @@ def build_search_url(query: str = '', country: str = 'US', ad_type: str = 'all',
                      status: str = 'active', media_type: str = 'all',
                      platforms: str = 'all', start_date: str = None,
                      end_date: str = None) -> str:
-    """Build Facebook Ad Library search URL.
+    """Build Facebook Ad Library search URL for curious_coder actor.
 
     Args:
         query: Search keywords (optional - can browse by filters alone)
@@ -178,14 +149,18 @@ def build_search_url(query: str = '', country: str = 'US', ad_type: str = 'all',
         ad_type: Ad category filter
         status: Active status filter
         media_type: Media type filter
-        platforms: Platform filter
-        start_date: Start date filter
-        end_date: End date filter
+        platforms: Platform filter (not used - curious_coder doesn't support)
+        start_date: Start date filter (not used - curious_coder doesn't support)
+        end_date: End date filter (not used - curious_coder doesn't support)
     """
     base = 'https://www.facebook.com/ads/library/'
+
+    # Map ad_type to URL format
+    url_ad_type = AD_TYPE_URL_MAP.get(ad_type, 'all')
+
     params = [
         f'active_status={status}',
-        f'ad_type={ad_type}',
+        f'ad_type={url_ad_type}',
         f'country={country}',
         'search_type=keyword_unordered',
         f'media_type={media_type}',
@@ -195,125 +170,84 @@ def build_search_url(query: str = '', country: str = 'US', ad_type: str = 'all',
     if query:
         params.append(f'q={quote_plus(query)}')
 
-    if start_date:
-        params.append(f'start_date_min={start_date}')
-    if end_date:
-        params.append(f'start_date_max={end_date}')
-
     return base + '?' + '&'.join(params)
 
 
 def get_preview_count(client, config: Dict) -> Tuple[int, Optional[str]]:
-    """Get preview count of ads matching criteria without full download."""
-    search_query = config.get('query', '') or ''
+    """Get preview count of ads matching criteria without full download.
 
+    Note: curious_coder actor doesn't support preview counts efficiently,
+    so this returns an estimate based on a quick scrape.
+    """
     try:
+        # Build search URL
+        search_url = build_search_url(
+            query=config.get('query', ''),
+            country=config.get('country', 'US'),
+            ad_type=config.get('ad_type', 'all'),
+            status=config.get('status', 'active'),
+            media_type=config.get('media', 'all'),
+        )
+
         run_input = {
-            'searchQueries': [search_query] if search_query else [],
-            'maxResultsPerQuery': 1,  # Just get count
-            'countries': config['country'],  # String, not list
-            'adType': ACTOR_AD_TYPE_MAP.get(config['ad_type'], 'ALL'),
-            'activeStatus': ACTOR_STATUS_MAP.get(config['status'], 'ACTIVE'),
-            'mediaType': ACTOR_MEDIA_TYPE_MAP.get(config['media'], 'ALL'),
-            'proxyConfig': {'useApifyProxy': True},
+            'urls': [{'url': search_url}],
+            'maxAds': 10,  # Quick sample
         }
 
-        run = client.actor(APIFY_ACTOR_ID).call(run_input=run_input, timeout_secs=120)
+        run = client.actor(APIFY_ACTOR_ID).call(run_input=run_input, timeout_secs=60)
 
-        if run.get('status') == 'SUCCEEDED':
-            # Try to get total from dataset
+        if run.get('status') in ['SUCCEEDED', 'TIMED-OUT']:
             dataset_id = run.get('defaultDatasetId')
             if dataset_id:
                 items = list(client.dataset(dataset_id).iterate_items())
-                # Estimate based on pagination info if available
-                return len(items) * 100, None  # Rough estimate
+                # If we got 10 items quickly, there are likely many more
+                if len(items) >= 10:
+                    return 1000, None  # Estimate: many results available
+                return len(items) * 10, None  # Rough estimate
 
         return 0, "Could not get preview count"
     except Exception as e:
         return 0, str(e)
 
 
-def apply_housing_workaround(config: Dict) -> Dict:
-    """Apply workaround for housing ads category bug.
-
-    The dz_omar actor has a bug where HOUSING_ADS gets converted to HOUSING,
-    which Facebook's API doesn't recognize, returning 0 results.
-
-    Workaround: Use ad_type=ALL and add housing keywords to find real estate ads.
-    """
-    if config.get('ad_type') != 'housing_ads':
-        return config
-
-    print("\n" + "!" * 62)
-    print("WARNING: Housing ads category has a known bug in this actor.")
-    print("The actor converts HOUSING_ADS to HOUSING internally, causing 0 results.")
-    print("!" * 62)
-    print("\nApplying workaround: Using ad_type=ALL with housing keywords...")
-
-    # Create modified config
-    new_config = config.copy()
-    new_config['ad_type'] = 'all'
-    new_config['_original_ad_type'] = 'housing_ads'  # Track for reporting
-
-    # Add housing keyword if no query specified
-    query = config.get('query', '').strip()
-    if not query:
-        # Use a common housing keyword
-        new_config['query'] = 'real estate'
-        print(f"  Added keyword: 'real estate'")
-    else:
-        # Check if query already contains housing-related terms
-        query_lower = query.lower()
-        has_housing_keyword = any(kw in query_lower for kw in HOUSING_KEYWORDS)
-        if not has_housing_keyword:
-            # Prepend 'real estate' to help filter
-            new_config['query'] = f"real estate {query}"
-            print(f"  Modified query: '{new_config['query']}'")
-
-    print(f"  Changed ad_type: housing_ads -> all")
-    print("\nNote: Results may include non-housing ads. Filter by keywords if needed.")
-    print("-" * 62)
-
-    return new_config
-
-
 def scrape_ads(client, config: Dict, limit: int = 100) -> Tuple[List[Dict], Optional[str]]:
-    """Scrape ads from Facebook Ad Library."""
+    """Scrape ads from Facebook Ad Library using curious_coder actor."""
     try:
-        # Apply housing ads workaround if needed
-        config = apply_housing_workaround(config)
-
-        # Build run_input with direct parameters (not URL parsing)
-        # The actor expects these specific parameter names
-        search_query = config.get('query', '') or ''
+        # Build search URL with all filters
+        search_url = build_search_url(
+            query=config.get('query', ''),
+            country=config.get('country', 'US'),
+            ad_type=config.get('ad_type', 'all'),
+            status=config.get('status', 'active'),
+            media_type=config.get('media', 'all'),
+        )
 
         run_input = {
-            'searchQueries': [search_query] if search_query else [],
-            'maxResultsPerQuery': limit,  # Actor uses maxResultsPerQuery, not count
-            'countries': config['country'],  # String, not list
-            'adType': ACTOR_AD_TYPE_MAP.get(config['ad_type'], 'ALL'),
-            'activeStatus': ACTOR_STATUS_MAP.get(config['status'], 'ACTIVE'),
-            'mediaType': ACTOR_MEDIA_TYPE_MAP.get(config['media'], 'ALL'),
-            'proxyConfig': {
-                'useApifyProxy': True,
-            },
+            'urls': [{'url': search_url}],
+            'maxAds': limit,
         }
 
         print(f"\nStarting Apify actor: {APIFY_ACTOR_ID}")
-        print(f"Query: {search_query or '(browse all)'}")
-        print(f"Country: {config['country']}, Ad Type: {run_input['adType']}, Status: {run_input['activeStatus']}")
+        print(f"Query: {config.get('query') or '(browse all)'}")
+        print(f"Country: {config['country']}, Ad Type: {config['ad_type']}, Status: {config['status']}")
         print(f"Max results: {limit}")
+        print(f"URL: {search_url}")
 
-        run = client.actor(APIFY_ACTOR_ID).call(run_input=run_input)
+        # Use longer timeout for larger scrapes
+        timeout = max(300, limit * 3)  # At least 5 min, or 3 sec per ad
+        run = client.actor(APIFY_ACTOR_ID).call(run_input=run_input, timeout_secs=timeout)
 
-        if run.get('status') == 'SUCCEEDED':
+        status = run.get('status')
+        if status in ['SUCCEEDED', 'TIMED-OUT']:
             dataset_id = run.get('defaultDatasetId')
             if dataset_id:
                 items = list(client.dataset(dataset_id).iterate_items())
+                if status == 'TIMED-OUT' and items:
+                    print(f"Note: Actor timed out but collected {len(items)} ads")
                 return items, None
             return [], "No dataset returned"
         else:
-            return [], f"Actor run failed: {run.get('status', 'UNKNOWN')}"
+            return [], f"Actor run failed: {status}"
 
     except Exception as e:
         return [], str(e)
@@ -371,37 +305,67 @@ def update_history(history: Dict, ads: List[Dict], config: Dict, duplicates: int
 
 
 def get_ad_text(ad: Dict) -> str:
-    """Extract ad text trying multiple possible field names."""
-    # Try various field names the Apify actor might use
-    text_fields = [
-        'text',              # Actual field from dz_omar actor
-        'title',             # Ad title
-        'ad_creative_body', 'adCreativeBody',  # Legacy names
-        'body', 'adBody', 'ad_body',
-        'message', 'description', 'caption',
-    ]
+    """Extract ad text from curious_coder actor output.
+
+    The curious_coder actor stores ad creative in the 'snapshot' field,
+    which contains nested data about the ad content.
+    """
+    # Try snapshot first (curious_coder format)
+    snapshot = ad.get('snapshot', {})
+    if isinstance(snapshot, dict):
+        # Try various nested fields in snapshot
+        body = snapshot.get('body', {})
+        if isinstance(body, dict):
+            text = body.get('text', '')
+            if text:
+                return text.strip()
+
+        # Try cards (carousel ads)
+        cards = snapshot.get('cards', [])
+        if cards and isinstance(cards, list):
+            texts = []
+            for card in cards[:3]:  # First 3 cards
+                if isinstance(card, dict):
+                    card_body = card.get('body', '')
+                    if card_body:
+                        texts.append(card_body)
+            if texts:
+                return ' | '.join(texts)
+
+        # Try title
+        title = snapshot.get('title', '')
+        if title:
+            return title.strip()
+
+    # Fallback to direct fields
+    text_fields = ['text', 'title', 'body', 'message', 'description']
     for field in text_fields:
         value = ad.get(field)
         if value and isinstance(value, str) and value.strip():
             return value.strip()
+
     return ''
 
 
 def convert_to_pipeline_format(ads: List[Dict]) -> pd.DataFrame:
-    """Convert Apify results to pipeline-compatible format.
+    """Convert curious_coder Apify results to pipeline-compatible format.
 
     Extracts and groups ads by advertiser (page), capturing:
-    - Ad texts from 'text' field (primary) or fallback fields
-    - Page likes from 'page_likes' field
+    - Ad texts from 'snapshot' field
+    - Spend, reach, impressions data (new in curious_coder)
     - Start dates, platforms, active status, etc.
+    - Targeted countries
     """
     rows = []
 
     # Group by advertiser
     advertisers = {}
     for ad in ads:
-        page_id = str(ad.get('page_id', ad.get('pageId', '')))
-        page_name = ad.get('page_name', ad.get('pageName', 'Unknown'))
+        page_id = str(ad.get('page_id', ''))
+        page_name = ad.get('page_name', 'Unknown')
+
+        if not page_id:
+            continue
 
         if page_id not in advertisers:
             advertisers[page_id] = {
@@ -411,56 +375,81 @@ def convert_to_pipeline_format(ads: List[Dict]) -> pd.DataFrame:
                 'platforms': set(),
                 'first_ad_date': None,
                 'is_active': False,
-                'page_likes': 0,
-                'page_url': None,
-                'page_category': None,
+                'categories': set(),
                 'ad_titles': [],
                 'link_urls': set(),
+                'total_spend': 0,
+                'currency': None,
+                'max_reach': 0,
+                'targeted_countries': set(),
+                'ad_library_url': None,
             }
 
         advertisers[page_id]['ads'].append(ad)
 
-        # Collect platforms
-        platforms = ad.get('platforms', ad.get('publisherPlatform', []))
+        # Collect platforms (curious_coder uses publisher_platform as list)
+        platforms = ad.get('publisher_platform', [])
         if isinstance(platforms, list):
             advertisers[page_id]['platforms'].update(platforms)
         elif platforms:
             advertisers[page_id]['platforms'].add(platforms)
 
-        # Track first ad date (actual field is 'start_date')
-        start_date = ad.get('start_date', ad.get('ad_delivery_start_time', ad.get('startDate')))
+        # Track first ad date
+        start_date = ad.get('start_date')
         if start_date:
             if not advertisers[page_id]['first_ad_date'] or start_date < advertisers[page_id]['first_ad_date']:
                 advertisers[page_id]['first_ad_date'] = start_date
 
         # Check if any ad is active
-        if ad.get('is_active', ad.get('isActive', False)):
+        if ad.get('is_active', False):
             advertisers[page_id]['is_active'] = True
 
-        # Capture page likes (take max across ads)
-        page_likes = ad.get('page_likes', 0)
-        if isinstance(page_likes, (int, float)) and page_likes > advertisers[page_id]['page_likes']:
-            advertisers[page_id]['page_likes'] = int(page_likes)
+        # Collect categories
+        categories = ad.get('categories', [])
+        if isinstance(categories, list):
+            advertisers[page_id]['categories'].update(categories)
 
-        # Capture page metadata
-        if not advertisers[page_id]['page_url']:
-            advertisers[page_id]['page_url'] = ad.get('page_url')
-        if not advertisers[page_id]['page_category']:
-            advertisers[page_id]['page_category'] = ad.get('page_category')
+        # Accumulate spend data
+        spend = ad.get('spend', {})
+        if isinstance(spend, dict):
+            lower = spend.get('lower_bound', 0) or 0
+            upper = spend.get('upper_bound', 0) or 0
+            avg_spend = (lower + upper) / 2 if upper else lower
+            advertisers[page_id]['total_spend'] += avg_spend
+            if not advertisers[page_id]['currency']:
+                advertisers[page_id]['currency'] = ad.get('currency')
 
-        # Collect link URLs for analysis
-        link_url = ad.get('link_url')
-        if link_url:
-            advertisers[page_id]['link_urls'].add(link_url)
+        # Track reach estimate
+        reach = ad.get('reach_estimate', {})
+        if isinstance(reach, dict):
+            upper_reach = reach.get('upper_bound', 0) or 0
+            if upper_reach > advertisers[page_id]['max_reach']:
+                advertisers[page_id]['max_reach'] = upper_reach
 
-        # Collect ad titles
-        title = ad.get('title')
-        if title and title not in advertisers[page_id]['ad_titles']:
-            advertisers[page_id]['ad_titles'].append(title)
+        # Collect targeted countries
+        countries = ad.get('targeted_or_reached_countries', [])
+        if isinstance(countries, list):
+            advertisers[page_id]['targeted_countries'].update(countries)
+
+        # Collect link URLs from snapshot
+        snapshot = ad.get('snapshot', {})
+        if isinstance(snapshot, dict):
+            link_url = snapshot.get('link_url') or snapshot.get('page_welcome_message')
+            if link_url and isinstance(link_url, str):
+                advertisers[page_id]['link_urls'].add(link_url)
+
+            # Collect titles from snapshot
+            title = snapshot.get('title')
+            if title and title not in advertisers[page_id]['ad_titles']:
+                advertisers[page_id]['ad_titles'].append(title)
+
+        # Ad library URL for the page
+        if not advertisers[page_id]['ad_library_url']:
+            advertisers[page_id]['ad_library_url'] = ad.get('ad_library_url')
 
     # Convert to rows
     for page_id, data in advertisers.items():
-        # Extract ad texts using the correct field name
+        # Extract ad texts
         ad_texts = []
         for ad in data['ads']:
             text = get_ad_text(ad)
@@ -470,17 +459,21 @@ def convert_to_pipeline_format(ads: List[Dict]) -> pd.DataFrame:
         rows.append({
             'page_name': data['page_name'],
             'page_id': page_id,
-            'page_likes': data['page_likes'],
-            'page_url': data['page_url'],
-            'page_category': data['page_category'],
+            'page_url': data['ad_library_url'],  # Use ad library URL as page reference
+            'page_category': ', '.join(data['categories']) if data['categories'] else None,
             'ad_count': len(data['ads']),
             'text': ' | '.join(ad_texts[:10]),  # Pipeline expects 'text' field
-            'ad_texts': json.dumps(ad_texts[:10]),  # Keep JSON version too
+            'ad_texts': json.dumps(ad_texts[:10]),
             'ad_titles': json.dumps(data['ad_titles'][:5]),
             'platforms': json.dumps(list(data['platforms'])),
             'is_active': data['is_active'],
             'start_date': data['first_ad_date'],
             'link_urls': json.dumps(list(data['link_urls'])[:5]),
+            # New fields from curious_coder
+            'total_spend': round(data['total_spend'], 2) if data['total_spend'] else None,
+            'currency': data['currency'],
+            'max_reach': data['max_reach'] if data['max_reach'] else None,
+            'targeted_countries': json.dumps(list(data['targeted_countries'])) if data['targeted_countries'] else None,
         })
 
     return pd.DataFrame(rows)
