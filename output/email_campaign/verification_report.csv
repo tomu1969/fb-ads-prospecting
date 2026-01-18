@@ -1,4 +1,0 @@
-page_name,contact_name,email,check_name,status,severity,issue_detail,suggested_fix
-Corcoran,Alexandra Lanci,alexandra.lanci@corcoran.com,domain_match,fail,high,Email domain 'corcoran.com' doesn't appear related to company 'Corcoran',Verify email belongs to this company
-Beycome Brokerage Realty,Steven Koleno,steve@beycome.com,domain_match,fail,high,Email domain 'beycome.com' doesn't appear related to company 'Beycome Brokerage Realty',Verify email belongs to this company
-MGS Group Real Estate LTD,Jamie Ovadia,jamie@mgsgrouprealestate.com,domain_match,fail,high,Email domain 'mgsgrouprealestate.com' doesn't appear related to company 'MGS Group Real Estate LTD',Verify email belongs to this company

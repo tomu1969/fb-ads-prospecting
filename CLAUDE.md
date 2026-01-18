@@ -162,6 +162,22 @@ Performs comprehensive repository maintenance, cleanup, and organization.
 "Archive legacy scripts"
 ```
 
+### Closed Lost Analyst (`@closed-lost-analyst`)
+Performs comprehensive closed lost deal audits from HubSpot CRM. Analyzes loss reasons, revenue impact, owner performance, lead source effectiveness, and CRM hygiene issues.
+
+```bash
+# Invoke via conversation:
+"Run a closed lost audit for the last 30 days"
+"Compare this month vs last month closed lost performance"
+"Analyze lead source impact on closed lost deals"
+"Generate a performance audit for the sales team"
+```
+
+Reports are saved to `hubspot_funnel/reports/`:
+- `closed_lost_diagnostic_YYYYMMDD.md` - Full diagnostic report
+- `auditoria_comparativa_YYYYMMDD.md` - Period comparison
+- `lead_source_comparison_YYYYMMDD.md` - Channel analysis
+
 ## Project Structure
 
 ```
@@ -223,6 +239,16 @@ Performs comprehensive repository maintenance, cleanup, and organization.
 │   ├── active/              # Running experiments (state.json, logs/)
 │   ├── completed/           # Finished experiments (results.md)
 │   └── templates/           # Reusable experiment templates
+├── hubspot_funnel/          # HubSpot CRM analytics and reporting
+│   ├── closed_lost_analysis.py  # Closed lost deal analysis script
+│   ├── config/              # Configuration files
+│   │   └── deal_owners.json     # Target deal owner IDs
+│   ├── reports/             # Generated analysis reports
+│   │   ├── closed_lost_diagnostic_*.md  # Loss reason diagnostics
+│   │   ├── auditoria_comparativa_*.md   # Period comparisons
+│   │   └── lead_source_comparison_*.md  # Channel analysis
+│   └── schema/              # HubSpot schema definitions
+│       └── deals_properties.json    # Deal property mappings
 ├── input/                   # Raw input files
 │   └── legacy/              # Archived input files
 ├── processed/               # Intermediate pipeline outputs

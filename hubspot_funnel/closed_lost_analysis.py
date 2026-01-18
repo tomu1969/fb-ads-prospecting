@@ -46,7 +46,7 @@ PROFILE_LABELS = {
 
 def load_owners():
     """Load target deal owners from JSON file."""
-    owners_file = Path(__file__).parent / "deal_owners.json"
+    owners_file = Path(__file__).parent / "config" / "deal_owners.json"
     with open(owners_file) as f:
         data = json.load(f)
     return {o["ownerId"]: o["name"] for o in data["owners"]}
@@ -78,7 +78,9 @@ def fetch_deals(owner_ids: list, days_back: int = 60) -> list:
                 "properties": [
                     "dealname", "amount", "closedate", "createdate",
                     "hubspot_owner_id", "motivo_de_cerrada_perdida",
-                    "detalles_de_oportunidad_perdida", "costumer_profile"
+                    "detalles_de_oportunidad_perdida", "costumer_profile",
+                    "hs_analytics_source", "hs_analytics_source_data_1",
+                    "origen_de_importacion"
                 ],
                 "limit": 100
             }
@@ -133,6 +135,9 @@ def parse_deals(deals: list, owners: dict) -> list:
             "loss_reason": props.get("motivo_de_cerrada_perdida", ""),
             "loss_details": props.get("detalles_de_oportunidad_perdida", ""),
             "customer_profile": props.get("costumer_profile", ""),
+            "lead_source": props.get("hs_analytics_source", ""),
+            "lead_source_detail": props.get("hs_analytics_source_data_1", ""),
+            "origen_importacion": props.get("origen_de_importacion", ""),
         })
 
     return parsed
@@ -563,6 +568,77 @@ def owner_efficiency_matrix(deals: list, owners: dict) -> list:
     return result
 
 
+# Lead source labels mapping
+LEAD_SOURCE_LABELS = {
+    "ORGANIC_SEARCH": "Organic Search",
+    "PAID_SEARCH": "Paid Search",
+    "EMAIL_MARKETING": "Email Marketing",
+    "SOCIAL_MEDIA": "Organic Social",
+    "REFERRALS": "Referrals",
+    "OTHER_CAMPAIGNS": "Other Campaigns",
+    "DIRECT_TRAFFIC": "Direct Traffic",
+    "OFFLINE": "Offline Sources",
+    "PAID_SOCIAL": "Paid Social",
+    "AI_REFERRALS": "AI Referrals",
+}
+
+
+def analyze_by_lead_source(deals: list) -> dict:
+    """Analyze closed lost deals by lead origin channel."""
+    by_source = defaultdict(lambda: {"count": 0, "revenue": 0, "deals": [], "reasons": Counter()})
+    total_count = len(deals)
+    total_revenue = sum(d["amount"] for d in deals)
+
+    for deal in deals:
+        source = deal.get("lead_source") or "Unknown"
+        label = LEAD_SOURCE_LABELS.get(source, source)
+        by_source[label]["count"] += 1
+        by_source[label]["revenue"] += deal["amount"]
+        by_source[label]["deals"].append(deal)
+
+        # Track loss reasons per source
+        reason = deal.get("loss_reason", "")
+        reason_label = LOSS_REASON_LABELS.get(reason, reason or "N/A")
+        by_source[label]["reasons"][reason_label] += 1
+
+    result = {}
+    for source, data in sorted(by_source.items(), key=lambda x: x[1]["count"], reverse=True):
+        top_reasons = data["reasons"].most_common(3)
+        result[source] = {
+            "count": data["count"],
+            "count_pct": (data["count"] / total_count * 100) if total_count > 0 else 0,
+            "revenue": data["revenue"],
+            "revenue_pct": (data["revenue"] / total_revenue * 100) if total_revenue > 0 else 0,
+            "avg_deal": data["revenue"] / data["count"] if data["count"] > 0 else 0,
+            "top_reasons": top_reasons,
+        }
+
+    return result
+
+
+def analyze_lead_source_by_owner(deals: list, owners: dict) -> dict:
+    """Analyze lead source distribution per owner."""
+    by_owner = defaultdict(lambda: defaultdict(int))
+
+    for deal in deals:
+        owner = deal.get("owner_name", "Unknown")
+        source = deal.get("lead_source") or "Unknown"
+        label = LEAD_SOURCE_LABELS.get(source, source)
+        by_owner[owner][label] += 1
+
+    result = {}
+    for owner_name in owners.values():
+        owner_sources = dict(by_owner.get(owner_name, {}))
+        total = sum(owner_sources.values())
+        result[owner_name] = {
+            "total": total,
+            "sources": {s: {"count": c, "pct": (c / total * 100) if total > 0 else 0}
+                        for s, c in sorted(owner_sources.items(), key=lambda x: x[1], reverse=True)}
+        }
+
+    return result
+
+
 def generate_report(recent: list, previous: list, owners: dict) -> str:
     """Generate markdown report."""
     now = datetime.now()
@@ -597,6 +673,8 @@ def generate_report(recent: list, previous: list, owners: dict) -> str:
     seasonality = analyze_seasonality(recent)
     pareto = pareto_analysis(revenue_by_reason)
     efficiency = owner_efficiency_matrix(recent, owners)
+    lead_source_analysis = analyze_by_lead_source(recent)
+    lead_source_by_owner = analyze_lead_source_by_owner(recent, owners)
 
     # Top metrics
     top_reason = max(recent_reasons.items(), key=lambda x: x[1]["count"])[0] if recent_reasons else "N/A"
@@ -664,6 +742,26 @@ def generate_report(recent: list, previous: list, owners: dict) -> str:
             report.append(f"- **Profile:** {autopsy['profile'] or 'Sin perfil'}")
             report.append(f"- **Details:** {autopsy['details'] or 'N/A'}")
             report.append("")
+
+    # 1.4 Lead Source Channel Analysis
+    report.append("### 1.4 Lead Source Channel Analysis")
+    report.append("")
+    report.append("| Lead Source | Deals | % | Revenue | % Revenue | Avg Deal | Top Loss Reason |")
+    report.append("|-------------|-------|---|---------|-----------|----------|-----------------|")
+    for source, data in lead_source_analysis.items():
+        top_reason = data["top_reasons"][0][0] if data["top_reasons"] else "N/A"
+        report.append(f"| {source} | {data['count']} | {data['count_pct']:.0f}% | ${data['revenue']:,.0f} | {data['revenue_pct']:.0f}% | ${data['avg_deal']:,.0f} | {top_reason} |")
+    report.append("")
+
+    # 1.5 Lead Source by Owner
+    report.append("### 1.5 Lead Source Distribution by Owner")
+    report.append("")
+    for owner, owner_data in lead_source_by_owner.items():
+        if owner_data["total"] > 0:
+            top_sources = list(owner_data["sources"].items())[:3]
+            sources_str = ", ".join([f"{s} ({d['pct']:.0f}%)" for s, d in top_sources])
+            report.append(f"- **{owner}** ({owner_data['total']} deals): {sources_str}")
+    report.append("")
 
     # =========================================================================
     # 2. CRM HYGIENE & DATA INTEGRITY AUDIT
