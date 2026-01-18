@@ -1,0 +1,43 @@
+
+======================================================================
+ICP DISCOVERY PIPELINE - SUMMARY REPORT
+======================================================================
+
+Generated: 2026-01-17 17:05
+Total ICPs identified: 91
+
+CLUSTER DISTRIBUTION:
+  message_first     :    31 ( 34.1%)
+  form_first        :    31 ( 34.1%)
+  uncategorized     :    17 ( 18.7%)
+  call_first        :    12 ( 13.2%)
+
+SCORE STATISTICS:
+  Money Score:   mean=9.2, median=9.0
+  Urgency Score: mean=16.0, median=14.0
+  Fit Score:     mean=5.1, median=4.0
+  Total Score:   mean=21.5, median=22.7
+
+VALIDATION:
+  Uncategorized < 30%: 18.7% [PASS]
+  Top 20 junk_risk=0:  0 [PASS]
+  Conv clusters exist: [PASS]
+
+TOP 10 ICPs BY TOTAL SCORE:
+Rank  Score   Cluster         Page Name                               
+----------------------------------------------------------------------
+1     37.7    message_first   America Business College- Escuela CDL   
+2     32.5    message_first   Godette Bade                            
+3     31.7    message_first   East Coast Excavators                   
+4     31.4    message_first   Akins Trailer Sales                     
+5     31.2    message_first   Adam Wolken                             
+6     31.1    call_first      FoneStar Repair                         
+7     31.0    message_first   Pixelency Animation Studio              
+8     30.7    message_first   Avic Prod.                              
+9     30.4    message_first   Suite Success LLC                       
+10    30.1    message_first   Melissa Bartlett - Hightower Heritage Re
+
+OUTPUT FILES:
+  Pipeline data: /Users/tomas/Desktop/fb-ads-prospecting/output/icp_discovery
+  Final reports: /Users/tomas/Desktop/fb-ads-prospecting/output/icp_exploration
+======================================================================

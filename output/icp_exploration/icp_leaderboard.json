@@ -1,0 +1,58 @@
+[
+  {
+    "icp_cluster": "message_first",
+    "total_advertisers": 31,
+    "median_total_score": 27.8,
+    "median_money": 7.0,
+    "median_urgency": 25.0,
+    "median_fit": 6.0,
+    "avg_message_share": 1.0,
+    "avg_call_share": 0.0,
+    "avg_form_share": 0.0,
+    "avg_web_share": 0.0,
+    "top_advertisers": "America Business College- Escu | Godette Bade | East Coast Excavators | Akins Trailer Sales | Adam Wolken",
+    "rank": 1
+  },
+  {
+    "icp_cluster": "call_first",
+    "total_advertisers": 12,
+    "median_total_score": 27.2,
+    "median_money": 8.5,
+    "median_urgency": 25.0,
+    "median_fit": 4.0,
+    "avg_message_share": 0.0,
+    "avg_call_share": 1.0,
+    "avg_form_share": 0.0,
+    "avg_web_share": 0.0,
+    "top_advertisers": "FoneStar Repair | Phenix Salon Suites CLT | George Jones Appliance Repair | Mr. Mattress & More LLC | Furniture World Puyallup",
+    "rank": 2
+  },
+  {
+    "icp_cluster": "form_first",
+    "total_advertisers": 31,
+    "median_total_score": 18.7,
+    "median_money": 10.0,
+    "median_urgency": 10.0,
+    "median_fit": 3.0,
+    "avg_message_share": 0.0,
+    "avg_call_share": 0.0,
+    "avg_form_share": 0.971,
+    "avg_web_share": 0.029,
+    "top_advertisers": "Caulfields Family Auto Sales | Breezy - HVAC Business App | Go Pioneer LLC | Astro Exterminating | Ghosxt",
+    "rank": 3
+  },
+  {
+    "icp_cluster": "uncategorized",
+    "total_advertisers": 17,
+    "median_total_score": 11.0,
+    "median_money": 10.0,
+    "median_urgency": 0.0,
+    "median_fit": 2.0,
+    "avg_message_share": 0.0,
+    "avg_call_share": 0.0,
+    "avg_form_share": 0.0,
+    "avg_web_share": 1.0,
+    "top_advertisers": "UDallas Satish & Yasmin Gupta  | Eric Aragon, CPA | Dr. Joe Vitale | Brittany Conner, Realtor | Bayridge Advisory",
+    "rank": 4
+  }
+]

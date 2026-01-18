@@ -1,0 +1,529 @@
+page_id,page_name,page_category,total_ads,share_web,dominant_cta,is_regulated_category,has_regulated_keywords,has_advisor_language,has_consult_language,signal_count,signals,matched_patterns
+643763915491306,Bayridge Advisory,nan,2,1.0,LEARN_MORE,True,True,True,True,4,"REG_CAT, REG_KW, ADVISOR, CONSULT",\bmortgage\b; \binsurance\b; \bcoverage\b; \bagent\b; \bbook\b; \bappointment\b
+790689854127320,Metronovel-Wuxia-mx1,nan,4,1.0,LEARN_MORE,True,True,True,False,3,"REG_CAT, REG_KW, ADVISOR",\breal\s*estate\b; \bagent\b
+400469210346987,Justine Hooper-Broker/Owner of Amplified Real Esta,nan,1,1.0,LEARN_MORE,True,True,True,False,3,"REG_CAT, REG_KW, ADVISOR",\breal\s*estate\b; \bagent\b; \bbroker\b
+800038036532971,Explore Fictional Worlds-LQ11,nan,10,1.0,LEARN_MORE,True,True,True,False,3,"REG_CAT, REG_KW, ADVISOR",\breal\s*estate\b; \bagent\b
+817464474772898,Literie-Romance-mx19,nan,10,1.0,LEARN_MORE,True,True,True,False,3,"REG_CAT, REG_KW, ADVISOR",\breal\s*estate\b; \bagent\b
+794783567050125,Novelbar-mx2-Historical,nan,10,1.0,LEARN_MORE,True,True,True,False,3,"REG_CAT, REG_KW, ADVISOR",\breal\s*estate\b; \bagent\b
+725430997328297,Metronovel-Wuxia-mx3,nan,18,1.0,LEARN_MORE,True,True,True,False,3,"REG_CAT, REG_KW, ADVISOR",\breal\s*estate\b; \bagent\b
+801051999755968,Top Novel Circle,nan,35,1.0,LEARN_MORE,True,True,True,False,3,"REG_CAT, REG_KW, ADVISOR",\buniversity\b; \bexpert\b
+225223170671873,Novellair-A,nan,40,1.0,LEARN_MORE,True,True,False,True,3,"REG_CAT, REG_KW, CONSULT",\bcollege\b; \bappointment\b
+1461176864146337,ATA Photobooths,nan,2,1.0,LEARN_MORE,True,False,True,True,3,"REG_CAT, ADVISOR, CONSULT",\bexpert\b; \bbook\b
+748053651731894,Novelbar-mx12-Historical,nan,6,1.0,LEARN_MORE,True,True,True,False,3,"REG_CAT, REG_KW, ADVISOR",\breal\s*estate\b; \bagent\b
+808559869001873,Novelbar-mx8-Historical,nan,11,1.0,LEARN_MORE,True,True,True,False,3,"REG_CAT, REG_KW, ADVISOR",\breal\s*estate\b; \bagent\b
+115561387020873,The Junkster,nan,2,1.0,LEARN_MORE,True,True,False,True,3,"REG_CAT, REG_KW, CONSULT",\bproperty\b; \bestimate\b; \bfree\s+estimate\b
+801059476419671,Literie-Romance-mx26,nan,38,1.0,LEARN_MORE,True,True,True,False,3,"REG_CAT, REG_KW, ADVISOR",\breal\s*estate\b; \bagent\b
+788187801051650,Explore Fictional Worlds-LQ30,nan,28,1.0,LEARN_MORE,True,True,True,False,3,"REG_CAT, REG_KW, ADVISOR",\breal\s*estate\b; \bagent\b
+850412978154431,Explore Fictional Worlds-LQ20,nan,18,1.0,LEARN_MORE,True,True,True,False,3,"REG_CAT, REG_KW, ADVISOR",\breal\s*estate\b; \bagent\b
+648336338371338,Never Bored in Orlando,nan,1,1.0,LEARN_MORE,True,True,False,True,3,"REG_CAT, REG_KW, CONSULT",\btherapy\b; \bbook\b
+105019517707189,Book Profits,nan,14,1.0,LEARN_MORE,True,True,False,True,3,"REG_CAT, REG_KW, CONSULT",\bhomes?\s+for\b; \bfinancial\b; \bcollege\b; \bbook\b
+149392855496249,Shayne Ford,nan,1,1.0,SHOP_NOW,True,True,False,True,3,"REG_CAT, REG_KW, CONSULT",\bcollege\b; \bbook\b
+866434503214847,Explore Fictional Worlds-LQ35,nan,66,1.0,LEARN_MORE,True,True,True,False,3,"REG_CAT, REG_KW, ADVISOR",\breal\s*estate\b; \bagent\b
+717297174806912,Literie-Suspense novel-mx,nan,26,1.0,LEARN_MORE,True,True,True,False,3,"REG_CAT, REG_KW, ADVISOR",\breal\s*estate\b; \bagent\b
+847652255094524,Explore Fictional Worlds-LQ32,nan,26,1.0,LEARN_MORE,True,True,True,False,3,"REG_CAT, REG_KW, ADVISOR",\breal\s*estate\b; \bagent\b
+754828011056956,Explore Fictional Worlds-LQ14,nan,9,1.0,LEARN_MORE,True,True,True,False,3,"REG_CAT, REG_KW, ADVISOR",\breal\s*estate\b; \bagent\b
+290021278106311,Local Business,nan,12,1.0,,True,True,True,False,3,"REG_CAT, REG_KW, ADVISOR",\breal\s*estate\b; \bbroker\b
+210305678999899,"Glass Doctor of Livonia, MI",nan,2,1.0,LEARN_MORE,True,True,True,False,3,"REG_CAT, REG_KW, ADVISOR",\bdoctor\b; \bexpert\b
+389869850878135,OJay Media,nan,1,1.0,LEARN_MORE,True,False,True,True,3,"REG_CAT, ADVISOR, CONSULT",\badvisor\b; \bbook\b
+819915184527476,Metronovel-Wuxia-mx7,nan,13,1.0,LEARN_MORE,True,True,True,False,3,"REG_CAT, REG_KW, ADVISOR",\breal\s*estate\b; \bagent\b
+940994409096821,Love Reading-H,nan,100,1.0,LEARN_MORE,True,True,False,True,3,"REG_CAT, REG_KW, CONSULT",\bcollege\b; \bappointment\b
+829509500244742,Explore Fictional Worlds-LQ18,nan,12,1.0,LEARN_MORE,True,True,True,False,3,"REG_CAT, REG_KW, ADVISOR",\breal\s*estate\b; \bagent\b
+395973190265986,Short Story Spotlight,nan,10,1.0,WATCH_MORE,True,True,True,False,3,"REG_CAT, REG_KW, ADVISOR",\bmedical\b; \bdoctor\b; \bhospital\b; \bagent\b
+866677986524822,NatureSync06,nan,3,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+17007508279,University of Pittsburgh School of Business,nan,2,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b; \buniversity\b
+892236383965320,ClipVerse08,nan,9,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+862078533654396,FilmEcho08,nan,3,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+928293243697781,The pink elephant piercing and tattoo parlor,nan,1,1.0,VIEW_INSTAGRAM_PROFILE,True,False,False,True,2,"REG_CAT, CONSULT",\bbook\b
+2183380861890306,The First The Last,nan,2,1.0,VIEW_INSTAGRAM_PROFILE,True,True,False,False,2,"REG_CAT, REG_KW",\breal\s*estate\b
+965405053315348,Dr. Doucet,nan,1,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bmedical\b; \bschool\b
+841550875711268,OceanValley05,nan,9,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+449046394958496,FlickReels 10,nan,9,1.0,WATCH_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bcollege\b
+860225070517531,Cassian Lark Moreau,nan,3,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bhomes?\s+for\b; \bmedical\b; \bhospital\b
+877613452094247,BrightValley05,nan,8,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+757641657443810,FadePoint 25,nan,8,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bmortgage\b; \bschool\b
+720082247864059,Her Romance Novels,nan,8,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+876458148883558,SunnyEcho05,nan,8,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+395447976985830,Famous & Art,nan,3,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bdoctor\b; \bhospital\b
+691773364028599,Literie-interestingbooks,nan,10,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bcollege\b
+762713666934764,Stardusttv-attractive dramas,nan,9,1.0,WATCH_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bhomes?\s+for\b
+101510869678521,Detail Dawgs,nan,1,1.0,GET_OFFER,True,False,False,True,2,"REG_CAT, CONSULT",\bbook\b
+819077364626810,Cloud Gate25,nan,12,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+106673549393581,Anik Singal,nan,12,1.0,LEARN_MORE,True,False,False,True,2,"REG_CAT, CONSULT",\bestimate\b
+874863212372044,BrightPhase 25,nan,12,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bmortgage\b
+353347401190873,Altru Partners,nan,3,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\btraining\b
+882948688232792,MoonHaven05,nan,12,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+887233224468096,Half Line 22,nan,12,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bmortgage\b; \bschool\b
+864393110085244,Thin Horizon 23,nan,12,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+884203791435975,FrameGlow08,nan,11,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+896755353513460,MistTone 25,nan,11,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bmortgage\b; \bschool\b
+853262964543426,Romantasy Novel-11,nan,3,1.0,LEARN_MORE,True,False,True,False,2,"REG_CAT, ADVISOR",\bagent\b
+735049229695546,Female novels,nan,11,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+826111967257657,BlueCove05,nan,11,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+951164271405879,MOW R1,nan,1,1.0,DOWNLOAD,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+852798501249102,StoryMotion08,nan,3,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+820024311198775,PulseRise 25,nan,11,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bmortgage\b
+106140462574984,Fantasy Reading,nan,10,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bproperty\b
+886573494531415,OceanShore05,nan,8,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+122094947192016633,Novels Lover,nan,10,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bcollege\b
+811357035398133,26 Hidden Frame,nan,10,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bmortgage\b; \bschool\b
+883918898132127,DarkChord 25,nan,10,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bmortgage\b; \bschool\b
+935806752951508,Alzawraq Dubai ,nan,1,1.0,VIEW_INSTAGRAM_PROFILE,True,False,False,True,2,"REG_CAT, CONSULT",\bbook\b
+911163928735504,BrightField05,nan,8,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+1541303462822458,Colorado Property Group of RE/MAX Pinnacle,nan,1,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\breal\s*estate\b; \bproperty\b
+782148341657912,TerraEcho06,nan,8,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+2047497128815624,Lance C. Greenberg,nan,5,1.0,LEARN_MORE,True,False,False,True,2,"REG_CAT, CONSULT",\bbook\b
+830255510162243,Romantasy Novel-1,nan,4,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bfinancial\b
+833317983198017,Explore Fictional Worlds-LQ31,nan,4,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bcollege\b
+497678113418862,Dorothy Hawkins,nan,2,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\binsurance\b
+899283163271076,Online dating-B5,nan,1,1.0,DOWNLOAD,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+578021388737500,Minishorts-ZS-1,nan,2,1.0,WATCH_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bmedical\b; \bhospital\b
+844529728745277,Grey Hollow 23,nan,6,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+903269609526873,MotionCast 25,nan,6,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+104865529061721,Adwerx for Business,nan,1,1.0,,True,True,False,False,2,"REG_CAT, REG_KW",\breal\s*estate\b
+905647605971692,Free Love Stories,nan,6,1.0,INSTALL_MOBILE_APP,True,True,False,False,2,"REG_CAT, REG_KW",\bhomes?\s+for\b; \bmedical\b; \bdoctor\b
+363911910403928,Meaghan Alton - Alchemical Numerologist,nan,2,1.0,DOWNLOAD,True,True,False,False,2,"REG_CAT, REG_KW",\btraining\b
+829257150276493,SilentStream05,nan,6,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+105665726128833,Phantom Billstickers,nan,1,1.0,NO_BUTTON,True,True,False,False,2,"REG_CAT, REG_KW",\bdoctor\b
+782354048305538,CloudThread 25,nan,8,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+884053258121330,FrameSpirit08,nan,1,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+369390869866652,Spectacular,nan,4,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\btraining\b
+789598857575730,OMG This Book,nan,5,1.0,LEARN_MORE,True,False,False,True,2,"REG_CAT, CONSULT",\bbook\b
+785503867979935,MetroNovel-Sultry-W,nan,5,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bhomes?\s+for\b; \buniversity\b
+106465176456719,This Is Your Dream - Business and Life Success Coa,nan,1,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\btraining\b
+16252374439,Butler Community College,nan,1,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bcollege\b
+905951522606941,Online dating-B1,nan,1,1.0,DOWNLOAD,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+879114688615473,GoldenMeadow05,nan,4,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+112251220174933,"Eric Aragon, CPA",nan,5,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\btax\b; \btraining\b
+103348935230170,Jet Gang Watersports,nan,1,1.0,LEARN_MORE,True,False,False,True,2,"REG_CAT, CONSULT",\bquote\b
+726303417237188,Passion Novels - Spicy BookTok,nan,1,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+542993942229526,FlickReels 14,nan,6,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\btraining\b
+48357502953,Maxwell Leadership,nan,6,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\btraining\b; \bcertification\b
+544934275374168,Happy Short-Drama Urbano Original,nan,6,1.0,WATCH_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\blegal\b
+968412749678611,Beautiful girls-C4,nan,6,1.0,DOWNLOAD,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+1636400949935007,Integrity Facility Solutions,nan,1,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\btraining\b
+868685086325972,WildAura06,nan,8,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+865122576684237,VibeSeries08,nan,7,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+902727742930023,Online dating-B2,nan,1,1.0,DOWNLOAD,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+915947051592598,CloudRealm06,nan,7,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+870088289513842,CalmSignal 25,nan,7,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bmortgage\b; \bschool\b
+968063046388909,Beautiful girls-C3,nan,7,1.0,DOWNLOAD,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+941135435739029,UrbanDrama08,nan,4,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+814377068429952,Explore Fictional Worlds-LQ29,nan,7,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\blaw\s+firm\b; \blegal\b
+803973119474942,ReelyGo2,nan,2,1.0,WATCH_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+885107998011867,StoryAura08,nan,7,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+786684257864437,Top Romantasy ,nan,7,1.0,LEARN_MORE,True,False,False,True,2,"REG_CAT, CONSULT",\bbook\b
+948950798297025,MOW R3,nan,4,1.0,DOWNLOAD,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+897528110101428,PeaceGarden05,nan,7,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+900613039793341,ScreenVibe08,nan,7,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+440366759162096,FlickReels 3,nan,7,1.0,WATCH_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bcollege\b
+815305095004778,David T. Brown,nan,4,1.0,WATCH_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bmedical\b; \bhospital\b
+220121374515313,MiniShorts,nan,4,1.0,WATCH_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bfinancial\b
+879412048585205,StoryGlow08,nan,6,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+239047537408684,"Brittany Conner, Realtor",nan,4,1.0,,True,True,False,False,2,"REG_CAT, REG_KW",\breal\s*estate\b; \brealtor\b
+608009262402191,Attractive Drama Story,nan,6,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bcollege\b
+837968812731306,ShortFlix Stories,nan,6,1.0,WATCH_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+808948822310524,Near Water,nan,6,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+816680321534542,QuietPath 25,nan,12,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bmortgage\b; \bschool\b
+873248012534039,QuietMode 25,nan,12,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+917460974775968,DeepHorizon06,nan,13,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+289048604302741,Fantasy Hero Country,nan,32,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bfinancial\b; \bcoverage\b
+419320344600965,Minishorts-Shorts7,nan,37,1.0,WATCH_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+207650012440288,NovellairLifestyle,nan,37,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+107722887387213,Lance Bachmann,nan,1,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bfinancial\b
+746185418589280,Top Novel Club,nan,37,1.0,LEARN_MORE,True,False,False,True,2,"REG_CAT, CONSULT",\bbook\b
+438352782686352,Romance Books,nan,1,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+880246458510075,Whatever β2,nan,37,1.0,DOWNLOAD,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+888008637728610,ChillVision09,nan,2,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+413249598544587,We Rock The Spectrum - Lakewood,nan,1,1.0,LIKE_PAGE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+843174138890652,Luwo-0112-22,nan,34,1.0,DOWNLOAD,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+779592268580367,StoryVerse08,nan,1,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+325355023997852,knightshinedetailing,nan,1,1.0,VIEW_INSTAGRAM_PROFILE,True,False,False,True,2,"REG_CAT, CONSULT",\bbook\b
+865416713320028,DreamShot08,nan,2,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+881042478432215,QWR Q1,nan,3,1.0,DOWNLOAD,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+894280030428452,ReelVerse08,nan,2,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+810454058822517,CDowdell CPAs,nan,1,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\btax\b
+158797193979612,ClaimsHero,nan,1,1.0,LEARN_MORE,True,False,False,True,2,"REG_CAT, CONSULT",\bbook\b
+830365430152418,The Lit Lighthouse-2,nan,24,1.0,LEARN_MORE,True,False,False,True,2,"REG_CAT, CONSULT",\bbook\b
+110829335616663,David Dodge Chrysler Jeep RAM,nan,2,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bfinancing\b; \bcredit\b
+811095755416835,Global Art USA Franchise,nan,1,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\beducation\b
+930422446824921,Luwo-0112-13,nan,23,1.0,DOWNLOAD,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+821280461079590,Local Lead Machine,nan,1,1.0,GET_IN_TOUCH,True,False,False,True,2,"REG_CAT, CONSULT",\bbook\b
+920664957777284,StoryStream08,nan,3,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+885617501297852,MotionEdge 25,nan,2,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+878273822043204,QWR Q2,nan,1,1.0,DOWNLOAD,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+782006371672224,NightEcho 25,nan,21,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+852732448175394,Sean Dittmer Sells Hi-Desert Real Estate,nan,1,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\breal\s*estate\b; \brealtor\b
+230303593508598,Happyday,nan,110,1.0,LEARN_MORE,True,False,False,True,2,"REG_CAT, CONSULT",\bschedule\b
+698639473332414,Fiction Obsession,nan,100,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+858037024065572,American Trucker Advantage,nan,1,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bcredit\b; \btax\b; \binsurance\b
+899590556562870,LunarFlow06,nan,2,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+934875116376851,Luwo-0112-12,nan,72,1.0,DOWNLOAD,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+821388184391028,Terra Nova Roofing,nan,2,1.0,LEARN_MORE,True,False,False,True,2,"REG_CAT, CONSULT",\bestimate\b; \bfree\s+estimate\b
+976254875565767,Luwo-0112-21,nan,62,1.0,DOWNLOAD,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+144221129149,UDallas Satish & Yasmin Gupta College of Business,nan,2,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bcollege\b
+368212700808993,Cumberland Coatings,nan,1,1.0,GET_IN_TOUCH,True,False,False,True,2,"REG_CAT, CONSULT",\bestimate\b; \bfree\s+estimate\b
+823062317560874,Grow-Jitsu,nan,2,1.0,LEARN_MORE,True,False,False,True,2,"REG_CAT, CONSULT",\bbook\b
+111143903698354,Microloc Mastery,nan,1,1.0,VIEW_INSTAGRAM_PROFILE,True,True,False,False,2,"REG_CAT, REG_KW",\btraining\b
+109867301603849,Conrad Peck,nan,2,1.0,DOWNLOAD,True,True,False,False,2,"REG_CAT, REG_KW",\btraining\b
+851454884728682,YgJ 0105 4,nan,1,1.0,DOWNLOAD,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+791679354319686,Bay Capital Mortgage Corporation,nan,1,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bmortgage\b
+284543678078765,Worth  reading,nan,48,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bdoctor\b
+820934247771341,Explore Fictional Worlds-LQ03,nan,47,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\blaw\s+firm\b; \blegal\b
+105728355710527,Qi Resonance,nan,2,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bmedical\b; \btherapy\b; \bfinancing\b
+862379586958074,ReelyGo-11,nan,1,1.0,WATCH_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+890508264155016,Luwo-0112-11,nan,47,1.0,DOWNLOAD,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+270290769508855,Novellair-The Reading Room,nan,47,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b; \buniversity\b; \bcollege\b
+792946627233105,Literie: Where Stories Live-LQ38,nan,46,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\binsurance\b
+880430565160917,Whatever β3,nan,47,1.0,DOWNLOAD,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+205710522620667,Tim Dominick,nan,1,1.0,,True,True,False,False,2,"REG_CAT, REG_KW",\breal\s*estate\b; \brealty\b
+863844090141484,Explore Fictional Worlds-LQ09,nan,27,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\brealtor\b
+903048672886178,DramaShift08,nan,4,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+788457337692478,11 Sky Roads22,nan,18,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bmortgage\b; \bschool\b
+820012997865072,Explore Fictional Worlds-LQ16,nan,14,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b; \btraining\b
+159391443508,TriCo Texas Tri-County Chamber,nan,2,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\binsurance\b
+908156799053517,Luwo-0112-15,nan,15,1.0,DOWNLOAD,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+814798825040771,Flick-CC,nan,17,1.0,WATCH_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\btraining\b
+859896407204758,LightMotion 56,nan,17,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+698907963306109,Fiction of Desire,nan,16,1.0,LEARN_MORE,True,False,True,False,2,"REG_CAT, ADVISOR",\bagent\b
+244233235439724,Cargado,nan,1,1.0,LEARN_MORE,True,False,False,True,2,"REG_CAT, CONSULT",\bbook\b
+820812041123752,ColdLoop 25,nan,16,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+122097234722016793,Love Story,nan,16,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bdoctor\b; \bhospital\b
+852904271235422,Batrli 22,nan,16,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bmortgage\b; \bschool\b
+800115796525119,Distant Rain 22,nan,3,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bmortgage\b
+380078049455217,Ecommerce Equation,nan,15,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\btraining\b
+895083167011422,NovaMotion 25,nan,15,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bmortgage\b; \bschool\b
+876533708870183,PulseFrame 25,nan,15,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bmortgage\b; \bschool\b
+830353130167509,SceneBeat08,nan,3,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+785358207988524,Metronovel-Wuxia-mx5,nan,17,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\blaw\s+firm\b; \blegal\b
+800954463108474,Explore Fictional Worlds-LQ34,nan,17,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\brealtor\b
+913987995137387,The Reading Realm-A,nan,20,1.0,LEARN_MORE,True,False,False,True,2,"REG_CAT, CONSULT",\bbook\b
+935176063021035,Luwo-0112-16,nan,21,1.0,DOWNLOAD,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+839625259235520,Empty Light3434,nan,20,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bmortgage\b; \bschool\b
+819170781282063,Near Silence 22,nan,18,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bmortgage\b; \bschool\b
+786532857884718,Hiokie 848451,nan,19,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bmortgage\b
+715052608368449,AirFlow AI ,nan,3,1.0,LEARN_MORE,True,False,False,True,2,"REG_CAT, CONSULT",\bbook\b; \bappointment\b
+880619271810257,Whatever β1,nan,13,1.0,DOWNLOAD,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+117922881400615,RomantasyWhispers,nan,20,1.0,LEARN_MORE,True,False,False,True,2,"REG_CAT, CONSULT",\bbook\b
+895134697009927,WaveSpirit06,nan,2,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bschool\b
+999465269906328,Luwo-0112-14,nan,14,1.0,DOWNLOAD,True,True,False,False,2,"REG_CAT, REG_KW",\bhospital\b
+853516604508921,44 Morning Hill 22,nan,14,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bmortgage\b; \bschool\b
+869253726265906,93 Pale Street,nan,18,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bmortgage\b; \bschool\b
+487741591332537,Griffin Funding,nan,13,1.0,LEARN_MORE,True,True,False,False,2,"REG_CAT, REG_KW",\bhousing\b; \bmortgage\b; \bloan\b
+774896869047632,Flick-DD,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+107426972463666,Karrie Craft,nan,2,1.0,SHOP_NOW,True,False,False,False,1,REG_CAT,
+907597462441140,Maxxed Out Mastermind Live,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+100730202642289,Stan - Monetize Your Content,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+487562104441820,Passion Pages,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+732289816625035,JoyReels Tv-2-11,nan,1,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+230855086962361,Virginia Creative Group,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+361383677286558,On The Fuze,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+103205418421715,Wanda Lambert,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+102982018088783,NAMI Albuquerque,nan,2,1.0,NO_BUTTON,True,False,False,False,1,REG_CAT,
+523846380819923,Anik Singal ,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+113794804963697,Mau Davis Yousef 765000,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+11455644806,Snoop Dogg,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+774655012389837,JoyReels Tv-2-19,nan,2,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+666733786532039,JoyReels Tv-2-27,nan,2,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+531870200007089,Dramawave：Appealing Dramas,nan,1,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+100569929632979,Money Stream,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+620989297757749,NsNs-FH2,nan,2,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+869494436241487,Stardusttv-Niu drama,nan,2,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+899301723274803,Short Fiction Scenes,nan,2,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+797144753485390,The Nova Line,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+807099172492016,84 Urban Frame,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+288473261199516,Tim Heidecker,nan,2,1.0,BUY_TICKETS,True,False,False,False,1,REG_CAT,
+104530055990869,EA1628-eng,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+529002523623296,Dramawave:Step into a world of drama,nan,2,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+611691718700980,Minishorts-US11,nan,2,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+854648914405040,Kujiang-fb,nan,2,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+858194454039863,ShadowDock 10,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+889597060906290,Goat House Market,nan,2,1.0,SHOP_NOW,True,False,False,False,1,REG_CAT,
+785712744618877,Migmig Games,nan,2,1.0,PLAY_GAME,True,False,False,False,1,REG_CAT,
+105463845940424,Coco & Rho,nan,2,1.0,SHOP_NOW,True,False,False,False,1,REG_CAT,
+939950445864920,Stardusttv super crazy drama,nan,2,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+519238251268485,Awesome Romantic Novel,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+515687698286818,Shot-Shorts-13,nan,2,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+774479869087938,EStoooory,nan,2,1.0,INSTALL_MOBILE_APP,True,False,False,False,1,REG_CAT,
+667614563112892,Literie-AmorVerse,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+109903158607345,Augment.org,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+111126294920668,Stacy Win & Ryan,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+969244659599598,My Drama - Best Ever Dramas,nan,2,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+104108865266395,8fig,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+103880159089517,Home Grown Business,nan,2,1.0,VIEW_INSTAGRAM_PROFILE,True,False,False,False,1,REG_CAT,
+749514961588075,Lunar 44 Grove,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+650806248107284,CafeDrama-JM1-25,nan,120,1.0,DOWNLOAD,True,False,False,False,1,REG_CAT,
+733936369799245,GSD SoCal Solutions,nan,1,1.0,INSTAGRAM_MESSAGE,True,False,False,False,1,REG_CAT,
+258725787319948,Best Short Dramas,nan,1,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+180976698437336,dominickpupa,nan,1,1.0,VIEW_INSTAGRAM_PROFILE,True,False,False,False,1,REG_CAT,
+810151705507432,Vortex Legends,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+191226110738961,Will Nelson,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+824439524079329,Romance Reading Room,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+810873985443987,FundedX,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+201543173308917,InStyle Boutique,nan,1,1.0,SHOP_NOW,True,False,False,False,1,REG_CAT,
+202065099830972,Dr. Joe Vitale,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+206669899404009,Earth Rated,nan,1,1.0,SHOP_NOW,True,False,False,False,1,REG_CAT,
+210612032383983,Tipsy Artist,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+106726144926757,"Athens County, OH",nan,1,1.0,INSTALL_MOBILE_APP,True,False,False,False,1,REG_CAT,
+218982098822597,Matthew Strom,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+169621993449224,"Cedar Rapids, IA Local - News Break",nan,1,1.0,INSTALL_MOBILE_APP,True,False,False,False,1,REG_CAT,
+273646192500789,Darline Elizabeth,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+113821070472428,Rombyk painting llc,nan,1,1.0,INSTAGRAM_MESSAGE,True,False,False,False,1,REG_CAT,
+796372543556807,Gullah Business of Charleston ,nan,1,1.0,VIEW_INSTAGRAM_PROFILE,True,False,False,False,1,REG_CAT,
+116056128433888,"Titan Fitness and Tanning - Hewitt, TX",nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+116325884895298,FictionDive,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+125821617281555,DramaBox- drama movies4,nan,1,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+268870236484011,Better Business Bureau Serving West Florida,nan,1,1.0,,True,False,False,False,1,REG_CAT,
+109891875749230,Anthony Young - Appraiser / Market Analyst,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+148342072588615,TooMedia Strategies,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+791277294348854,SDCT.shop - Sew Dreams Come True,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+110485805201208,Show Storm,nan,1,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+855581137636574,Dramawave: ShortMax,nan,1,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+381727498962869,Lost Dutchman Leather Goods,nan,1,1.0,SHOP_NOW,True,False,False,False,1,REG_CAT,
+854543704408388,Stardusttv- Boom shorts,nan,1,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+111077021067438,10 Minute English,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+790083637529956,Tales That Touch the Soul,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+852636167924348,My Drama - Romance in the Stars,nan,1,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+849017461620511,Best two,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+347877928399557,Zeely,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+866601563204729,visionaryanalyst,nan,1,1.0,VIEW_INSTAGRAM_PROFILE,True,False,False,False,1,REG_CAT,
+390990924101733,Novel Muse,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+106882464109337,Marketing Funnelista,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+479520535468270,"Camp Bow Wow Henderson, NV",nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+107704712237009,Knowledge Point,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+477412422128907,Digital Marketing With Elaine,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+875283525660703,Flick-zzx-0,nan,1,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+108591551076953,Banch Marketing Digital Agency,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+436911456183324,media_toolbox,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+805933722612538,Stardusttv-engaging dramas,nan,1,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+149909581535915,OT Yourself to Freedom,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+725110530694797,Supercharged Sprouts,nan,1,1.0,VIEW_INSTAGRAM_PROFILE,True,False,False,False,1,REG_CAT,
+102043022985456,thehcoonline,nan,1,1.0,INSTAGRAM_MESSAGE,True,False,False,False,1,REG_CAT,
+142124569483,Mr. Appliance,nan,1,1.0,DOWNLOAD,True,False,False,False,1,REG_CAT,
+678258938708308,Etta Interiors,nan,1,1.0,VIEW_INSTAGRAM_PROFILE,True,False,False,False,1,REG_CAT,
+686656021200313,JoyReels Tv-2-7,nan,1,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+1403538619953304,Tech Security USA,nan,1,1.0,SHOP_NOW,True,False,False,False,1,REG_CAT,
+101895195409248,"Linn County, IA",nan,1,1.0,INSTALL_MOBILE_APP,True,False,False,False,1,REG_CAT,
+929948790199465,frequency_higher_ent,nan,1,1.0,VIEW_INSTAGRAM_PROFILE,True,False,False,False,1,REG_CAT,
+720552694469316,Visionary Solutions Group,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+527507080600217,Memes,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+524096424128937,badboyzcyclez,nan,1,1.0,VIEW_INSTAGRAM_PROFILE,True,False,False,False,1,REG_CAT,
+106485550030,The Home Depot,nan,1,1.0,SHOP_NOW,True,False,False,False,1,REG_CAT,
+750170618182230,Passion Novels - Jealous ML,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+740781519111374,JoyReels Tv-2-6,nan,1,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+104898459201333,Fisher Leroy Dario 264645,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+501754249681124,Power BI For Everyone,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+883246238202298,Ns-tinxi-1,nan,1,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+106577719375828,"Frase Protection, Inc.",nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+103963422788681,Just Like A Pinup,nan,1,1.0,SHOP_NOW,True,False,False,False,1,REG_CAT,
+228691820850598,Costco Deals,nan,1,1.0,SHOP_NOW,True,False,False,False,1,REG_CAT,
+1006182605904437,Madrids Media Marketing,nan,1,1.0,VIEW_INSTAGRAM_PROFILE,True,False,False,False,1,REG_CAT,
+1088130974708087,Lean Scaling Co,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+830605780144437,Whispered-LoveNotes-jl13,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+595659060445394,Intechtel,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+106919474383134,ScoreApp,nan,1,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+490410300821314,Ns-M31,nan,1,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+100330228902629,Exclusive Window Tinting NYC,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+100485164736202,"North Charleston, SC Local - News Break",nan,1,1.0,INSTALL_MOBILE_APP,True,False,False,False,1,REG_CAT,
+620895337781208,brpro225,nan,1,1.0,VIEW_INSTAGRAM_PROFILE,True,False,False,False,1,REG_CAT,
+700368583162491,arvell.b.anthony,nan,1,1.0,VIEW_INSTAGRAM_PROFILE,True,False,False,False,1,REG_CAT,
+604026472793468,NS-ppz-17,nan,1,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+708412989018002,Jennifer Kochis,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+880659335125741,roadcrewtires,nan,1,1.0,SHOP_NOW,True,False,False,False,1,REG_CAT,
+661618850377529,Trying To Clone? ,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+928490527008154,Whispered-LoveNotes-jl16,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+965605423292504,Elite Site Hub,nan,1,1.0,GET_OFFER,True,False,False,False,1,REG_CAT,
+451937865346,Tranzon,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+634117949775823,the.calm.chapter,nan,1,1.0,VIEW_INSTAGRAM_PROFILE,True,False,False,False,1,REG_CAT,
+75722119063,Salt City Steel,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+634036086450888,Golden Goose Growth,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+1644699695561021,Rollo,nan,1,1.0,SHOP_NOW,True,False,False,False,1,REG_CAT,
+655132371013912,Price Relief Project,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+586255381232002,Stardust TV - HOT-hot Dramas,nan,1,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+640349952487193,NS-ppz-10,nan,4,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+819521154575548,Beyond 14 Ridge,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+761022727087228,Read&LOVE,nan,15,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+711937788677525,Neon Hive,nan,12,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+749371161592483,NovelBar-MoonlitSigh-W,nan,13,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+798368740029843,35 Drift Studio,nan,13,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+116439051550362,RomantasyRealm,nan,14,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+585600547964258,LeanScaper,nan,14,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+809077012283011,NovelBar-Litify-ct,nan,14,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+846525861870938,The Lit Lighthouse,nan,14,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+845787101947891,Explore Fictional Worlds-LQ06,nan,15,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+833066203223765,Explore Fictional Worlds-LQ24,nan,15,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+115305474998104,FictionVerse,nan,15,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+773140172556414,Moonlit Romance Library,nan,22,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+115734238288640,FictionFeast,nan,15,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+91089066763,Nextiva,nan,15,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+778517415352891,Siren Stories Collective,nan,15,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+507595852446412,Reelstv,nan,16,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+582624342230922,"Exothermic Technologies, LLC",nan,16,1.0,SHOP_NOW,True,False,False,False,1,REG_CAT,
+813165685205880,Metronovel: Dream in Pages-LQ53,nan,17,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+736503702890204,Novelbar-mx1-Historical,nan,18,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+1502193986666002,Nineveh Madsen,nan,19,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+786955454497542,Good novel,nan,22,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+902728032915663,Novel for everyone,nan,12,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+119041027799775,Tell8734-Ebooks,nan,11,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+114457858238223,Sage Rex 203027,nan,11,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+846577515206259,Firewood 97,nan,11,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+759193140608491,Literie-TenderAmbiguity-W,nan,8,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+144701048731772,Minishorts-Movie7,nan,8,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+120830717619371,Tell3564-Novels,nan,8,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+829859066881494,BestReels-Movie011,nan,8,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+854398694423133,ReelyGo3,nan,9,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+841378605721386,EchoLab 33,nan,9,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+388943774313482,FlickReels 6,nan,9,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+733119206561321,42 Silent Bloom,nan,9,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+842458535616618,Pink88,nan,9,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+739525035920680,CloudBridge 85,nan,9,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+944613315383452,Novel Station,nan,9,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+744923782047832,Echo Harbor 62,nan,9,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+842947058898319,Fire/88 Street,nan,9,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+849277464928040,GentleWhale 44,nan,9,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+451937154671670,DramaWave: Updated Mini Dramas,nan,9,1.0,DOWNLOAD,True,False,False,False,1,REG_CAT,
+778183202052433,46 Silent Horizon,nan,9,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+783454291523566,Northern Gate 99,nan,9,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+1034154493104617,Every Scene Tells,nan,10,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+896100006926775,Dreamy Pages13-ct,nan,10,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+108401345691237,JoyReels,nan,22,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+790472730822445,Metronovel: Dream in Pages-LQ55,nan,23,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+822167097652561,Sarah Smolik,nan,8,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+847027415164752,BestReels-Movie013,nan,56,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+825030294021820,Romantic Novel Reading Room,nan,46,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+820869444437654,Werewolf Novel,nan,47,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+814611238404236,Explore Fictional Worlds-LQ08,nan,47,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+746765405196120,Metronovel: Dream in Pages-LQ58,nan,50,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+836501442880446,Romantic-Novel,nan,51,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+115686104960034,FictionPulse,nan,51,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+759079097297273,Romantasy Novel-5,nan,51,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+949741364882835,Nichols Alfredo Mills,nan,54,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+744839225390600,Metronovel: Dream in Pages-LQ57,nan,55,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+814958238365264,Love Reading Novel,nan,56,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+688538104350454,Literie-Obscuredpage-W,nan,23,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+703683576172310,Metronovel: Dream in Pages-LQ52,nan,57,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+848326508360912,Queens Novels,nan,59,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+840206862504238,Romantasy Novel-4,nan,62,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+831340836732901,BestReels-Movie02,nan,62,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+763671586839959,BestReels-Movie04,nan,68,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+778050258734837,BestReels-Movie014,nan,72,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+149322631600247,Minishorts-Movie9,nan,90,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+150872314778202,Minishorts-Movie13,nan,90,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+948500325011980,Love Reading-E,nan,92,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+306711812515860,Dramawave-vip,nan,44,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+897373630128835,Love Reading-F,nan,42,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+851863868000000,Literie: Where Stories Live-LQ39,nan,41,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+755738827625349,Metronovel: Dream in Pages-LQ51,nan,40,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+950548114799359,Explore Fictional Worlds-LQ28,nan,23,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+833643389836532,Explore Fictional Worlds-LQ26,nan,23,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+833913286464766,Romantic Reads Haven,nan,27,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+698660206666332,Fiction After Dark,nan,28,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+646801461845472,Novellair-Read Best Romance,nan,29,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+830221863499498,Metronovel-Wuxia-mx4,nan,29,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+750218378183349,Novelbar-mx14-Historical,nan,29,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+837896189397602,Literie: Where Stories Live-LQ37,nan,29,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+834000149792997,Literie: Where Stories Live-LQ33,nan,29,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+843517302169997,Novelbar-mx3-Historical,nan,32,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+793889770480563,A Novel Idea-LQ03,nan,35,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+776717638863290,Literie: Where Stories Live-LQ32,nan,35,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+840589669134869,Love Reading-D,nan,35,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+815605704967327,Epic Fantasy Novel,nan,35,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+853777757808397,Romance Galaxy,nan,36,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+631024843428070,CafeDrama-JM1-17,nan,37,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+753054121228170,Metronovel: Dream in Pages-LQ50,nan,37,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+847870138405839,FictionHaven,nan,39,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+798382820025407,Literie-A Symphony of Pages-ct,nan,40,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+881223755079743,Artisan Books-ct,nan,8,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+803346919534939,WildMint Lab44,nan,7,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+210265715513546,Sunny movies,nan,2,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+671651216041646,Stardusttv-shorts,nan,3,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+766021139927416,Metronovel-Fantasy-M5,nan,3,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+764798080060579,Violet - 17,nan,3,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+826673250533238,Stardusttv-gorgeous dramas,nan,3,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+116750511371220,East Coast Title & Escrow -New Smyrna Beach,nan,3,1.0,,True,False,False,False,1,REG_CAT,
+797695943429738,CrystalDock 39,nan,3,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+1145632992135282,Cato Networks,nan,3,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+113746225028926,Aural Amorous Journey,nan,3,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+847091468488366,FictionAddict,nan,3,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+112788258781745,Verizon Business,nan,3,1.0,SHOP_NOW,True,False,False,False,1,REG_CAT,
+605379509329715,CafeDrama-JM1-9,nan,3,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+640894219117490,MetroNovel-Romance Novel,nan,4,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+383385684861298,Bruno Genovese Christian Business Mentor,nan,3,1.0,,True,False,False,False,1,REG_CAT,
+452073827996203,Dramawave: Trending Dramas,nan,3,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+871811906007600,Explore Fictional Worlds-LQ02,nan,3,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+108867730766775,Social Snowball,nan,3,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+863427596855444,Stardusttv-captivating shorts,nan,3,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+862665476919467,Urban38,nan,3,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+630289473510284,En Austins,nan,3,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+632760806579203,Shot short nj-001,nan,4,1.0,DOWNLOAD,True,False,False,False,1,REG_CAT,
+100854803109172,My Business Card,nan,4,1.0,SHOP_NOW,True,False,False,False,1,REG_CAT,
+757633530772121,OMG This Novel,nan,3,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+893544490506812,Stardusttv-addictive shorts2,nan,3,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+502436386282433,NetShort-ioss,nan,3,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+731959266675494,Desert Byte,nan,3,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+198308396942060,Goodshuffle,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+196691336853360,Poweredbymrp,nan,2,1.0,DOWNLOAD,True,False,False,False,1,REG_CAT,
+172504859270753,Kevin Luu,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+1943736175869098,Leland Baptist,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+1612733532113961,Maverrik,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+101215926894,Fusion Fitness 24,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+127133697313237,Quail Creek Bank,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+120650297804807,Online library of good books,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+844264212093508,MiniNovel,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+842313982296322,Donald Greene,nan,2,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+113979913652362,Entire New Journey,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+837627816101984,Between Pages and Stars,nan,2,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+904598172728578,Stardusttv-Excellent shorts,nan,3,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+479574041901310,Shot-Short-9,nan,3,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+899355999922161,Dreamy-LoveSparks-jl20,nan,3,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+925442497325856,Stardusttv bravo drama,nan,3,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+755858827614675,NovelBar-Prologue Books-ct ,nan,3,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+557033297492293,Reliefly Lab,nan,3,1.0,SHOP_NOW,True,False,False,False,1,REG_CAT,
+717701764757046,JoyReels Tv-2-17,nan,3,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+102423399349394,Fic2411-Books,nan,4,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+982943001565040,Drama Shorts Studio,nan,4,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+798315026704118,The Sky District44,nan,7,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+207880322403049,Novel Romance Fiction,nan,6,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+872368209304010,Capital Performance Solution,nan,5,1.0,VIEW_INSTAGRAM_PROFILE,True,False,False,False,1,REG_CAT,
+785369977995355,MiniShorts Drama W-10,nan,5,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+811205835411983,61 Pineview Gate,nan,5,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+105964702518393,EAu6699-eng,nan,6,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+510234255516411,NS-PpZ-2,nan,6,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+758261350705797,Literie-Attraction-W,nan,6,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+868731789647236,LightMile 22,nan,6,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+103658384937993,Franchise Investment System,nan,6,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+905110466028080,Forbidden Reads Nation,nan,6,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+888898590967366,Qualified Profits,nan,6,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+817665291430761,93 Sun Tower,nan,4,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+957770527420606,Novlr,nan,6,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+584534151400039,Minishorts-Shorts8,nan,6,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+699117276615178,Fiction Unbound,nan,6,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+736829139520260,The Unfinished Novel-ff-1,nan,7,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+111880488541693,Romance Novel,nan,7,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+957463417444251,Stardusttv super fun drama,nan,7,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+820693754459283,RiverSide 85,nan,7,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+772803109248164,BestStone,nan,7,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+468864172966290,Netshort HM2,nan,7,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+738326919369712,Alpine Circuit,nan,5,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+777301442132717,Gao GoGo,nan,5,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+760011323870242,Horizon-11 Zone,nan,5,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+752364177969634,Stardusttv-Fine shorts,nan,5,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+807656242430752,29 North Bay,nan,4,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+382002974991062,Minishorts-Shorts9,nan,114,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+796469066878373,Ceramic Pulse,nan,4,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+844514912072760,88 Twilight Zone,nan,4,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+795067397027122,West 14 Block,nan,4,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+112047728515018,Victoria Quinn10098,nan,4,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+103237888271515,Iman Gadzhi,nan,4,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+635626916309545,Master Lee,nan,4,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+768890899638019,Ns-Newtdd-002,nan,4,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+468314626373408,The Auto Deal Spot,nan,4,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+492159233984831,Shot-short-C4,nan,4,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+746657575204258,QuantuK,nan,4,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+733260953197129,JoyReels Tv-2-46,nan,4,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+389867860887898,Dramawave: Latest Dramas,nan,4,1.0,DOWNLOAD,True,False,False,False,1,REG_CAT,
+108085382219059,Serenading Hearts,nan,5,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+118698318003749,Aural Romance Adventures,nan,5,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+500066929860876,Dramawave Watch series,nan,5,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+528628840337760,NS MD1,nan,5,1.0,WATCH_MORE,True,False,False,False,1,REG_CAT,
+572974409233694,Search 1st,nan,5,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,
+145361238856840,Nebraska Star Beef,nan,1,1.0,LEARN_MORE,True,False,False,False,1,REG_CAT,

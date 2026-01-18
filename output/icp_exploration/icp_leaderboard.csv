@@ -1,0 +1,5 @@
+rank,icp_cluster,total_advertisers,median_total_score,median_money,median_urgency,median_fit,avg_message_share,avg_call_share,avg_form_share,avg_web_share,top_advertisers
+1,message_first,31,27.8,7.0,25.0,6.0,1.0,0.0,0.0,0.0,America Business College- Escu | Godette Bade | East Coast Excavators | Akins Trailer Sales | Adam Wolken
+2,call_first,12,27.2,8.5,25.0,4.0,0.0,1.0,0.0,0.0,FoneStar Repair | Phenix Salon Suites CLT | George Jones Appliance Repair | Mr. Mattress & More LLC | Furniture World Puyallup
+3,form_first,31,18.7,10.0,10.0,3.0,0.0,0.0,0.971,0.029,Caulfields Family Auto Sales | Breezy - HVAC Business App | Go Pioneer LLC | Astro Exterminating | Ghosxt
+4,uncategorized,17,11.0,10.0,0.0,2.0,0.0,0.0,0.0,1.0,"UDallas Satish & Yasmin Gupta  | Eric Aragon, CPA | Dr. Joe Vitale | Brittany Conner, Realtor | Bayridge Advisory"

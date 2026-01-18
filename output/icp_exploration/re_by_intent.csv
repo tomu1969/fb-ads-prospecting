@@ -1,0 +1,19 @@
+page_id,page_name,intent,all_intents,gate_passed,gate_reason,total_score,money_score,urgency_score,fit_score,share_message,share_call,dominant_cta,ad_texts_sample
+111769768311265,Melissa Bartlett - Hightower Heritage Real Estate - JMG,branding,branding,True,MESSAGE,44,10,25,9,100.0,0.0,MESSAGE_PAGE,"If you are seeing this post and you have experience with me as a Realtor or other professional roles, would you be willing to take a few minutes to leave a Facebook review on my business page? I only have 4 reviews!! 🥲"
+109491685049993,House Offer 365,seller_leads,seller_leads,True,FORM,23,13,10,0,0.0,0.0,GET_QUOTE,{{product.brand}} | {{product.brand}} | {{product.name}} | {{product.name}} | {{product.description}} | {{product.description}}
+239047537408684,"Brittany Conner, Realtor",investor,investor,True,RESCUED,17,15,0,2,0.0,0.0,,"Behind the scenes with @ftlodcookies while filming for The American Dream TV: Selling Columbus @theamericandreamtv 🔥🎥 I had such a blast filming this episode and learning more about their incredible business 🙌🏻 If you are looking for a yummy sweet treat you HAVE to check them out 😋🍪🧁🍦 
+
+You can stream the show on Prime Video, YouTube TV, Tubi, FireTV, AppleTV, Roku, CNBC, Bloomberg Television, HGTV or on The American Dream TV Website 🎥If you are a business or home owner that would like the oppor"
+400469210346987,Justine Hooper-Broker/Owner of Amplified Real Estate,agent_recruiting,agent_recruiting,True,RESCUED,15,10,0,5,0.0,0.0,LEARN_MORE,"You already know how to sell.
+The question is whether your brokerage helps you scale.
+
+Amplified is built for agents who want better strategy, real accountability, and an environment that supports higher-level growth.
+Click through to see if this is the right next move for you. | Ready for Your Next Level? | Explore the Amplified agent experience"
+1541303462822458,Colorado Property Group of RE/MAX Pinnacle,agent_recruiting,agent_recruiting,True,RESCUED,13,9,0,4,0.0,0.0,LEARN_MORE,"This is meant for people who are serious about building a career, not just exploring a side option.
+
+Real estate, when done the right way, requires full-time commitment, consistency, and a willingness to learn. It’s not easy, but for the right person, it can be a meaningful long-term path with real ownership and growth.
+
+At Colorado Property Group, we focus on doing this business the right way. We value accountability, collaboration, and contribution. The people who thrive here are curious, coac"
+852732448175394,Sean Dittmer Sells Hi-Desert Real Estate,branding,"buyer_leads, branding",True,RESCUED,13,11,0,2,0.0,0.0,LEARN_MORE,"🌟 5-Star Client Review 🌟 Helping first-time home buyers navigate the process with confidence is something I truly care about. Buying a home can feel overwhelming, and my goal is always to make it clear, manageable, and even enjoyable along the way. I’m incredibly grateful for the trust placed in me and honored to be part of such an important milestone. Building real relationships not just closing transactions is what this business is all about.
+If you’re thinking about buying or selling in Yucca"
+791679354319686,Bay Capital Mortgage Corporation,mortgage,mortgage,True,RESCUED,11,9,0,2,0.0,0.0,LEARN_MORE,We close on time. Every time. | Bay Capital Mortgage | Nick Thomas- Director of Business Development
