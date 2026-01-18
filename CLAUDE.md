@@ -239,14 +239,21 @@ Performs comprehensive repository maintenance, cleanup, and organization.
     ├── gmail_logs/              # Gmail inbox snapshots
     ├── hubspot/                 # HubSpot CRM exports
     │   └── contacts.csv         # HubSpot-compatible format
-    ├── icp_discovery/           # ICP Discovery outputs
+    ├── icp_discovery/           # ICP Discovery intermediate outputs
     │   ├── 00_ads_normalized.csv    # Normalized ad-level data
     │   ├── 01_pages_aggregated.csv  # Page-level aggregated
     │   ├── 02_pages_candidate.csv   # Passed conv. gate
     │   ├── 03_money_scored.csv      # With money scores
-    │   ├── 04_urgency_scored.csv    # Final with rankings
-    │   └── icp_report.md            # Summary report
+    │   ├── 04_urgency_scored.csv    # Urgency scored
+    │   ├── 05_fit_scored.csv        # Fit scored
+    │   └── 06_clustered.csv         # Final clustered
+    ├── icp_exploration/         # ICP Discovery final reports
+    │   ├── classified_advertisers.csv  # Sector-classified advertisers
+    │   ├── icp_analysis_report.md      # Analysis summary
+    │   ├── sector_classifications.csv  # Sector assignments
+    │   └── vertical_deep_dive.md       # Vertical-specific insights
     └── legacy/                  # Archived output files
+        └── backups/             # Auto-generated backups
 ```
 
 ## Pipeline Stages
@@ -293,6 +300,15 @@ Email Campaign Flow:
     → [fixer] → drafts_fixed.csv
     → [verifier] → verification_report_after.csv
     → [gmail_sender] → sent emails
+
+ICP Discovery Flow (behavior-based):
+    fb_ads_scraped_broad.csv (raw ad-level)
+    → [m0_normalizer] → 00_ads_normalized.csv (destination types: MESSAGE/CALL/FORM/WEB)
+    → [m1_aggregator] → 01_pages_aggregated.csv (page-level shares, velocity)
+    → [m2_conv_gate] → 02_pages_candidate.csv (filtered: keeps conversational, drops transactional)
+    → [m3_money_score] → 03_money_scored.csv (money 0-50: ad volume, always-on, velocity)
+    → [m4_urgency_score] → 04_urgency_scored.csv (urgency 0-50: MESSAGE/CALL share, keywords)
+    → icp_report.md (ranked advertisers with combined scores)
 ```
 
 ## Development Practices

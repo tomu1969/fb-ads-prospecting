@@ -1,0 +1,12 @@
+{
+  "total_input": 602,
+  "passed": 91,
+  "dropped": 511,
+  "TRANSACTIONAL_DROP": 0,
+  "NO_SIGNAL_DROP": 511,
+  "MESSAGE": 31,
+  "CALL": 12,
+  "FORM": 31,
+  "WEB_CONSULT": 0,
+  "RESCUED": 17
+}
