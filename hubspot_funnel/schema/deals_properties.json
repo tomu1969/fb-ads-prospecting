@@ -1,0 +1,2516 @@
+{
+  "object": "deals",
+  "generated_at": "2026-01-18",
+  "total_properties": 271,
+  "key_fields": {
+    "id": "hs_object_id",
+    "owner": "hubspot_owner_id",
+    "pipeline": "pipeline",
+    "stage": "dealstage",
+    "close_date": "closedate",
+    "amount": "amount",
+    "deal_name": "dealname",
+    "create_date": "createdate"
+  },
+  "pipelines": {
+    "719833388": {
+      "label": "LaHaus AI",
+      "stages": {
+        "1102547555": {
+          "label": "Calificado",
+          "order": 0,
+          "is_closed": false,
+          "probability": 0.1
+        },
+        "1049659495": {
+          "label": "Demo Agendado",
+          "order": 1,
+          "is_closed": false,
+          "probability": 0.2
+        },
+        "1049659496": {
+          "label": "Demo Presentado",
+          "order": 2,
+          "is_closed": false,
+          "probability": 0.4
+        },
+        "1110769786": {
+          "label": "Propuesta Aceptada",
+          "order": 3,
+          "is_closed": false,
+          "probability": 0.7
+        },
+        "1092762538": {
+          "label": "Suscripción Activa (Pago)",
+          "order": 4,
+          "is_closed": true,
+          "probability": 1.0,
+          "is_won": true
+        },
+        "1167117482": {
+          "label": "Suscripción Activa (Free Trial)",
+          "order": 5,
+          "is_closed": true,
+          "probability": 1.0,
+          "is_won": true
+        },
+        "1102535235": {
+          "label": "Cerrada Perdida",
+          "order": 6,
+          "is_closed": true,
+          "probability": 0.0,
+          "is_lost": true
+        },
+        "1148080018": {
+          "label": "Churn",
+          "order": 7,
+          "is_closed": true,
+          "probability": 0.0,
+          "is_churn": true
+        }
+      }
+    }
+  },
+  "properties": {
+    "amount": {
+      "label": "Amount",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "deal_revenue",
+      "description": "The total amount of the deal",
+      "hubspotDefined": true
+    },
+    "amount_in_home_currency": {
+      "label": "Amount in company currency",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "deal_revenue",
+      "description": "The amount of the deal, using the exchange rate, in your company's currency",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "blast_ai": {
+      "label": "Blast AI",
+      "type": "enumeration",
+      "fieldType": "booleancheckbox",
+      "groupName": "services",
+      "description": "Indica si esta operación está relacionada con Blast AI. Selecciona 'Yes' o 'No' según corresponda.",
+      "options": {
+        "true": "Yes",
+        "false": "No"
+      }
+    },
+    "chat_ai": {
+      "label": "Chat AI",
+      "type": "enumeration",
+      "fieldType": "booleancheckbox",
+      "groupName": "services",
+      "description": "Indica si este trato utiliza o está asociado con Chat AI. Responde 'Sí' si aplica o 'No' si no aplica.",
+      "options": {
+        "true": "Yes",
+        "false": "No"
+      }
+    },
+    "closed_lost_reason": {
+      "label": "Closed lost reason",
+      "type": "string",
+      "fieldType": "textarea",
+      "groupName": "finish",
+      "description": "Motivo por el cual se perdió este negocio",
+      "hubspotDefined": true
+    },
+    "closed_won_reason": {
+      "label": "Closed won reason",
+      "type": "string",
+      "fieldType": "textarea",
+      "groupName": "deal_activity",
+      "description": "Reason why this deal was won",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "closedate": {
+      "label": "Close Date",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealinformation",
+      "description": "Date the deal was closed. This property is set automatically by HubSpot.",
+      "hubspotDefined": true
+    },
+    "costumer_profile": {
+      "label": "Customer Profile",
+      "type": "enumeration",
+      "fieldType": "select",
+      "groupName": "dealinformation",
+      "description": "Perfil del cliente asociado a este trato. Selecciona el tipo que mejor describa al cliente de este acuerdo.",
+      "options": {
+        "inmobiliaria": "Inmobiliaria",
+        "realtor": "Realtor/Agente",
+        "desarrollador": "Desarrollador"
+      }
+    },
+    "count_of_changes_of__deal_owner_": {
+      "label": "Count of changes of \"Deal Owner\"",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealinformation"
+    },
+    "createdate": {
+      "label": "Create Date",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealinformation",
+      "description": "Date the deal was created. This property is set automatically by HubSpot.",
+      "hubspotDefined": true
+    },
+    "days_to_close": {
+      "label": "Days to close",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "dealinformation",
+      "description": "The number of days the deal took to close",
+      "hubspotDefined": true
+    },
+    "deal_currency_code": {
+      "label": "Currency",
+      "type": "enumeration",
+      "fieldType": "select",
+      "groupName": "deal_revenue",
+      "description": "Currency code for the deal.",
+      "hubspotDefined": true
+    },
+    "deal_reference": {
+      "label": "Negocio Referencia",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "implementación"
+    },
+    "dealname": {
+      "label": "Deal Name",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "dealinformation",
+      "description": "The name given to this deal.",
+      "hubspotDefined": true
+    },
+    "dealstage": {
+      "label": "Deal Stage",
+      "type": "enumeration",
+      "fieldType": "radio",
+      "groupName": "deal_activity",
+      "description": "The stage of the deal. Deal stages allow you to categorize and track the progress of the deals that you are working on.",
+      "hubspotDefined": true
+    },
+    "dealtype": {
+      "label": "Deal Type",
+      "type": "enumeration",
+      "fieldType": "radio",
+      "groupName": "dealinformation",
+      "description": "The type of deal. By default, categorize your deal as either a New Business or Existing Business.",
+      "options": {
+        "newbusiness": "New Business",
+        "existingbusiness": "Expansion"
+      },
+      "hubspotDefined": true
+    },
+    "description": {
+      "label": "Deal Description",
+      "type": "string",
+      "fieldType": "textarea",
+      "groupName": "dealinformation",
+      "description": "Description of the deal",
+      "hubspotDefined": true
+    },
+    "detalles_de_oportunidad_perdida": {
+      "label": "Detalles de oportunidad perdida",
+      "type": "string",
+      "fieldType": "textarea",
+      "groupName": "lost",
+      "description": "Campo de texto abierto donde el comercial puede registrar las razones por las cuales la oportunidad fue marcada como cerrada perdida."
+    },
+    "engagements_last_meeting_booked": {
+      "label": "Date of last meeting booked in meetings tool",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "deal_activity",
+      "description": "The date of the most recent meeting an associated contact has booked through the meetings tool.",
+      "hubspotDefined": true
+    },
+    "engagements_last_meeting_booked_campaign": {
+      "label": "Campaign of last booking in meetings tool",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "deal_activity",
+      "description": "This UTM parameter shows which marketing campaign (e.g. a specific email) referred an associated contact to the meetings tool for their most recent booking. This property is only populated when you add tracking parameters to your meeting link.",
+      "hubspotDefined": true
+    },
+    "engagements_last_meeting_booked_medium": {
+      "label": "Medium of last booking in meetings tool",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "deal_activity",
+      "description": "This UTM parameter shows which channel (e.g. email) referred an associated contact to the meetings tool for their most recent booking. This property is only populated when you add tracking parameters to your meeting link.",
+      "hubspotDefined": true
+    },
+    "engagements_last_meeting_booked_source": {
+      "label": "Source of last booking in meetings tool",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "deal_activity",
+      "description": "This UTM parameter shows which site (e.g. Twitter) referred an associated contact to the meetings tool for their most recent booking. This property is only populated when you add tracking parameters to your meeting link. ",
+      "hubspotDefined": true
+    },
+    "go_live_date": {
+      "label": "Go Live Date",
+      "type": "date",
+      "fieldType": "date",
+      "groupName": "implementación_sam",
+      "description": "Fecha en la que se terminó la implementación"
+    },
+    "hs_actual_duration": {
+      "label": "Actual duration",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "dealinformation",
+      "description": "Calculates the time between the create date and close date. If the create date occurs after the close date, the value returned is 0.",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_acv": {
+      "label": "Annual contract value",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "deal_revenue",
+      "description": "The annual contract value (ACV) of this deal.",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_all_accessible_team_ids": {
+      "label": "All teams",
+      "type": "enumeration",
+      "fieldType": "select",
+      "groupName": "dealinformation",
+      "description": "The team IDs, including the team hierarchy, of all default and custom owner properties for this record.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_all_assigned_business_unit_ids": {
+      "label": "Brands",
+      "type": "enumeration",
+      "fieldType": "checkbox",
+      "groupName": "dealinformation",
+      "description": "The brands this record is assigned to.",
+      "hubspotDefined": true
+    },
+    "hs_all_collaborator_owner_ids": {
+      "label": "Deal Collaborator",
+      "type": "enumeration",
+      "fieldType": "checkbox",
+      "groupName": "dealinformation",
+      "description": "Owner ids of the users involved in closing the deal",
+      "hubspotDefined": true
+    },
+    "hs_all_deal_split_owner_ids": {
+      "label": "Deal Split Users",
+      "type": "enumeration",
+      "fieldType": "checkbox",
+      "groupName": "dealinformation",
+      "description": "The owner ids of all associated Deal Splits. This property is set automatically by HubSpot.",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_all_owner_ids": {
+      "label": "All owner IDs",
+      "type": "enumeration",
+      "fieldType": "select",
+      "groupName": "dealinformation",
+      "description": "Values of all default and custom owner properties for this record.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_all_team_ids": {
+      "label": "All team IDs",
+      "type": "enumeration",
+      "fieldType": "select",
+      "groupName": "dealinformation",
+      "description": "The team IDs of all default and custom owner properties for this record.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_amount_furuis_in_home_currency": {
+      "label": "amount in Company Currency",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "dealscripted",
+      "description": "amount in Company Currency",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_analytics_latest_source": {
+      "label": "Latest Traffic Source",
+      "type": "enumeration",
+      "fieldType": "calculation_equation",
+      "groupName": "analyticsinformation",
+      "description": "Source for the contact either directly or indirectly associated with the last session activity for this deal",
+      "options": {
+        "ORGANIC_SEARCH": "Organic Search",
+        "PAID_SEARCH": "Paid Search",
+        "EMAIL_MARKETING": "Email Marketing",
+        "SOCIAL_MEDIA": "Organic Social",
+        "REFERRALS": "Referrals",
+        "OTHER_CAMPAIGNS": "Other Campaigns",
+        "DIRECT_TRAFFIC": "Direct Traffic",
+        "OFFLINE": "Offline Sources",
+        "PAID_SOCIAL": "Paid Social",
+        "AI_REFERRALS": "AI Referrals"
+      },
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_analytics_latest_source_company": {
+      "label": "Latest Traffic Source Company",
+      "type": "enumeration",
+      "fieldType": "select",
+      "groupName": "analyticsinformation",
+      "description": "Source for the company with an associated contact with the last session activity for this deal",
+      "options": {
+        "ORGANIC_SEARCH": "Organic Search",
+        "PAID_SEARCH": "Paid Search",
+        "EMAIL_MARKETING": "Email Marketing",
+        "SOCIAL_MEDIA": "Organic Social",
+        "REFERRALS": "Referrals",
+        "OTHER_CAMPAIGNS": "Other Campaigns",
+        "DIRECT_TRAFFIC": "Direct Traffic",
+        "OFFLINE": "Offline Sources",
+        "PAID_SOCIAL": "Paid Social",
+        "AI_REFERRALS": "AI Referrals"
+      },
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_analytics_latest_source_contact": {
+      "label": "Latest Traffic Source Contact",
+      "type": "enumeration",
+      "fieldType": "select",
+      "groupName": "analyticsinformation",
+      "description": "Source for the directly associated contact with the last session activity for this deal",
+      "options": {
+        "ORGANIC_SEARCH": "Organic Search",
+        "PAID_SEARCH": "Paid Search",
+        "EMAIL_MARKETING": "Email Marketing",
+        "SOCIAL_MEDIA": "Organic Social",
+        "REFERRALS": "Referrals",
+        "OTHER_CAMPAIGNS": "Other Campaigns",
+        "DIRECT_TRAFFIC": "Direct Traffic",
+        "OFFLINE": "Offline Sources",
+        "PAID_SOCIAL": "Paid Social",
+        "AI_REFERRALS": "AI Referrals"
+      },
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_analytics_latest_source_data_1": {
+      "label": "Latest Traffic Source Data 1",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "analyticsinformation",
+      "description": "Additional source details of the last session attributed to any contacts that are directly or indirectly associated with this deal",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_analytics_latest_source_data_1_company": {
+      "label": "Latest Traffic Source Data 1 Company",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "analyticsinformation",
+      "description": "Additional source details of the last session attributed to any contacts that are indirectly associated with this deal (via a company association)",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_analytics_latest_source_data_1_contact": {
+      "label": "Latest Traffic Source Data 1 Contact",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "analyticsinformation",
+      "description": "Additional source details of the last session attributed to any contacts that are directly associated with this deal",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_analytics_latest_source_data_2": {
+      "label": "Latest Traffic Source Data 2",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "analyticsinformation",
+      "description": "Additional source details of the last session attributed to any contacts that are directly or indirectly associated with this deal",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_analytics_latest_source_data_2_company": {
+      "label": "Latest Traffic Source Data 2 Company",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "analyticsinformation",
+      "description": "Additional source details of the last session attributed to any contacts that are indirectly associated with this deal",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_analytics_latest_source_data_2_contact": {
+      "label": "Latest Traffic Source Data 2 Contact",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "analyticsinformation",
+      "description": "Additional source details of the last session attributed to any contacts that are directly associated with this deal",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_analytics_latest_source_timestamp": {
+      "label": "Latest Traffic Source Timestamp",
+      "type": "datetime",
+      "fieldType": "number",
+      "groupName": "analyticsinformation",
+      "description": "Timestamp of when latest source occurred for either a directly or indirectly associated contact",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_analytics_latest_source_timestamp_company": {
+      "label": "Latest Traffic Source Timestamp Company",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "analyticsinformation",
+      "description": "Timestamp of when latest source occurred for an indirectly associated contact",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_analytics_latest_source_timestamp_contact": {
+      "label": "Latest Traffic Source Timestamp Contact",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "analyticsinformation",
+      "description": "Timestamp of when latest source occurred for a directly associated contact",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_analytics_source": {
+      "label": "Original Traffic Source",
+      "type": "enumeration",
+      "fieldType": "select",
+      "groupName": "analyticsinformation",
+      "description": "Original source for the contact with the earliest activity for this deal.",
+      "options": {
+        "ORGANIC_SEARCH": "Organic Search",
+        "PAID_SEARCH": "Paid Search",
+        "EMAIL_MARKETING": "Email Marketing",
+        "SOCIAL_MEDIA": "Organic Social",
+        "REFERRALS": "Referrals",
+        "OTHER_CAMPAIGNS": "Other Campaigns",
+        "DIRECT_TRAFFIC": "Direct Traffic",
+        "OFFLINE": "Offline Sources",
+        "PAID_SOCIAL": "Paid Social",
+        "AI_REFERRALS": "AI Referrals"
+      },
+      "hubspotDefined": true
+    },
+    "hs_analytics_source_data_1": {
+      "label": "Original Traffic Source Drill-Down 1",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "analyticsinformation",
+      "description": "Additional information about the original source for the associated contact, or associated company if there is no contact, with the oldest value for the Time first seen property.",
+      "hubspotDefined": true
+    },
+    "hs_analytics_source_data_2": {
+      "label": "Original Traffic Source Drill-Down 2",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "analyticsinformation",
+      "description": "Additional information about the original source for the associated contact, or associated company if there is no contact, with the oldest value for the Time first seen property.",
+      "hubspotDefined": true
+    },
+    "hs_arr": {
+      "label": "Annual recurring revenue",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "deal_revenue",
+      "description": "The annual recurring revenue (ARR) of this deal.",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_associated_deal_registration_deal_type": {
+      "label": "Associated Shared Deal Type",
+      "type": "enumeration",
+      "fieldType": "select",
+      "groupName": "deal_activity",
+      "description": "The deal type of the associated Shared Deal. (This field is only accurate on Partner portals!)",
+      "options": {
+        "CHANNEL": "Channel",
+        "BEST_PARTNER_WINS": "Best Partner Wins",
+        "DIFM": "Partner Assisted",
+        "COLLAB": "Partner Sourced",
+        "COLLAB_OR_DIFM": "Partner Sourced or Assisted"
+      },
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_associated_deal_registration_product_interests": {
+      "label": "Associated Shared Deal Product Interests",
+      "type": "enumeration",
+      "fieldType": "checkbox",
+      "groupName": "deal_activity",
+      "description": "The most likely HubSpot product(s) of the deal synced from the associated Shared Deal. (This field is only accurate on Partner portals!)",
+      "options": {
+        "Additional Portal": "Additional Portal",
+        "Ads Add-On": "Ads Add-On",
+        "Brand Domain": "Brand Domain",
+        "Calculated Properties Limit Increase": "Calculated Properties Limit Increase",
+        "Content Hub Enterprise": "Content Hub Enterprise",
+        "Content Hub Professional": "Content Hub Professional",
+        "Content Hub Starter": "Content Hub Starter",
+        "CMS Enterprise": "CMS Enterprise",
+        "CMS Professional": "CMS Professional",
+        "HubSpot CMS": "CMS Starter",
+        "CRM Contact Records Limit Increase": "CRM Contact Records Limit Increase",
+        "CRM Object Limit Increase": "CRM Object Limit Increase",
+        "CRM Suite Enterprise": "CRM Suite Enterprise",
+        "CRM Suite Professional": "CRM Suite Professional",
+        "CRM Suite Starter": "CRM Suite Starter",
+        "Custom Properties Limit Increase": "Custom Properties Limit Increase",
+        "Custom SSL": "Custom SSL",
+        "Dedicated IP": "Dedicated IP",
+        "Marketing+ Enterprise": "Marketing+ Enterprise",
+        "Marketing+ Professional": "Marketing+ Professional",
+        "Marketing Hub Enterprise": "Marketing Hub Enterprise",
+        "Marketing Hub Professional": "Marketing Hub Professional",
+        "Marketing Hub Starter": "Marketing Hub Starter",
+        "Marketing SMS Add-On": "Marketing SMS Add-On",
+        "Marketing SMS Limit Increase": "Marketing SMS Limit Increase",
+        "Monthly Consulting": "Monthly Consulting",
+        "Ongoing Consulting": "Ongoing Consulting",
+        "Operations Hub Enterprise": "Operations Hub Enterprise",
+        "Operations Hub Professional": "Operations Hub Professional",
+        "Operations Hub Starter": "Operations Hub Starter",
+        "Premium Consulting": "Premium Consulting",
+        "Reporting Add-On": "Reporting Add-On",
+        "Sales Hub Enterprise": "Sales Hub Enterprise",
+        "Sales Hub Professional": "Sales Hub Professional",
+        "Sales Hub Starter": "Sales Hub Starter",
+        "Service Hub Enterprise": "Service Hub Enterprise",
+        "Service Hub Professional": "Service Hub Professional",
+        "Service Hub Starter": "Service Hub Starter",
+        "Solutions Partner": "Solutions Partner",
+        "Solutions Provider": "Solutions Provider",
+        "Technical Consulting": "Technical Consulting",
+        "Transactional Email": "Transactional Email",
+        "100 Breeze Intelligence Credits": "100 Breeze Intelligence Credits",
+        "1000 Breeze Intelligence Credits": "1000 Breeze Intelligence Credits",
+        "10000 Breeze Intelligence Credits": "10000 Breeze Intelligence Credits",
+        "Breeze Intelligence Backfill Enrichment": "Breeze Intelligence Backfill Enrichment",
+        "Smart CRM Professional": "Smart CRM Professional",
+        "Smart CRM Enterprise": "Smart CRM Enterprise",
+        "HubSpot Committed Credits (Auto-upgrade)": "HubSpot Committed Credits (Auto-upgrade)",
+        "Starter Customer Platform": "Starter Customer Platform",
+        "Professional Customer Platform": "Professional Customer Platform",
+        "Enterprise Customer Platform": "Enterprise Customer Platform",
+        "Core Seats Starter": "Core Seats Starter",
+        "Core Seats Professional": "Core Seats Professional",
+        "Core Seats Enterprise": "Core Seats Enterprise",
+        "Data Hub Starter": "Data Hub Starter",
+        "Data Hub Professional": "Data Hub Professional",
+        "Data Hub Enterprise": "Data Hub Enterprise",
+        "Commerce Hub Starter": "Commerce Hub Starter",
+        "Commerce Hub Professional": "Commerce Hub Professional",
+        "Commerce Hub Enterprise": "Commerce Hub Enterprise",
+        "HubSpot Credits Capacity Packs": "HubSpot Credits Capacity Packs"
+      },
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_attributed_team_ids": {
+      "label": "Attributed reporting team",
+      "type": "enumeration",
+      "fieldType": "checkbox",
+      "groupName": "dealinformation",
+      "description": "The set of teams that this deal is attributed to. If an owner is specified at the time of creation, the record will default to the owner's primary team.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_average_call_duration": {
+      "label": "Average call duration",
+      "type": "number",
+      "fieldType": "calculation_rollup",
+      "groupName": "predictive_deal_score_feature_properties",
+      "description": "The average call duration of calls associated to the deal",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_average_deal_owner_duration_in_current_stage": {
+      "label": "Average Deal Owner Duration In Current Stage",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealscripted",
+      "description": "Time duration of the calculated average time of closed-won deals spent in current pipeline stage",
+      "hubspotDefined": true
+    },
+    "hs_campaign": {
+      "label": "HubSpot Campaign",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "dealinformation",
+      "description": "The marketing campaign the deal is associated with",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_closed_amount": {
+      "label": "Closed Deal Amount",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "dealinformation",
+      "description": "Returns the amount if the deal is closed. Else, returns 0.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_closed_amount_in_home_currency": {
+      "label": "Closed deal amount in home currency",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "dealinformation",
+      "description": "The amount in home currency that was closed for deals that were won.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_closed_deal_close_date": {
+      "label": "Closed Deal Close Date",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "dealscripted",
+      "description": "Close date populated only if this deal is closed and valid",
+      "hubspotDefined": true,
+      "calculated": true,
+      "hidden": true
+    },
+    "hs_closed_deal_create_date": {
+      "label": "Closed Deal Create Date",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "dealscripted",
+      "description": "Create date populated only if this deal is closed",
+      "hubspotDefined": true,
+      "calculated": true,
+      "hidden": true
+    },
+    "hs_closed_won_count": {
+      "label": "Closed won count",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "dealinformation",
+      "description": "This property is 1 if the deal is closed won, otherwise 0.",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_closed_won_date": {
+      "label": "Closed Won Date (Internal)",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealinformation",
+      "description": "Returns closedate if this deal is closed won",
+      "hubspotDefined": true,
+      "calculated": true,
+      "hidden": true
+    },
+    "hs_created_by_user_id": {
+      "label": "Created by user ID",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealinformation",
+      "description": "The user who created this record. This value is set automatically by HubSpot.",
+      "hubspotDefined": true
+    },
+    "hs_createdate": {
+      "label": "HubSpot Create Date",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealinformation",
+      "description": "The date the deal was created. This property is set automatically by HubSpot.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_cross_sell_opportunity": {
+      "label": "Cross-sell Opportunity",
+      "type": "bool",
+      "fieldType": "booleancheckbox",
+      "groupName": "multiaccountmanagement",
+      "description": "Identify a deal as a good candidate for cross-selling programs.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_days_to_close_raw": {
+      "label": "Days to close (without rounding)",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "dealinformation",
+      "description": "The number of days the deal took to close, without rounding",
+      "hubspotDefined": true,
+      "calculated": true,
+      "hidden": true
+    },
+    "hs_deal_amount_calculation_preference": {
+      "label": "Deal amount calculation preference",
+      "type": "enumeration",
+      "fieldType": "radio",
+      "groupName": "dealinformation",
+      "description": "Specifies how deal amount should be calculated from line items",
+      "options": {
+        "TCV": "Total Contract Value",
+        "ARR": "Annual Recurring Revenue",
+        "MRR": "Monthly Recurring Revenue",
+        "CUSTOM": "Custom"
+      },
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_deal_registration_mrr": {
+      "label": "HubSpot Shared Deal MRR",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "deal_activity",
+      "description": "MRR of the quote purchased for this Shared Deal.",
+      "hubspotDefined": true
+    },
+    "hs_deal_registration_mrr_currency_code": {
+      "label": "HubSpot Shared Deal MRR Currency Code",
+      "type": "enumeration",
+      "fieldType": "select",
+      "groupName": "deal_activity",
+      "description": "Currency code for the MRR of the quote purchased for this Shared Deal.",
+      "hubspotDefined": true
+    },
+    "hs_deal_score": {
+      "label": "Deal Score",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealinformation",
+      "description": "The predictive deal score calculated by Hubspot AI to score the deal health",
+      "hubspotDefined": true
+    },
+    "hs_deal_stage_probability": {
+      "label": "Deal probability",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealinformation",
+      "description": "The probability a deal will close. This defaults to the deal stage probability setting.",
+      "hubspotDefined": true
+    },
+    "hs_deal_stage_probability_shadow": {
+      "label": "Deal stage probability shadow",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "dealinformation",
+      "description": "Fall back property for calculating the deal stage when no customer override exist.  Probability between 0 and 1 of deal stage. Defaults to 0 for unknown deal stages.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_exchange_rate": {
+      "label": "Exchange rate",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "deal_revenue",
+      "description": "This is the exchange rate used to convert the deal amount into your company currency.",
+      "hubspotDefined": true
+    },
+    "hs_forecast_amount": {
+      "label": "Forecast amount",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealinformation",
+      "description": "The custom forecasted deal value calculated by multiplying the forecast probability and deal amount in your company’s currency.",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_forecast_probability": {
+      "label": "Forecast probability",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealinformation",
+      "description": "The custom percent probability a deal will close.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_has_empty_conditional_stage_properties": {
+      "label": "Has Empty Conditional Stage Properties",
+      "type": "bool",
+      "fieldType": "booleancheckbox",
+      "groupName": "dealinformation",
+      "description": "True if the deal is missing conditional stage property values required to progress to the next deal stage.  This is set automatically by HubSpot based on user actions in the deal record.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_has_last_meeting_followups": {
+      "label": "Has Last Meeting Follow Ups",
+      "type": "bool",
+      "fieldType": "calculation_equation",
+      "groupName": "deal_activity",
+      "description": "Indicates if the most recent meeting has follow ups. True if hs_last_meeting_id_with_followups has a value, false otherwise.",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_is_active_shared_deal": {
+      "label": "Is Active Shared Deal",
+      "type": "bool",
+      "fieldType": "booleancheckbox",
+      "groupName": "deal_activity",
+      "description": "Indicates if the current deal is an active shared deal. It is set automatically based on the value of hs_num_associated_active_deal_registrations.",
+      "hubspotDefined": true
+    },
+    "hs_is_closed": {
+      "label": "Is Deal Closed?",
+      "type": "bool",
+      "fieldType": "calculation_equation",
+      "groupName": "dealinformation",
+      "description": "True if the deal was won or lost.",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_is_closed_count": {
+      "label": "Is Closed (numeric)",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "dealinformation",
+      "description": "This property is 1 if the deal is closed (\"Closed Won\" or \"Closed Lost\"), otherwise 0",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_is_closed_lost": {
+      "label": "Is closed lost",
+      "type": "bool",
+      "fieldType": "calculation_equation",
+      "groupName": "deal_activity",
+      "description": "True if the deal is in the closed lost state, false otherwise",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_is_closed_won": {
+      "label": "Is Closed Won",
+      "type": "bool",
+      "fieldType": "calculation_equation",
+      "groupName": "deal_activity",
+      "description": "True if the deal is in the closed won state, false otherwise",
+      "hubspotDefined": true
+    },
+    "hs_is_deal_split": {
+      "label": "Deal Split Added",
+      "type": "bool",
+      "fieldType": "calculation_equation",
+      "groupName": "dealinformation",
+      "description": "Indicates if the deal is split between multiple users.",
+      "hubspotDefined": true
+    },
+    "hs_is_in_first_deal_stage": {
+      "label": "Is In First Deal Stage",
+      "type": "bool",
+      "fieldType": "booleancheckbox",
+      "groupName": "dealinformation",
+      "description": "True if the deal is in the first stage of its pipeline. This is set automatically by HubSpot based on user actions in the deal record.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_is_open_count": {
+      "label": "Is Open (numeric)",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "dealinformation",
+      "description": "This property is 1 if the deal is not closed won or closed lost, otherwise 0",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_is_stalled": {
+      "label": "Is Stalled",
+      "type": "bool",
+      "fieldType": "calculation_equation",
+      "groupName": "dealscripted",
+      "description": "True if Time in stage is 20% longer than the deal owner’s closed-won average time for that stage, false otherwise.",
+      "hubspotDefined": true
+    },
+    "hs_is_stalled_after_timestamp": {
+      "label": "Is Stalled After Timestamp",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealscripted",
+      "description": "Timestamp when Time in stage became 20% longer than the deal owner’s closed-won average for that stage.",
+      "hubspotDefined": true
+    },
+    "hs_last_call_id_with_followups": {
+      "label": "Last call ID with followups",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "deal_activity",
+      "description": "The object ID of the most recent call that has follow-up items to complete",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_last_gs_shared_message": {
+      "label": "Last GS Shared Message",
+      "type": "datetime",
+      "fieldType": "calculation_rollup",
+      "groupName": "deal_activity",
+      "description": "when was the last gs shared message?",
+      "hubspotDefined": true
+    },
+    "hs_last_meeting_id_with_followups": {
+      "label": "Last meeting ID with followups",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "deal_activity",
+      "description": "The object ID of the most recent meeting that has follow-up items to complete",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_last_partner_shared_message_date": {
+      "label": "Last Partner Shared Message Date",
+      "type": "date",
+      "fieldType": "calculation_rollup",
+      "groupName": "deal_activity",
+      "description": "When was the last shared message sent on this deal by a Partner?",
+      "hubspotDefined": true
+    },
+    "hs_last_shared_message_create_date": {
+      "label": "Last Shared Message Create Date",
+      "type": "datetime",
+      "fieldType": "calculation_rollup",
+      "groupName": "deal_activity",
+      "description": "The date of the most recent shared message on this deal.",
+      "hubspotDefined": true
+    },
+    "hs_lastmodifieddate": {
+      "label": "Last Modified Date",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "deal_activity",
+      "description": "Most recent timestamp of any property update for this deal. This includes HubSpot internal properties, which can be visible or hidden. This property is updated automatically.",
+      "hubspotDefined": true
+    },
+    "hs_latest_approval_status": {
+      "label": "Latest Approval Status",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "implementación",
+      "description": "The latest approval status. Used by HubSpot to track pipeline approval processes.",
+      "hubspotDefined": true
+    },
+    "hs_latest_approval_status_approval_id": {
+      "label": "Latest Approval Status Approval ID",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "deal_activity",
+      "description": "The ID of the approval object containing the latest approval status.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_latest_marketing_email_click_date": {
+      "label": "Latest marketing email click date",
+      "type": "datetime",
+      "fieldType": "calculation_rollup",
+      "groupName": "predictive_deal_score_feature_properties",
+      "description": "The timestamp of the most recent marketing email click for an associated contact",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_latest_marketing_email_open_date": {
+      "label": "Latest marketing email open date",
+      "type": "datetime",
+      "fieldType": "calculation_rollup",
+      "groupName": "predictive_deal_score_feature_properties",
+      "description": "The timestamp of the most recent marketing email open for an associated contact",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_latest_marketing_email_reply_date": {
+      "label": "Latest marketing email reply date",
+      "type": "datetime",
+      "fieldType": "calculation_rollup",
+      "groupName": "predictive_deal_score_feature_properties",
+      "description": "The timestamp of the most recent marketing email reply for an associated contact",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_latest_meeting_activity": {
+      "label": "Latest meeting activity",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealinformation",
+      "description": "The date of the most recent meeting (past or upcoming) logged for, scheduled with, or booked by a contact associated with this deal.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_latest_sales_email_click_date": {
+      "label": "Latest sales email click date",
+      "type": "datetime",
+      "fieldType": "calculation_rollup",
+      "groupName": "predictive_deal_score_feature_properties",
+      "description": "The timestamp of the most recent sales email click for an associated contact",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_latest_sales_email_open_date": {
+      "label": "Latest sales email open date",
+      "type": "datetime",
+      "fieldType": "calculation_rollup",
+      "groupName": "predictive_deal_score_feature_properties",
+      "description": "The timestamp of the most recent sales email open for an associated contact",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_latest_sales_email_reply_date": {
+      "label": "Latest sales email reply date",
+      "type": "datetime",
+      "fieldType": "calculation_rollup",
+      "groupName": "predictive_deal_score_feature_properties",
+      "description": "The timestamp of the most recent sales email reply for an associated contact",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_likelihood_to_close": {
+      "label": "Likelihood to close by the close date",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealinformation",
+      "description": "Hubspot predicted likelihood between 0 and 1 of the deal to close by the close date.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_line_item_context_id": {
+      "label": "Line item context ID",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealinformation",
+      "description": "ID reference to a LineItemContext object that stores additional context around the Line Items associated to this Deal",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_line_item_global_term_hs_discount_percentage": {
+      "label": "Global Term Line Item Discount Percentage",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "dealinformation",
+      "description": "For internal HubSpot Application use only. Global term for the discount percentage applied.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_line_item_global_term_hs_discount_percentage_enabled": {
+      "label": "Global Term Line Item Discount Percentage Enabled",
+      "type": "bool",
+      "fieldType": "booleancheckbox",
+      "groupName": "dealinformation",
+      "description": "For internal HubSpot Application use only. Indicates if the Global term for the discount percentage is enabled.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_line_item_global_term_hs_recurring_billing_period": {
+      "label": "Global Term Line Item Recurring Billing Period",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "dealinformation",
+      "description": "For internal HubSpot Application use only. Global term for product recurring billing duration.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_line_item_global_term_hs_recurring_billing_period_enabled": {
+      "label": "Global Term Line Item Recurring Billing Period Enabled",
+      "type": "bool",
+      "fieldType": "booleancheckbox",
+      "groupName": "dealinformation",
+      "description": "For internal HubSpot Application use only. Indicates if the Global term for product recurring billing duration is enabled.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_line_item_global_term_hs_recurring_billing_start_date": {
+      "label": "Global Term Line Item Recurring Billing Start Date",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "dealinformation",
+      "description": "For internal HubSpot Application use only. Global term for recurring billing start date for a line item.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_line_item_global_term_hs_recurring_billing_start_date_enabled": {
+      "label": "Global Term Line Item Recurring Billing Start Date Enabled",
+      "type": "bool",
+      "fieldType": "booleancheckbox",
+      "groupName": "dealinformation",
+      "description": "For internal HubSpot Application use only. Indicates if the Global term for recurring billing start date for a line item is enabled.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_line_item_global_term_recurringbillingfrequency": {
+      "label": "Global Term Line Item Recurring Billing Frequency",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "dealinformation",
+      "description": "For internal HubSpot Application use only. Global term for how frequently the product is billed.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_line_item_global_term_recurringbillingfrequency_enabled": {
+      "label": "Global Term Line Item Recurring Billing Frequency Enabled",
+      "type": "bool",
+      "fieldType": "booleancheckbox",
+      "groupName": "dealinformation",
+      "description": "For internal HubSpot Application use only. Indicates if the Global term for how frequently the product is billed is enabled",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_manual_campaign_ids": {
+      "label": "Manual campaign ids",
+      "type": "number",
+      "fieldType": "calculation_rollup",
+      "groupName": "dealinformation",
+      "description": "The campaign object ids of deals manually associated to campaigns",
+      "hubspotDefined": true,
+      "calculated": true,
+      "hidden": true
+    },
+    "hs_manual_forecast_category": {
+      "label": "Forecast category",
+      "type": "enumeration",
+      "fieldType": "select",
+      "groupName": "dealinformation",
+      "description": "The likelihood a deal will close. This property is used for manual forecasting your deals.",
+      "options": {
+        "OMIT": "Not forecasted",
+        "PIPELINE": "Pipeline",
+        "BEST_CASE": "Best case",
+        "COMMIT": "Commit",
+        "CLOSED": "Closed won"
+      },
+      "hubspotDefined": true
+    },
+    "hs_merged_object_ids": {
+      "label": "Merged Deal IDs",
+      "type": "enumeration",
+      "fieldType": "checkbox",
+      "groupName": "dealinformation",
+      "description": "The list of Deal record IDs that have been merged into this Deal. This value is set automatically by HubSpot.",
+      "hubspotDefined": true
+    },
+    "hs_mrr": {
+      "label": "Monthly recurring revenue",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "deal_revenue",
+      "description": "The monthly recurring revenue (MRR) of this deal.",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_net_pipeline_impact": {
+      "label": "Net Pipeline Impact",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "deal_activity",
+      "description": "This property is intended for measuring pipeline impact in the Deal Pipeline Waterfall report in Sales Analytics. It is dynamically calculated and utilized as a metric by the HistoricalReportingService. ",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_next_meeting_id": {
+      "label": "Next Meeting",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealinformation",
+      "hubspotDefined": true
+    },
+    "hs_next_meeting_name": {
+      "label": "Next Meeting Name",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "dealinformation",
+      "hubspotDefined": true
+    },
+    "hs_next_meeting_start_time": {
+      "label": "Next Meeting Start Time",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealinformation",
+      "hubspotDefined": true
+    },
+    "hs_next_step": {
+      "label": "Next step",
+      "type": "string",
+      "fieldType": "textarea",
+      "groupName": "dealinformation",
+      "description": "A short description of the next step for the deal",
+      "hubspotDefined": true
+    },
+    "hs_next_step_updated_at": {
+      "label": "Next Step Updated At",
+      "type": "datetime",
+      "fieldType": "calculation_equation",
+      "groupName": "dealinformation",
+      "description": "Timestamp of the most recent update to Next Step property",
+      "hubspotDefined": true,
+      "calculated": true,
+      "hidden": true
+    },
+    "hs_notes_last_activity": {
+      "label": "Last Activity",
+      "type": "object_coordinates",
+      "fieldType": "text",
+      "groupName": "dealinformation",
+      "description": "The coordinates of the last activity for a deal. This is set automatically by HubSpot based on user actions in the deal record.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_notes_next_activity": {
+      "label": "Next Activity",
+      "type": "object_coordinates",
+      "fieldType": "text",
+      "groupName": "dealinformation",
+      "description": "The coordinates of the next upcoming activity for a deal. This is set automatically by HubSpot based on user actions in the deal record.",
+      "hubspotDefined": true
+    },
+    "hs_notes_next_activity_type": {
+      "label": "Next Activity Type",
+      "type": "enumeration",
+      "fieldType": "select",
+      "groupName": "dealinformation",
+      "description": "The type of the next upcoming activity for a deal. This property is set automatically by HubSpot based on user action. This includes logging a future call, sales email, or meeting using the Log feature, as well as creating a future task or scheduling a future meeting. This is updated automatically by HubSpot.",
+      "options": {
+        "CALL": "Call",
+        "CONVERSATION_SESSION": "Conversation session",
+        "INCOMING_EMAIL": "Email reply from contact",
+        "EMAIL": "Email sent to contact",
+        "FORWARDED_EMAI": "Forwarded email",
+        "LINKEDIN_MESSAGE": "LinkedIn message",
+        "MEETING": "Meeting",
+        "NOTE": "Note",
+        "POSTAL_MAIL": "Postal mail",
+        "PUBLISHING_TASK": "Publishing task",
+        "SMS": "SMS",
+        "TASK": "Task",
+        "WHATS_APP": "WhatsApp"
+      },
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_num_associated_active_deal_registrations": {
+      "label": "Number of Active Deal Registrations",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "deal_activity",
+      "description": "The number of active deal registrations associated with this deal. This property is set automatically by HubSpot.",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_num_associated_deal_registrations": {
+      "label": "Number of Deal Registrations",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "deal_activity",
+      "description": "The number of deal registrations associated with this deal. This property is set automatically by HubSpot.",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_num_associated_deal_splits": {
+      "label": "Number of Deal Splits",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "deal_activity",
+      "description": "The number of deal splits associated with this deal. This property is set automatically by HubSpot.",
+      "hubspotDefined": true,
+      "calculated": true,
+      "hidden": true
+    },
+    "hs_num_of_associated_line_items": {
+      "label": "Number of Associated Line Items",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealinformation",
+      "description": "The number of line items associated with this deal",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_num_target_accounts": {
+      "label": "Number of target accounts",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealinformation",
+      "description": "The number of target account companies associated with this deal. This property is set automatically by HubSpot.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_number_of_call_engagements": {
+      "label": "Number of call engagements",
+      "type": "number",
+      "fieldType": "calculation_rollup",
+      "groupName": "predictive_deal_score_feature_properties",
+      "description": "The number of call engagements associated to the deal",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_number_of_inbound_calls": {
+      "label": "Number of inbound calls",
+      "type": "number",
+      "fieldType": "calculation_rollup",
+      "groupName": "predictive_deal_score_feature_properties",
+      "description": "The number of inbound calls associated to the deal",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_number_of_outbound_calls": {
+      "label": "Number of outbound calls",
+      "type": "number",
+      "fieldType": "calculation_rollup",
+      "groupName": "predictive_deal_score_feature_properties",
+      "description": "The number of outbound calls associated to the deal",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_number_of_overdue_tasks": {
+      "label": "Number of overdue tasks",
+      "type": "number",
+      "fieldType": "calculation_rollup",
+      "groupName": "predictive_deal_score_feature_properties",
+      "description": "The number of overdue tasks associated to the deal",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_number_of_scheduled_meetings": {
+      "label": "Number of scheduled meetings",
+      "type": "number",
+      "fieldType": "calculation_rollup",
+      "groupName": "predictive_deal_score_feature_properties",
+      "description": "The number of scheduled meetings associated to the deal",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_object_id": {
+      "label": "Record ID",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealinformation",
+      "description": "The unique ID for this record. This value is set automatically by HubSpot.",
+      "hubspotDefined": true
+    },
+    "hs_object_source": {
+      "label": "Record creation source",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "dealinformation",
+      "description": "Raw internal PropertySource present in the RequestMeta when this record was created.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_object_source_detail_1": {
+      "label": "Record source detail 1",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "dealinformation",
+      "description": "First level of detail on how this record was created.",
+      "hubspotDefined": true
+    },
+    "hs_object_source_detail_2": {
+      "label": "Record source detail 2",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "dealinformation",
+      "description": "Second level of detail on how this record was created.",
+      "hubspotDefined": true
+    },
+    "hs_object_source_detail_3": {
+      "label": "Record source detail 3",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "dealinformation",
+      "description": "Third level of detail on how this record was created.",
+      "hubspotDefined": true
+    },
+    "hs_object_source_id": {
+      "label": "Record creation source ID",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "dealinformation",
+      "description": "Raw internal sourceId present in the RequestMeta when this record was created.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_object_source_label": {
+      "label": "Record source",
+      "type": "enumeration",
+      "fieldType": "select",
+      "groupName": "dealinformation",
+      "description": "How this record was created.",
+      "hubspotDefined": true
+    },
+    "hs_object_source_user_id": {
+      "label": "Record creation source user ID",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealinformation",
+      "description": "Raw internal userId present in the RequestMeta when this record was created.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_open_amount_in_home_currency": {
+      "label": "Open amount in home currency",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "hubspotmetrics",
+      "description": "The amount of the open deal, using the exchange rate, in your home currency",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_open_deal_create_date": {
+      "label": "Open deal create date",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "dealscripted",
+      "description": "Create date populated only if this deal is open",
+      "hubspotDefined": true,
+      "calculated": true,
+      "hidden": true
+    },
+    "hs_owning_teams": {
+      "label": "Owning Teams",
+      "type": "enumeration",
+      "fieldType": "checkbox",
+      "groupName": "dealinformation",
+      "description": "The teams that are attributed to this record.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_pinned_engagement_id": {
+      "label": "Pinned Engagement ID",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealinformation",
+      "description": "The object ID of the current pinned engagement. This will only be shown if there is already an association to the engagement.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_predicted_amount": {
+      "label": "The predicted deal amount",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "dealinformation",
+      "description": "Returns the multiplication of the deal amount times the predicted likelihood of the deal to close by the close date.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_predicted_amount_in_home_currency": {
+      "label": "The predicted deal amount in your company's currency",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "dealinformation",
+      "description": "Returns the multiplication of the deal amount in your company's currency times the predicted likelihood of the deal to close by the close date.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_primary_associated_company": {
+      "label": "Primary Associated Company",
+      "type": "number",
+      "fieldType": "calculation_rollup",
+      "groupName": "dealinformation",
+      "description": "Object Id of the Primary Associated Company.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_priority": {
+      "label": "Priority",
+      "type": "enumeration",
+      "fieldType": "select",
+      "groupName": "dealinformation",
+      "options": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
+      },
+      "hubspotDefined": true
+    },
+    "hs_projected_amount": {
+      "label": "Weighted amount",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "dealinformation",
+      "description": "Returns the multiplication of the amount times the probability of the deal closing.",
+      "hubspotDefined": true
+    },
+    "hs_projected_amount_in_home_currency": {
+      "label": "Weighted amount in company currency",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "dealinformation",
+      "description": "The deal’s amount in home currency multiplied by its probability of closing, which is determined based on the deal’s stage and the probability that was assigned to it in deal pipeline settings.",
+      "hubspotDefined": true
+    },
+    "hs_read_only": {
+      "label": "Read only object",
+      "type": "bool",
+      "fieldType": "booleancheckbox",
+      "groupName": "dealinformation",
+      "description": "Determines whether a record can be edited by a user.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_sales_email_last_replied": {
+      "label": "Recent Sales Email Replied Date",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealinformation",
+      "description": "The last time a tracked sales email was replied to for this deal",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_shared_team_ids": {
+      "label": "Shared teams",
+      "type": "enumeration",
+      "fieldType": "checkbox",
+      "groupName": "dealinformation",
+      "description": "Additional teams whose users can access the Deal based on their permissions. This can be set manually or through Workflows or APIs.",
+      "hubspotDefined": true
+    },
+    "hs_shared_user_ids": {
+      "label": "Shared users",
+      "type": "enumeration",
+      "fieldType": "checkbox",
+      "groupName": "dealinformation",
+      "description": "Additional users that can access the Deal based on their permissions. This can be set manually or through Workflows and APIs.",
+      "hubspotDefined": true
+    },
+    "hs_source_object_id": {
+      "label": "Source Object ID",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealinformation",
+      "description": "The ID of the object from which the data was migrated. This is set automatically during portal data migration.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_synced_deal_owner_name_and_email": {
+      "label": "HubSpot Sales Lead",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "deal_activity",
+      "description": "The HubSpot sales lead that owns this Shared Deal.",
+      "hubspotDefined": true
+    },
+    "hs_tag_ids": {
+      "label": "Deal Tags",
+      "type": "enumeration",
+      "fieldType": "checkbox",
+      "groupName": "dealinformation",
+      "description": "List of tag ids applicable to a deal. This property is set automatically by HubSpot.",
+      "hubspotDefined": true
+    },
+    "hs_tcv": {
+      "label": "Total contract value",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "deal_revenue",
+      "description": "The total contract value (TCV) of this deal.",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_unique_creation_key": {
+      "label": "Unique creation key",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "dealinformation",
+      "description": "Unique property used for idempotent creates",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_updated_by_user_id": {
+      "label": "Updated by user ID",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealinformation",
+      "description": "The user who last updated this record. This value is set automatically by HubSpot.",
+      "hubspotDefined": true
+    },
+    "hs_user_ids_of_all_notification_followers": {
+      "label": "User IDs of all notification followers",
+      "type": "enumeration",
+      "fieldType": "checkbox",
+      "groupName": "dealinformation",
+      "description": "The user IDs of all users that have clicked follow within the object to opt-in to getting follow notifications",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_user_ids_of_all_notification_unfollowers": {
+      "label": "User IDs of all notification unfollowers",
+      "type": "enumeration",
+      "fieldType": "checkbox",
+      "groupName": "dealinformation",
+      "description": "The user IDs of all object owners that have clicked unfollow within the object to opt-out of getting follow notifications",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_user_ids_of_all_owners": {
+      "label": "User IDs of all owners",
+      "type": "enumeration",
+      "fieldType": "checkbox",
+      "groupName": "dealinformation",
+      "description": "The user IDs of all owners of this record.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_v2_average_deal_owner_duration_in_current_stage": {
+      "label": "V2 Average Deal Owner Duration In Current Stage",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealscripted",
+      "description": "Time duration of the calculated average time of closed-won deals spent in current pipeline stage",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_v2_cumulative_time_in_1049659495": {
+      "label": "Cumulative time in \"Demo Agendado (LaHaus AI)\"",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealstages",
+      "description": "The cumulative time in seconds spent by the deal in the 'Demo Agendado' stage, 'LaHaus AI' pipeline",
+      "hubspotDefined": true
+    },
+    "hs_v2_cumulative_time_in_1049659496": {
+      "label": "Cumulative time in \"Demo Presentado (LaHaus AI)\"",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealstages",
+      "description": "The cumulative time in seconds spent by the deal in the 'Demo Presentado' stage, 'LaHaus AI' pipeline",
+      "hubspotDefined": true
+    },
+    "hs_v2_cumulative_time_in_1092762538": {
+      "label": "Cumulative time in \"Suscripción Activa (Pago) (LaHaus AI)\"",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealstages",
+      "description": "The cumulative time in seconds spent by the deal in the 'Suscripción Activa (Pago)' stage, 'LaHaus AI' pipeline",
+      "hubspotDefined": true
+    },
+    "hs_v2_cumulative_time_in_1102535235": {
+      "label": "Cumulative time in \"Cerrada Perdida (LaHaus AI)\"",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealstages",
+      "description": "The cumulative time in seconds spent by the deal in the 'Cerrada Perdida' stage, 'LaHaus AI' pipeline",
+      "hubspotDefined": true
+    },
+    "hs_v2_cumulative_time_in_1102547555": {
+      "label": "Cumulative time in \"Calificado (LaHaus AI)\"",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealstages",
+      "description": "The cumulative time in seconds spent by the deal in the 'Calificado' stage, 'LaHaus AI' pipeline",
+      "hubspotDefined": true
+    },
+    "hs_v2_cumulative_time_in_1110769786": {
+      "label": "Cumulative time in \"Propuesta Aceptada (LaHaus AI)\"",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealstages",
+      "description": "The cumulative time in seconds spent by the deal in the 'Propuesta Aceptada' stage, 'LaHaus AI' pipeline",
+      "hubspotDefined": true
+    },
+    "hs_v2_cumulative_time_in_1148080018": {
+      "label": "Cumulative time in \"Churn (LaHaus AI)\"",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealstages",
+      "description": "The cumulative time in seconds spent by the deal in the 'Churn' stage, 'LaHaus AI' pipeline",
+      "hubspotDefined": true
+    },
+    "hs_v2_cumulative_time_in_1167117482": {
+      "label": "Cumulative time in \"Suscripción Activa (Free Trial) (LaHaus AI)\"",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealstages",
+      "description": "The cumulative time in seconds spent by the deal in the 'Suscripción Activa (Free Trial)' stage, 'LaHaus AI' pipeline",
+      "hubspotDefined": true
+    },
+    "hs_v2_date_entered_1049659495": {
+      "label": "Date entered \"Demo Agendado (LaHaus AI)\"",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealstages",
+      "description": "The date and time when the deal entered the 'Demo Agendado' stage, 'LaHaus AI' pipeline",
+      "hubspotDefined": true
+    },
+    "hs_v2_date_entered_1049659496": {
+      "label": "Date entered \"Demo Presentado (LaHaus AI)\"",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealstages",
+      "description": "The date and time when the deal entered the 'Demo Presentado' stage, 'LaHaus AI' pipeline",
+      "hubspotDefined": true
+    },
+    "hs_v2_date_entered_1092762538": {
+      "label": "Date entered \"Suscripción Activa (Pago) (LaHaus AI)\"",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealstages",
+      "description": "The date and time when the deal entered the 'Suscripción Activa (Pago)' stage, 'LaHaus AI' pipeline",
+      "hubspotDefined": true
+    },
+    "hs_v2_date_entered_1102535235": {
+      "label": "Date entered \"Cerrada Perdida (LaHaus AI)\"",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealstages",
+      "description": "The date and time when the deal entered the 'Cerrada Perdida' stage, 'LaHaus AI' pipeline",
+      "hubspotDefined": true
+    },
+    "hs_v2_date_entered_1102547555": {
+      "label": "Date entered \"Calificado (LaHaus AI)\"",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealstages",
+      "description": "The date and time when the deal entered the 'Calificado' stage, 'LaHaus AI' pipeline",
+      "hubspotDefined": true
+    },
+    "hs_v2_date_entered_1110769786": {
+      "label": "Date entered \"Propuesta Aceptada (LaHaus AI)\"",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealstages",
+      "description": "The date and time when the deal entered the 'Propuesta Aceptada' stage, 'LaHaus AI' pipeline",
+      "hubspotDefined": true
+    },
+    "hs_v2_date_entered_1148080018": {
+      "label": "Date entered \"Churn (LaHaus AI)\"",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealstages",
+      "description": "The date and time when the deal entered the 'Churn' stage, 'LaHaus AI' pipeline",
+      "hubspotDefined": true
+    },
+    "hs_v2_date_entered_1167117482": {
+      "label": "Date entered \"Suscripción Activa (Free Trial) (LaHaus AI)\"",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealstages",
+      "description": "The date and time when the deal entered the 'Suscripción Activa (Free Trial)' stage, 'LaHaus AI' pipeline",
+      "hubspotDefined": true
+    },
+    "hs_v2_date_entered_current_stage": {
+      "label": "Date entered current stage",
+      "type": "datetime",
+      "fieldType": "calculation_equation",
+      "groupName": "dealstages",
+      "description": "The date this object entered its current pipeline stage",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_v2_date_exited_1049659495": {
+      "label": "Date exited \"Demo Agendado (LaHaus AI)\"",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealstages",
+      "description": "The date and time when the deal exited the 'Demo Agendado' stage, 'LaHaus AI' pipeline",
+      "hubspotDefined": true
+    },
+    "hs_v2_date_exited_1049659496": {
+      "label": "Date exited \"Demo Presentado (LaHaus AI)\"",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealstages",
+      "description": "The date and time when the deal exited the 'Demo Presentado' stage, 'LaHaus AI' pipeline",
+      "hubspotDefined": true
+    },
+    "hs_v2_date_exited_1092762538": {
+      "label": "Date exited \"Suscripción Activa (Pago) (LaHaus AI)\"",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealstages",
+      "description": "The date and time when the deal exited the 'Suscripción Activa (Pago)' stage, 'LaHaus AI' pipeline",
+      "hubspotDefined": true
+    },
+    "hs_v2_date_exited_1102535235": {
+      "label": "Date exited \"Cerrada Perdida (LaHaus AI)\"",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealstages",
+      "description": "The date and time when the deal exited the 'Cerrada Perdida' stage, 'LaHaus AI' pipeline",
+      "hubspotDefined": true
+    },
+    "hs_v2_date_exited_1102547555": {
+      "label": "Date exited \"Calificado (LaHaus AI)\"",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealstages",
+      "description": "The date and time when the deal exited the 'Calificado' stage, 'LaHaus AI' pipeline",
+      "hubspotDefined": true
+    },
+    "hs_v2_date_exited_1110769786": {
+      "label": "Date exited \"Propuesta Aceptada (LaHaus AI)\"",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealstages",
+      "description": "The date and time when the deal exited the 'Propuesta Aceptada' stage, 'LaHaus AI' pipeline",
+      "hubspotDefined": true
+    },
+    "hs_v2_date_exited_1148080018": {
+      "label": "Date exited \"Churn (LaHaus AI)\"",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealstages",
+      "description": "The date and time when the deal exited the 'Churn' stage, 'LaHaus AI' pipeline",
+      "hubspotDefined": true
+    },
+    "hs_v2_date_exited_1167117482": {
+      "label": "Date exited \"Suscripción Activa (Free Trial) (LaHaus AI)\"",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealstages",
+      "description": "The date and time when the deal exited the 'Suscripción Activa (Free Trial)' stage, 'LaHaus AI' pipeline",
+      "hubspotDefined": true
+    },
+    "hs_v2_is_stalled": {
+      "label": "V2 Is Stalled",
+      "type": "bool",
+      "fieldType": "booleancheckbox",
+      "groupName": "dealscripted",
+      "description": "True if Time in stage is 20% longer than the deal owner’s closed-won average time for that stage.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_v2_is_stalled_after_timestamp": {
+      "label": "V2 Is Stalled After Timestamp",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealscripted",
+      "description": "Timestamp when Time in stage became 20% longer than the deal owner’s closed-won average for that stage.",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_v2_latest_time_in_1049659495": {
+      "label": "Latest time in \"Demo Agendado (LaHaus AI)\"",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealstages",
+      "description": "The total time in seconds spent by the deal in the 'Demo Agendado' stage, 'LaHaus AI' pipeline since it last entered this stage",
+      "hubspotDefined": true
+    },
+    "hs_v2_latest_time_in_1049659496": {
+      "label": "Latest time in \"Demo Presentado (LaHaus AI)\"",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealstages",
+      "description": "The total time in seconds spent by the deal in the 'Demo Presentado' stage, 'LaHaus AI' pipeline since it last entered this stage",
+      "hubspotDefined": true
+    },
+    "hs_v2_latest_time_in_1092762538": {
+      "label": "Latest time in \"Suscripción Activa (Pago) (LaHaus AI)\"",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealstages",
+      "description": "The total time in seconds spent by the deal in the 'Suscripción Activa (Pago)' stage, 'LaHaus AI' pipeline since it last entered this stage",
+      "hubspotDefined": true
+    },
+    "hs_v2_latest_time_in_1102535235": {
+      "label": "Latest time in \"Cerrada Perdida (LaHaus AI)\"",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealstages",
+      "description": "The total time in seconds spent by the deal in the 'Cerrada Perdida' stage, 'LaHaus AI' pipeline since it last entered this stage",
+      "hubspotDefined": true
+    },
+    "hs_v2_latest_time_in_1102547555": {
+      "label": "Latest time in \"Calificado (LaHaus AI)\"",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealstages",
+      "description": "The total time in seconds spent by the deal in the 'Calificado' stage, 'LaHaus AI' pipeline since it last entered this stage",
+      "hubspotDefined": true
+    },
+    "hs_v2_latest_time_in_1110769786": {
+      "label": "Latest time in \"Propuesta Aceptada (LaHaus AI)\"",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealstages",
+      "description": "The total time in seconds spent by the deal in the 'Propuesta Aceptada' stage, 'LaHaus AI' pipeline since it last entered this stage",
+      "hubspotDefined": true
+    },
+    "hs_v2_latest_time_in_1148080018": {
+      "label": "Latest time in \"Churn (LaHaus AI)\"",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealstages",
+      "description": "The total time in seconds spent by the deal in the 'Churn' stage, 'LaHaus AI' pipeline since it last entered this stage",
+      "hubspotDefined": true
+    },
+    "hs_v2_latest_time_in_1167117482": {
+      "label": "Latest time in \"Suscripción Activa (Free Trial) (LaHaus AI)\"",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealstages",
+      "description": "The total time in seconds spent by the deal in the 'Suscripción Activa (Free Trial)' stage, 'LaHaus AI' pipeline since it last entered this stage",
+      "hubspotDefined": true
+    },
+    "hs_v2_time_in_current_stage": {
+      "label": "Time in current stage",
+      "type": "datetime",
+      "fieldType": "calculation_equation",
+      "groupName": "dealstages",
+      "description": "The time this object has spent in the current pipeline stage",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_was_imported": {
+      "label": "Performed in an import",
+      "type": "bool",
+      "fieldType": "booleancheckbox",
+      "groupName": "dealinformation",
+      "description": "Object is part of an import",
+      "hubspotDefined": true,
+      "hidden": true
+    },
+    "hs_weighted_amount_furuis": {
+      "label": "HubSpot Weighted amount",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "dealscripted",
+      "description": "HubSpot Weighted amount",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hs_weighted_hs_amount_furuis_in_home_currency": {
+      "label": "hs_amount_furuis_in_home_currency weighted value",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "dealscripted",
+      "description": "hs_amount_furuis_in_home_currency Weighted By Deal Probability",
+      "hubspotDefined": true,
+      "calculated": true,
+      "hidden": true
+    },
+    "hs_weighted_pipeline_in_company_currency": {
+      "label": "Weighted open pipeline in company currency",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "hubspotmetrics",
+      "description": "Sum in company currency of open deal amount, weighted by pipeline stage",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "hubspot_owner_assigneddate": {
+      "label": "Owner assigned date",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "deal_activity",
+      "description": "The most recent timestamp of when an owner was assigned to this record. This value is set automatically by HubSpot.",
+      "hubspotDefined": true
+    },
+    "hubspot_owner_id": {
+      "label": "Deal owner",
+      "type": "enumeration",
+      "fieldType": "select",
+      "groupName": "dealinformation",
+      "description": "User the deal is assigned to. Assign additional users to a deal record by creating a custom user property.",
+      "hubspotDefined": true
+    },
+    "hubspot_team_id": {
+      "label": "HubSpot Team",
+      "type": "enumeration",
+      "fieldType": "select",
+      "groupName": "dealinformation",
+      "description": "Primary team of the deal owner. This property is set automatically by HubSpot.",
+      "hubspotDefined": true
+    },
+    "is_expansion": {
+      "label": "Is Expansion",
+      "type": "enumeration",
+      "fieldType": "booleancheckbox",
+      "groupName": "dealinformation",
+      "description": "Bandera auxiliar para automatizaciones",
+      "options": {
+        "true": "Sí",
+        "false": "No"
+      }
+    },
+    "is_live": {
+      "label": "subscription_is_live",
+      "type": "enumeration",
+      "fieldType": "booleancheckbox",
+      "groupName": "dealinformation",
+      "description": "propiedad que me dice si la suscripción del negocio ya esta activa y salio a producción.",
+      "options": {
+        "true": "Sí",
+        "false": "No"
+      }
+    },
+    "last_interaction_date_with_company": {
+      "label": "Last Interaction Date With Company",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "dealinformation"
+    },
+    "loss_reason": {
+      "label": "Loss Reason",
+      "type": "enumeration",
+      "fieldType": "select",
+      "groupName": "loss_/_control",
+      "description": "Motivo de pérdida",
+      "options": {
+        "Presupuesto": "Presupuesto",
+        "Timing": "Timing",
+        "No fit Solución": "No fit Solución",
+        "Se fue con competidor": "Se fue con competidor",
+        "No ICP": "No ICP"
+      }
+    },
+    "marketing_service": {
+      "label": "Marketing Service",
+      "type": "enumeration",
+      "fieldType": "booleancheckbox",
+      "groupName": "services",
+      "description": "Indica si este trato incluye un servicio de marketing (Sí/No)",
+      "options": {
+        "true": "Yes",
+        "false": "No"
+      }
+    },
+    "mcv__monthly_contract_value__de_sam_saas_en_usd": {
+      "label": "MCV (Monthly Contract Value) de Sam SaaS en USD",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealinformation"
+    },
+    "meta_del_cliente": {
+      "label": "Meta del Cliente (Cuantitativo)",
+      "type": "string",
+      "fieldType": "textarea",
+      "groupName": "dealinformation",
+      "description": "Campo de texto abierto para detallar el objetivo cuantitativo que se identificó para el cliente al adquirir nuestra solución. Permite registrar un benchmark de métricas que ayude a entender qué significa ganar con el cliente."
+    },
+    "motivo_de_cerrada_perdida": {
+      "label": "Motivo de Cerrada Perdida",
+      "type": "enumeration",
+      "fieldType": "select",
+      "groupName": "lost",
+      "description": "El motivo principal por el cual la oportunidad fue cerrada como perdida. Permite analizar las razones más frecuentes de pérdida y optimizar el proceso de ventas.",
+      "options": {
+        "no_asistio_al_demo_y_no_se_pudo_reagendar": "No asistió al demo y no se pudo reagendar",
+        "precio_alto_vs_expectativa": "Precio alto vs expectativa",
+        "eligio_competidor": "Eligió competidor",
+        "valorroi_no_claro": "Valor/ROI no claro",
+        "falta_funcionalidad_clave": "Falta funcionalidad clave",
+        "riesgocomplejidad_de_implementacion": "Riesgo/Complejidad de implementación",
+        "va_a_construir_solucion_inhouse": "Va a construir solución in-house",
+        "mal_timing__budget_freeze": "Mal timing / Budget freeze",
+        "higiene_de_lead_duplicadospamcontacto_invalido": "Higiene de lead (duplicado/spam/contacto inválido)",
+        "no_interesado": "No interesado"
+      }
+    },
+    "notas": {
+      "label": "Notas",
+      "type": "string",
+      "fieldType": "textarea",
+      "groupName": "dealinformation"
+    },
+    "notes_last_contacted": {
+      "label": "Last Contacted",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "deal_activity",
+      "description": "The last time a call, sales email, or meeting was logged for this deal. This is set automatically by HubSpot based on user actions.",
+      "hubspotDefined": true
+    },
+    "notes_last_updated": {
+      "label": "Last Activity Date",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "deal_activity",
+      "description": "The last time a note, call, email, meeting, or task was logged for a deal. This is updated automatically by HubSpot.",
+      "hubspotDefined": true
+    },
+    "notes_next_activity_date": {
+      "label": "Next Activity Date",
+      "type": "datetime",
+      "fieldType": "date",
+      "groupName": "deal_activity",
+      "description": "The date of the next upcoming activity for a deal. This property is set automatically by HubSpot based on user action. This includes logging a future call, sales email, or meeting using the Log feature, as well as creating a future task or scheduling a future meeting. This is updated automatically by HubSpot.",
+      "hubspotDefined": true
+    },
+    "num_associated_contacts": {
+      "label": "Number of Associated Contacts",
+      "type": "number",
+      "fieldType": "calculation_rollup",
+      "groupName": "dealinformation",
+      "description": "The number of contacts associated with this deal. This property is set automatically by HubSpot.",
+      "hubspotDefined": true,
+      "calculated": true
+    },
+    "num_contacted_notes": {
+      "label": "Number of times contacted",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "deal_activity",
+      "description": "The number of times a call, chat conversation, LinkedIn message, postal mail, meeting, sales email, SMS, or WhatsApp message was logged for a deal record. This is set automatically by HubSpot based on user actions in the deal record.",
+      "hubspotDefined": true
+    },
+    "num_notes": {
+      "label": "Number of Sales Activities",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "deal_activity",
+      "description": "The number of times a call, chat conversation, LinkedIn message, postal mail, meeting, note, sales email, SMS, task, or WhatsApp message was logged for a deal record. This is set automatically by HubSpot based on user actions in the deal record.",
+      "hubspotDefined": true
+    },
+    "numero_de_desarrollos_con_sams": {
+      "label": "Número de desarrollos con SamS",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "dealinformation"
+    },
+    "numero_de_proyectos_a_implementar": {
+      "label": "Número de Proyectos a Implementar",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "implementación_sam",
+      "description": "Número de proyectos a implementar en esta oportunidad"
+    },
+    "numero_de_telefono": {
+      "label": "Número de teléfono",
+      "type": "string",
+      "fieldType": "phonenumber",
+      "groupName": "dealinformation",
+      "description": "El número de teléfono principal asociado con este acuerdo o trato."
+    },
+    "numero_proyectos_potenciales": {
+      "label": "Número proyectos potenciales",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "implementación_sam",
+      "description": "Número total de proyectos potenciales que tiene el cliente para implementar"
+    },
+    "origen_de_importacion": {
+      "label": "Origen de Importacion",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "dealinformation",
+      "description": "Campo para inidicar el origen de la importación del negocio"
+    },
+    "pais_calculado": {
+      "label": "País Calculado",
+      "type": "enumeration",
+      "fieldType": "select",
+      "groupName": "dealinformation",
+      "options": {
+        "Colombia": "Colombia",
+        "México": "México",
+        "Estados Unidos": "Estados Unidos",
+        "Otro": "Otro"
+      }
+    },
+    "pais_filtro": {
+      "label": "País filtro",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "dealinformation",
+      "description": "Campo de texto corto para ingresar el país como criterio de filtro en los tratos."
+    },
+    "pipeline": {
+      "label": "Pipeline",
+      "type": "enumeration",
+      "fieldType": "select",
+      "groupName": "deal_activity",
+      "description": "The pipeline the deal is in. This determines which stages are options for the deal.",
+      "hubspotDefined": true
+    },
+    "project_assigned_hub": {
+      "label": "Hub",
+      "type": "enumeration",
+      "fieldType": "radio",
+      "groupName": "ubicación",
+      "options": {
+        "MEDELLIN": "Antioquia",
+        "BOGOTA": "Bogotá",
+        "CARIBE": "Caribe",
+        "CIUDAD DE MEXICO": "Ciudad de México",
+        "OCCIDENTE": "Eje Cafetero",
+        "GUADALAJARA": "Jalisco",
+        "MONTERREY": "Nuevo León",
+        "QUERETARO": "Querétaro",
+        "RIVIERA MAYA": "Riviera Maya",
+        "South Florida": "South Florida",
+        "Los Angeles": "Los Angeles",
+        "New York": "New York",
+        "USA": "Estados Unidos"
+      }
+    },
+    "project_average_price": {
+      "label": "Average Price",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "tipologías",
+      "description": "Precio Promedio basado en tipologías",
+      "calculated": true
+    },
+    "project_average_take_rate": {
+      "label": "TR",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "tr"
+    },
+    "project_country": {
+      "label": "País",
+      "type": "enumeration",
+      "fieldType": "radio",
+      "groupName": "ubicación",
+      "options": {
+        "COLOMBIA": "Colombia",
+        "MEXICO": "México",
+        "USA": "Estados Unidos",
+        "OTRO": "Otro"
+      }
+    },
+    "project_cpl": {
+      "label": "CPL",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "marketing",
+      "description": "Costo por lead asociado a ese proyecto"
+    },
+    "project_expected_amount_units_sold": {
+      "label": "Txs - Mes 1",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "proyecciones"
+    },
+    "project_expected_amount_units_sold_month_2": {
+      "label": "Txs - Mes 2",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "proyecciones"
+    },
+    "project_expected_amount_units_sold_month_3": {
+      "label": "Txs - Mes 3",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "proyecciones"
+    },
+    "project_expected_amount_units_sold_month_4": {
+      "label": "Txs - Mes 4",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "proyecciones"
+    },
+    "project_expected_amount_units_sold_month_5": {
+      "label": "Txs - Mes 5",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "proyecciones"
+    },
+    "project_expected_amount_units_sold_month_6": {
+      "label": "Txs - Mes 6",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "proyecciones"
+    },
+    "project_lahaus_launching_date": {
+      "label": "Lanzamiento - LH",
+      "type": "date",
+      "fieldType": "date",
+      "groupName": "fechas"
+    },
+    "project_lahaus_total_available_units": {
+      "label": "Unidades Disponibles",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "tipologías",
+      "description": "Unidades totales disponibles para LaHaus",
+      "calculated": true
+    },
+    "project_percentage_conversion_l2c": {
+      "label": "L2C",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "marketing",
+      "description": "Conversión esperada de lead a cierre"
+    },
+    "project_premium_take_rate": {
+      "label": "Success Fee",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "tr",
+      "description": "Take rate adicional y retroactivo si llegamos a un nivel determinado de unidades vendidas"
+    },
+    "project_take_rate_sellers_commission": {
+      "label": "TR - Comisión F.Comercial",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "tr",
+      "description": "Indica sobre que Take Rate comisionará la fuerza comercial. En caso de que sea el mismo, dejar vacío."
+    },
+    "project_total_leads___nuevo": {
+      "label": "Leads - Total",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "proyecciones",
+      "description": "Número total (3 meses) de leads que necesita el proyecto para llegar al número de ventas proyectado por el KAM.",
+      "calculated": true
+    },
+    "project_total_marketing_cost": {
+      "label": "Costo Marketing - Total",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "marketing",
+      "description": "Costo total de Marketing en dólares para llegar al número de transacciones proyectadas por el KAM",
+      "calculated": true
+    },
+    "project_total_nr_kam": {
+      "label": "NR - Total",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "proyecciones",
+      "description": "Net Revenue de acuerdo a las proyecciones de ventas del KAM en los primeros 3 meses",
+      "calculated": true
+    },
+    "project_total_txs_kam": {
+      "label": "Txs - Total",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "proyecciones",
+      "description": "Transacciones totales (3 meses) proyectadas por el KAM",
+      "calculated": true
+    },
+    "project_type_1b_area": {
+      "label": "1 Habitación - Área",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "tipologías",
+      "description": "Área promedio de las unidades de 1 habitación\n\nEn caso de no tener, poner cero."
+    },
+    "project_type_1b_available_units": {
+      "label": "1 Habitación - Unidades Disponibles",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "tipologías",
+      "description": "Disponibilidad para LaHaus de las unidades de 1 habitación\n\nEn caso de no tener, poner cero."
+    },
+    "project_type_1b_bathrooms": {
+      "label": "1 Habitación - Baños",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "tipologías",
+      "description": "Número promedio de baños en las unidades de 1 habitación\n\nEn caso de no tener, poner cero."
+    },
+    "project_type_1b_price": {
+      "label": "1 Habitación - Precio",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "tipologías",
+      "description": "Precio promedio de las unidades de 1 habitación\n\nEn caso de no tener, poner cero."
+    },
+    "project_type_2b_available_units": {
+      "label": "2 Habitaciones - Unidades Disponibles",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "tipologías",
+      "description": "Disponibilidad para LaHaus de las unidades de 2 habitaciones\n\nEn caso de no tener, poner cero."
+    },
+    "project_type_2b_price": {
+      "label": "2 Habitaciones - Precio",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "tipologías",
+      "description": "Precio promedio de las unidades de 2 habitaciones\n\nEn caso de no tener, poner cero."
+    },
+    "project_type_3b_available_units": {
+      "label": "3 Habitaciones - Unidades Disponibels",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "tipologías",
+      "description": "Disponibilidad para LaHaus de las unidades de 3 habitaciones\n\nEn caso de no tener, poner cero."
+    },
+    "project_type_3b_price": {
+      "label": "3 Habitaciones - Precio",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "tipologías",
+      "description": "Precio promedio de las unidades de 3 habitaciones\n\nEn caso de no tener, poner cero."
+    },
+    "proyect_comercial_cost": {
+      "label": "Costo Comercial",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "groupName": "proyecciones",
+      "description": "El costo de la fuerza comercial. Corresponde al 25% del NR",
+      "calculated": true
+    },
+    "stripe_customer_url": {
+      "label": "Stripe Customer URL",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "pagos",
+      "description": "URL del Cliente dentro de Stripe (Para US o MX) "
+    },
+    "stripe_subscription_id": {
+      "label": "Stripe Subscription ID",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "pagos",
+      "description": "ID de la suscripción en Stripe"
+    },
+    "tipo_negociacion": {
+      "label": "Tipo negociación",
+      "type": "enumeration",
+      "fieldType": "select",
+      "groupName": "implementación_sam",
+      "description": "Con o sin free trial?",
+      "options": {
+        "Con Free Trial": "Con Free Trial",
+        "Sin Free Trial": "Sin Free Trial"
+      }
+    },
+    "txs___mes_10": {
+      "label": "Txs - Mes 10",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "proyecciones"
+    },
+    "txs___mes_11": {
+      "label": "Txs - Mes 11",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "proyecciones"
+    },
+    "txs___mes_12": {
+      "label": "Txs - Mes 12",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "proyecciones"
+    },
+    "txs___mes_7": {
+      "label": "Txs - Mes 7",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "proyecciones"
+    },
+    "txs___mes_8": {
+      "label": "Txs - Mes 8",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "proyecciones"
+    },
+    "txs___mes_9": {
+      "label": "Txs - Mes 9",
+      "type": "number",
+      "fieldType": "number",
+      "groupName": "proyecciones"
+    },
+    "typeform_donde_escuchaste_lahaus": {
+      "label": "typeform_donde_escuchaste_lahaus",
+      "type": "string",
+      "fieldType": "text",
+      "groupName": "dealinformation",
+      "description": "Información que viene desde el typeform que se llena en lahaus.ai"
+    },
+    "voice_ai": {
+      "label": "Voice AI",
+      "type": "enumeration",
+      "fieldType": "booleancheckbox",
+      "groupName": "services",
+      "description": "Campo para marcar si se van a implementar servicios de Voice AI en este trato.",
+      "options": {
+        "true": "Yes",
+        "false": "No"
+      }
+    }
+  }
+}
