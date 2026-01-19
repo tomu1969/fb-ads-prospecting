@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "description": "LaHaus AI KAM/AE (Key Account Managers / Account Executives) schema for HubSpot CRM",
+  "last_updated": "2026-01-18",
+  "owners": [
+    {
+      "name": "Juan Pablo",
+      "user_id": "23839667",
+      "owner_id": "190425742",
+      "role": "KAM",
+      "status": "active",
+      "notes": "userId differs from ownerId in HubSpot CRM"
+    },
+    {
+      "name": "Geraldine",
+      "user_id": "26730503",
+      "owner_id": "603685937",
+      "role": "KAM",
+      "status": "active",
+      "notes": "userId differs from ownerId in HubSpot CRM"
+    },
+    {
+      "name": "Yajaira",
+      "user_id": "83527891",
+      "owner_id": "83527891",
+      "role": "KAM",
+      "status": "active",
+      "notes": "userId equals ownerId"
+    },
+    {
+      "name": "Litzia",
+      "user_id": "80752166",
+      "owner_id": "80752166",
+      "role": "KAM",
+      "status": "active",
+      "notes": "userId equals ownerId"
+    }
+  ],
+  "id_mapping_notes": {
+    "user_id": "ID from HubSpot Settings > Users & Teams (used for user management)",
+    "owner_id": "ID from HubSpot CRM owner assignment (used in hubspot_owner_id property on deals/contacts)",
+    "important": "Always use owner_id when querying deals by owner via CRM API"
+  },
+  "api_endpoints": {
+    "list_owners": "GET /crm/v3/owners",
+    "get_owner": "GET /crm/v3/owners/{ownerId}",
+    "search_deals_by_owner": "POST /crm/v3/objects/deals/search with filter hubspot_owner_id"
+  }
+}
