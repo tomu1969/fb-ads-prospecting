@@ -178,6 +178,49 @@ Reports are saved to `hubspot_funnel/reports/`:
 - `auditoria_comparativa_YYYYMMDD.md` - Period comparison
 - `lead_source_comparison_YYYYMMDD.md` - Channel analysis
 
+## HubSpot API Integration
+
+The project uses HubSpot CRM API v3 for sales analytics and marketing automation.
+
+### Configuration
+- API Key: `.env` → `HUBSPOT_API_KEY`
+- Pipeline: LaHaus AI (ID: `719833388`)
+- Owners: `hubspot_funnel/config/deal_owners.json`
+
+### Pipeline Stages
+| Stage | ID | Triggers |
+|-------|----|----|
+| Calificado | 1102547555 | Lead qualified |
+| Demo Agendado | 1049659495 | → Pre-demo email |
+| Demo Presentado | 1049659496 | → Proposal email |
+| Propuesta Aceptada | 1110769786 | - |
+| Suscripción Activa | 1092762538 | Won |
+| Cerrada Perdida | 1102535235 | Lost |
+
+### Current API Usage
+| Endpoint | Script | Purpose |
+|----------|--------|---------|
+| `POST /crm/v3/objects/deals/search` | `closed_lost_analysis.py` | Deal analytics |
+| `POST /crm/v3/objects/{calls,meetings,emails}/search` | `owner_performance_analysis.py` | Activity metrics |
+
+### Email Templates
+Templates in `config/email_templates/` can be:
+- Sent via Claude (`scripts/email_templates/template_sender.py --template <id>`)
+- Synced to HubSpot Marketing Hub for workflow automation
+
+```bash
+# Load and preview a template
+python scripts/email_templates/template_loader.py --template pre_demo_confirmation --preview
+
+# Send template-based email (dry-run first!)
+python scripts/email_templates/template_sender.py --template pre_demo_confirmation --deal-id 12345 --dry-run
+
+# Sync templates to HubSpot
+python scripts/hubspot_templates.py push --template pre_demo_confirmation
+python scripts/hubspot_templates.py list
+python scripts/hubspot_templates.py sync-all
+```
+
 ## Project Structure
 
 ```
@@ -220,8 +263,21 @@ Reports are saved to `hubspot_funnel/reports/`:
 │   │   ├── m3_money_score.py     # Money score (0-50)
 │   │   ├── m4_urgency_score.py   # Urgency score (0-50)
 │   │   └── constants.py          # CTA mappings, keywords, thresholds
+│   ├── email_templates/     # Sales pipeline email templates
+│   │   ├── template_loader.py   # Load + substitute variables
+│   │   └── template_sender.py   # Send via Gmail
+│   ├── hubspot_templates.py # HubSpot template sync
 │   └── _archived/           # Legacy scripts (superseded implementations)
 ├── config/
+│   ├── email_templates/     # Sales pipeline email templates
+│   │   ├── templates.json       # Template registry with metadata
+│   │   ├── pipeline/            # Stage-triggered emails
+│   │   │   ├── pre_demo_confirmation.md
+│   │   │   └── post_demo_proposal.md
+│   │   └── followup/            # Follow-up sequence
+│   │       ├── day3_value.md
+│   │       ├── day7_social_proof.md
+│   │       └── day14_breakup.md
 │   ├── field_mappings/      # Auto-generated field mappings
 │   ├── legacy/              # Archived config files
 │   ├── website_overrides.csv # Manual website corrections

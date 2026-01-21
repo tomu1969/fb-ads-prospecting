@@ -1,0 +1,131 @@
+{
+  "version": "1.0",
+  "templates": [
+    {
+      "id": "pre_demo_confirmation",
+      "name": "Pre-Demo Confirmation",
+      "description": "Sent when deal moves to 'Demo Agendado' stage",
+      "path": "pipeline/pre_demo_confirmation.md",
+      "trigger": {
+        "type": "deal_stage_change",
+        "stage_id": "1049659495",
+        "stage_name": "Demo Agendado"
+      },
+      "variables": [
+        "first_name",
+        "company_name",
+        "demo_date",
+        "demo_time",
+        "meeting_link",
+        "owner_name"
+      ],
+      "hubspot_template_id": null
+    },
+    {
+      "id": "post_demo_proposal",
+      "name": "Post-Demo Proposal",
+      "description": "Sent when deal moves to 'Demo Presentado' stage with proposal",
+      "path": "pipeline/post_demo_proposal.md",
+      "trigger": {
+        "type": "deal_stage_change",
+        "stage_id": "1049659496",
+        "stage_name": "Demo Presentado"
+      },
+      "variables": [
+        "first_name",
+        "company_name",
+        "current_month",
+        "payment_link",
+        "owner_name"
+      ],
+      "hubspot_template_id": null
+    },
+    {
+      "id": "followup_day3",
+      "name": "Follow-up Day 3 - Value Reminder",
+      "description": "Sent 3 days after proposal if no response",
+      "path": "followup/day3_value.md",
+      "trigger": {
+        "type": "delay_after_email",
+        "days": 3,
+        "after_template": "post_demo_proposal"
+      },
+      "variables": [
+        "first_name",
+        "company_name",
+        "owner_name"
+      ],
+      "hubspot_template_id": null
+    },
+    {
+      "id": "followup_day7",
+      "name": "Follow-up Day 7 - Social Proof",
+      "description": "Sent 7 days after proposal if no response",
+      "path": "followup/day7_social_proof.md",
+      "trigger": {
+        "type": "delay_after_email",
+        "days": 4,
+        "after_template": "followup_day3"
+      },
+      "variables": [
+        "first_name",
+        "company_name",
+        "owner_name"
+      ],
+      "hubspot_template_id": null
+    },
+    {
+      "id": "followup_day14",
+      "name": "Follow-up Day 14 - Breakup",
+      "description": "Final follow-up 14 days after proposal",
+      "path": "followup/day14_breakup.md",
+      "trigger": {
+        "type": "delay_after_email",
+        "days": 7,
+        "after_template": "followup_day7"
+      },
+      "variables": [
+        "first_name",
+        "company_name",
+        "owner_name"
+      ],
+      "hubspot_template_id": null
+    }
+  ],
+  "variable_sources": {
+    "first_name": {
+      "hubspot_token": "{{ contact.firstname }}",
+      "api_path": "contact.properties.firstname"
+    },
+    "company_name": {
+      "hubspot_token": "{{ company.name }}",
+      "api_path": "deal.associations.company.properties.name"
+    },
+    "demo_date": {
+      "hubspot_token": "{{ deal.demo_date }}",
+      "api_path": "deal.properties.demo_date"
+    },
+    "demo_time": {
+      "hubspot_token": "{{ deal.demo_time }}",
+      "api_path": "deal.properties.demo_time"
+    },
+    "meeting_link": {
+      "hubspot_token": "{{ deal.meeting_link }}",
+      "api_path": "deal.properties.meeting_link"
+    },
+    "owner_name": {
+      "hubspot_token": "{{ owner.first_name }}",
+      "api_path": "deal.properties.hubspot_owner_id.first_name"
+    },
+    "current_month": {
+      "hubspot_token": "{{ deal.current_month }}",
+      "api_path": "deal.properties.current_month",
+      "note": "Mes actual para la promocion del setup fee"
+    },
+    "payment_link": {
+      "hubspot_token": "{{ deal.payment_link }}",
+      "api_path": "deal.properties.payment_link",
+      "note": "Enlace de pago para activar suscripcion"
+    }
+  }
+}
