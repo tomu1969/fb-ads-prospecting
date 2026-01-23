@@ -442,3 +442,30 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 ```
+
+### Incremental Saving (CRITICAL for Enrichment Scripts)
+Long-running enrichment scripts MUST save progress incrementally to prevent data loss:
+
+**Requirements:**
+- Save to disk after each batch or every N records (e.g., every 10-50 items)
+- Create automatic backups before starting any enrichment
+- Support `--resume` flag to continue from where it left off
+- Never use `--limit` flags that truncate the output file
+
+**Pattern:**
+```python
+# Save after each batch
+for i, batch in enumerate(batches):
+    results = process_batch(batch)
+    df.update(results)
+
+    # Incremental save every batch
+    df.to_csv(output_path, index=False)
+    logger.info(f"Progress saved: {(i+1)*batch_size}/{total} records")
+
+# Backup before starting
+import shutil
+shutil.copy(output_path, f"{output_path}.backup")
+```
+
+**Why:** A 2+ hour enrichment that fails or is interrupted loses ALL progress if it only saves at the end. Incremental saves allow resumption and prevent data loss.
