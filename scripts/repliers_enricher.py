@@ -155,6 +155,98 @@ TECH_SIGNATURES = {
 # UTILITY FUNCTIONS
 # =============================================================================
 
+def save_incremental(df: pd.DataFrame, output_path: str, batch_name: str = "") -> None:
+    """
+    Save DataFrame incrementally to prevent data loss on crashes.
+
+    Creates both:
+    - Main output file (always updated)
+    - Batch backup file (for recovery if needed)
+    """
+    try:
+        output_path = Path(output_path)
+
+        # Save main file
+        df.to_csv(output_path, index=False)
+
+        # Create batch backup in backups folder
+        backup_dir = output_path.parent / "backups"
+        backup_dir.mkdir(exist_ok=True)
+
+        if batch_name:
+            backup_path = backup_dir / f"{output_path.stem}_{batch_name}.csv"
+            df.to_csv(backup_path, index=False)
+            logger.info(f"Incremental save: {len(df)} rows to {output_path.name} (backup: {batch_name})")
+        else:
+            logger.info(f"Incremental save: {len(df)} rows to {output_path.name}")
+
+    except Exception as e:
+        logger.error(f"Failed to save incrementally: {e}")
+
+
+def run_partial_audit(df: pd.DataFrame, sample_size: int = 5, audit_type: str = "techstack") -> Dict:
+    """
+    Verify random sample of enriched data by re-checking with direct methods.
+
+    Used to detect data quality issues mid-enrichment.
+
+    Args:
+        df: DataFrame with enriched data
+        sample_size: Number of random samples to verify
+        audit_type: "techstack" or "metaads"
+
+    Returns:
+        dict with accuracy metrics and mismatches
+    """
+    results = {
+        "audit_type": audit_type,
+        "sample_size": 0,
+        "matches": 0,
+        "mismatches": [],
+        "accuracy": 0.0,
+    }
+
+    if audit_type == "techstack":
+        # Get rows with websites to audit
+        eligible = df[
+            (df['website_url'].notna()) &
+            (df['website_url'] != '') &
+            (df['website_source'] == 'personal_domain')
+        ]
+
+        if len(eligible) == 0:
+            logger.warning("No eligible rows for tech stack audit")
+            return results
+
+        sample = eligible.sample(min(sample_size, len(eligible)))
+        results["sample_size"] = len(sample)
+
+        for _, row in sample.iterrows():
+            url = row['website_url']
+            expected_pixel = row.get('has_marketing_pixel', False)
+
+            # Re-check with direct scraping
+            actual = detect_tracking_direct(url)
+            actual_pixel = actual.get('has_marketing_pixel', False)
+
+            if actual_pixel == expected_pixel:
+                results["matches"] += 1
+            else:
+                results["mismatches"].append({
+                    "agent": row.get('agent_name', 'Unknown'),
+                    "url": url,
+                    "expected_pixel": expected_pixel,
+                    "actual_pixel": actual_pixel,
+                })
+
+            time.sleep(0.3)  # Rate limit
+
+    results["accuracy"] = results["matches"] / results["sample_size"] if results["sample_size"] > 0 else 0.0
+    logger.info(f"Partial audit ({audit_type}): {results['accuracy']*100:.0f}% accuracy on {results['sample_size']} samples")
+
+    return results
+
+
 def get_apify_client() -> Optional[Any]:
     """Get Apify client if available."""
     if not APIFY_AVAILABLE:
@@ -287,6 +379,115 @@ def detect_tech_from_html(html: str) -> List[Dict]:
     return detected
 
 
+def detect_tracking_direct(url: str, timeout: int = 10) -> Dict:
+    """
+    Directly scrape website HTML to detect tracking pixels and tech stack.
+
+    This replaces the unreliable BuiltWith actor with direct HTTP scraping.
+    Much faster, free, and more reliable.
+
+    Returns dict with:
+        - has_crm: bool
+        - crm_name: str
+        - has_marketing_pixel: bool
+        - pixel_types: list
+        - has_scheduling_tool: bool
+        - scheduling_tool: str
+        - has_chat_widget: bool
+        - chat_widget: str
+        - has_idx: bool
+        - idx_provider: str
+        - tech_stack_raw: list
+        - tech_count: int
+    """
+    result = {
+        "has_crm": False,
+        "crm_name": "",
+        "has_marketing_pixel": False,
+        "pixel_types": [],
+        "has_scheduling_tool": False,
+        "scheduling_tool": "",
+        "has_chat_widget": False,
+        "chat_widget": "",
+        "has_idx": False,
+        "idx_provider": "",
+        "tech_stack_raw": [],
+        "tech_count": 0,
+    }
+
+    if not url or pd.isna(url):
+        return result
+
+    if not url.startswith(('http://', 'https://')):
+        url = f"https://{url}"
+
+    try:
+        response = requests.get(
+            url,
+            headers=WEB_HEADERS,
+            timeout=timeout,
+            allow_redirects=True
+        )
+
+        if response.status_code != 200:
+            logger.debug(f"Failed to fetch {url}: status {response.status_code}")
+            return result
+
+        html = response.text
+        if not html:
+            return result
+
+        # Detect technologies using our signature patterns
+        detected = detect_tech_from_html(html)
+
+        # Categorize detections
+        crms = []
+        pixels = []
+        scheduling = []
+        chat = []
+        idx = []
+
+        for tech in detected:
+            tech_name = tech["name"]
+            category = tech["category"]
+
+            if category == "crm":
+                crms.append(tech_name)
+            elif category == "pixel":
+                pixels.append(tech_name)
+            elif category == "scheduling":
+                scheduling.append(tech_name)
+            elif category == "chat":
+                chat.append(tech_name)
+            elif category == "idx":
+                idx.append(tech_name)
+
+        # Update result
+        result["has_crm"] = len(crms) > 0
+        result["crm_name"] = crms[0] if crms else ""
+        result["has_marketing_pixel"] = len(pixels) > 0
+        result["pixel_types"] = pixels
+        result["has_scheduling_tool"] = len(scheduling) > 0
+        result["scheduling_tool"] = scheduling[0] if scheduling else ""
+        result["has_chat_widget"] = len(chat) > 0
+        result["chat_widget"] = chat[0] if chat else ""
+        result["has_idx"] = len(idx) > 0
+        result["idx_provider"] = idx[0] if idx else ""
+        result["tech_stack_raw"] = [t["name"] for t in detected]
+        result["tech_count"] = len(detected)
+
+        logger.debug(f"Direct scan {url}: found {len(detected)} technologies")
+
+    except requests.exceptions.Timeout:
+        logger.debug(f"Timeout fetching {url}")
+    except requests.exceptions.RequestException as e:
+        logger.debug(f"Error fetching {url}: {e}")
+    except Exception as e:
+        logger.debug(f"Unexpected error scanning {url}: {e}")
+
+    return result
+
+
 def run_builtwith_apify(urls: List[str], client: Any) -> Dict[str, Dict]:
     """
     Run BuiltWith actor on Apify to detect tech stacks.
@@ -412,11 +613,14 @@ def run_builtwith_apify(urls: List[str], client: Any) -> Dict[str, Dict]:
         return {}
 
 
-def enrich_techstack(df: pd.DataFrame, dry_run: bool = False) -> pd.DataFrame:
+def enrich_techstack(df: pd.DataFrame, dry_run: bool = False, output_path: str = None) -> pd.DataFrame:
     """
-    Enrich agents with tech stack data via Apify BuiltWith.
+    Enrich agents with tech stack data via direct HTML scraping.
+
+    Replaces unreliable BuiltWith actor with direct HTTP requests.
+    Benefits: Free, faster, more reliable, no API limits.
     """
-    logger.info("Step 2: Tech Stack Detection via Apify BuiltWith")
+    logger.info("Step 2: Tech Stack Detection via Direct HTML Scraping")
 
     # Initialize columns
     tech_columns = [
@@ -436,8 +640,7 @@ def enrich_techstack(df: pd.DataFrame, dry_run: bool = False) -> pd.DataFrame:
                 df[col] = ""
 
     # Get URLs to process (only personal websites)
-    urls_to_process = []
-    idx_to_url = {}
+    rows_to_process = []
 
     for idx, row in df.iterrows():
         website_url = str(row.get('website_url', '')).strip()
@@ -445,49 +648,32 @@ def enrich_techstack(df: pd.DataFrame, dry_run: bool = False) -> pd.DataFrame:
             # Skip if already has tech stack data
             if row.get('tech_count', 0) > 0:
                 continue
-            urls_to_process.append(website_url)
-            idx_to_url[website_url] = idx
+            rows_to_process.append((idx, website_url))
 
-    logger.info(f"Found {len(urls_to_process)} personal websites to analyze")
+    logger.info(f"Found {len(rows_to_process)} personal websites to analyze")
 
     if dry_run:
-        print(f"\n[DRY RUN] Would analyze tech stack for {len(urls_to_process)} websites")
-        for url in urls_to_process[:10]:
+        print(f"\n[DRY RUN] Would analyze tech stack for {len(rows_to_process)} websites")
+        for idx, url in rows_to_process[:10]:
             print(f"  - {url}")
-        if len(urls_to_process) > 10:
-            print(f"  ... and {len(urls_to_process) - 10} more")
+        if len(rows_to_process) > 10:
+            print(f"  ... and {len(rows_to_process) - 10} more")
         return df
 
-    if not urls_to_process:
+    if not rows_to_process:
         print("No websites to process for tech stack")
         return df
 
-    # Get Apify client
-    client = get_apify_client()
-    if not client:
-        logger.error("Cannot run tech stack enrichment without Apify client")
-        return df
+    # Process each website with direct scraping
+    stats = {"found_tech": 0, "no_tech": 0, "errors": 0}
+    BATCH_SIZE = 10  # Save after every 10 websites
 
-    # Process in batches to avoid timeout
-    BATCH_SIZE = 50
-    all_results = {}
+    for i, (idx, url) in enumerate(tqdm(rows_to_process, desc="Scanning tech stack")):
+        try:
+            # Direct HTML scraping
+            tech_data = detect_tracking_direct(url)
 
-    for i in range(0, len(urls_to_process), BATCH_SIZE):
-        batch = urls_to_process[i:i + BATCH_SIZE]
-        logger.info(f"Processing batch {i // BATCH_SIZE + 1} ({len(batch)} URLs)")
-
-        batch_results = run_builtwith_apify(batch, client)
-        all_results.update(batch_results)
-
-        if i + BATCH_SIZE < len(urls_to_process):
-            time.sleep(2)  # Brief pause between batches
-
-    # Update DataFrame
-    stats = {"found_tech": 0, "no_tech": 0}
-
-    for url, tech_data in all_results.items():
-        if url in idx_to_url:
-            idx = idx_to_url[url]
+            # Update DataFrame
             for key, value in tech_data.items():
                 if key == "pixel_types" or key == "tech_stack_raw":
                     df.at[idx, key] = json.dumps(value) if isinstance(value, list) else value
@@ -499,9 +685,22 @@ def enrich_techstack(df: pd.DataFrame, dry_run: bool = False) -> pd.DataFrame:
             else:
                 stats["no_tech"] += 1
 
+            # Brief delay to be polite
+            time.sleep(0.3)
+
+        except Exception as e:
+            logger.debug(f"Error scanning {url}: {e}")
+            stats["errors"] += 1
+
+        # Incremental save every BATCH_SIZE records
+        if output_path and (i + 1) % BATCH_SIZE == 0:
+            save_incremental(df, output_path, f"techstack_batch_{(i + 1) // BATCH_SIZE}")
+            logger.info(f"Progress: {i + 1}/{len(rows_to_process)} websites scanned")
+
     print(f"\nTech Stack Results:")
     print(f"  Websites with tech detected: {stats['found_tech']}")
     print(f"  Websites with no tech: {stats['no_tech']}")
+    print(f"  Errors: {stats['errors']}")
 
     return df
 
@@ -555,37 +754,47 @@ def check_meta_ads_apify(client: Any, agent_name: str, city: str = "", timeout: 
         run = client.actor(FB_ADS_ACTOR).call(run_input=run_input, timeout_secs=timeout)
 
         status = run.get('status')
-        if status in ['SUCCEEDED', 'TIMED-OUT']:
-            dataset_id = run.get('defaultDatasetId')
-            if dataset_id:
-                items = list(client.dataset(dataset_id).iterate_items())
-                result['meta_ad_count'] = len(items)
-                result['has_meta_ads'] = len(items) > 0
 
-                # Extract page names and check for matches
-                page_names = set()
-                name_parts = [p.lower() for p in agent_name.split() if len(p) > 2]
-                matches = 0
+        # CRITICAL: Only accept SUCCEEDED status - TIMED-OUT returns partial/invalid data
+        if status != 'SUCCEEDED':
+            logger.debug(f"Meta ads check for {agent_name}: status={status} (rejected)")
+            return result
 
-                for item in items:
-                    page_name = item.get('pageName') or item.get('page_name') or item.get('advertiserName') or ''
-                    if page_name:
-                        page_names.add(page_name)
-                        page_lower = page_name.lower()
-                        # Count how many name parts appear in page name
-                        name_matches = sum(1 for part in name_parts if part in page_lower)
-                        if name_matches >= 2 or (len(name_parts) == 1 and name_matches == 1):
-                            matches += 1
+        dataset_id = run.get('defaultDatasetId')
+        if dataset_id:
+            items = list(client.dataset(dataset_id).iterate_items())
 
-                result['meta_page_names'] = list(page_names)
+            # Extract page names and check for matches
+            page_names = set()
+            name_parts = [p.lower() for p in agent_name.split() if len(p) > 2]
+            matches = 0
 
-                # Determine confidence
-                if matches >= 2:
-                    result['meta_ad_confidence'] = 'high'
-                elif matches == 1:
-                    result['meta_ad_confidence'] = 'medium'
-                elif result['has_meta_ads']:
-                    result['meta_ad_confidence'] = 'low'
+            for item in items:
+                page_name = item.get('pageName') or item.get('page_name') or item.get('advertiserName') or ''
+
+                # CRITICAL: Validate page name - must be non-empty and reasonable length
+                if page_name and len(page_name.strip()) > 2:
+                    page_names.add(page_name.strip())
+                    page_lower = page_name.lower()
+                    # Count how many name parts appear in page name
+                    name_matches = sum(1 for part in name_parts if part in page_lower)
+                    if name_matches >= 2 or (len(name_parts) == 1 and name_matches == 1):
+                        matches += 1
+
+            result['meta_page_names'] = list(page_names)
+            result['meta_ad_count'] = len(items)
+
+            # CRITICAL: Only mark as having ads if we have VALID page names
+            # This prevents false positives from timeout results with partial data
+            result['has_meta_ads'] = len(page_names) > 0
+
+            # Determine confidence based on name matching
+            if matches >= 2:
+                result['meta_ad_confidence'] = 'high'
+            elif matches == 1:
+                result['meta_ad_confidence'] = 'medium'
+            elif result['has_meta_ads']:
+                result['meta_ad_confidence'] = 'low'
 
     except Exception as e:
         logger.debug(f"Meta ads check error for {agent_name}: {e}")
@@ -593,9 +802,14 @@ def check_meta_ads_apify(client: Any, agent_name: str, city: str = "", timeout: 
     return result
 
 
-def enrich_metaads(df: pd.DataFrame, dry_run: bool = False, delay: float = 1.0) -> pd.DataFrame:
+def enrich_metaads(df: pd.DataFrame, dry_run: bool = False, delay: float = 1.0, output_path: str = None) -> pd.DataFrame:
     """
     Enrich agents with Meta ads data via Apify FB Ads Library.
+
+    Features:
+    - Only accepts SUCCEEDED status (rejects TIMED-OUT false positives)
+    - Validates page names before marking as having ads
+    - Incremental saves every 10 agents
     """
     logger.info("Step 3: Meta Ads Detection via Apify FB Ads Library")
 
@@ -610,16 +824,33 @@ def enrich_metaads(df: pd.DataFrame, dry_run: bool = False, delay: float = 1.0) 
             else:
                 df[col] = ""
 
-    # Find rows to process
+    # Find rows to process - reset previously invalid data (has_meta_ads but no page names)
     rows_to_process = []
+    reset_count = 0
     for idx, row in df.iterrows():
-        # Skip if already has meta ads data
-        if row.get('meta_ad_count', 0) > 0 or row.get('has_meta_ads') == True:
+        agent_name = str(row.get('agent_name', '')).strip()
+        if not agent_name:
             continue
 
-        agent_name = str(row.get('agent_name', '')).strip()
-        if agent_name:
-            rows_to_process.append((idx, agent_name, row.get('cities', '')))
+        # Check if this row has invalid data (has_meta_ads=True but no page names)
+        has_ads = row.get('has_meta_ads') == True
+        page_names = str(row.get('meta_page_names', '')).strip()
+        has_valid_data = has_ads and len(page_names) > 0
+
+        if has_valid_data:
+            continue  # Already has valid data
+
+        # Reset invalid data and mark for reprocessing
+        if has_ads and not page_names:
+            df.at[idx, 'has_meta_ads'] = False
+            df.at[idx, 'meta_ad_count'] = 0
+            df.at[idx, 'meta_ad_confidence'] = ''
+            reset_count += 1
+
+        rows_to_process.append((idx, agent_name, row.get('cities', '')))
+
+    if reset_count > 0:
+        logger.info(f"Reset {reset_count} rows with invalid Meta ads data (no page names)")
 
     logger.info(f"Found {len(rows_to_process)} agents to check for Meta ads")
 
@@ -642,10 +873,11 @@ def enrich_metaads(df: pd.DataFrame, dry_run: bool = False, delay: float = 1.0) 
         logger.error("Cannot run Meta ads detection without Apify client")
         return df
 
-    # Process each agent
-    stats = {"with_ads": 0, "no_ads": 0, "errors": 0, "high_confidence": 0}
+    # Process each agent with incremental saves
+    stats = {"with_ads": 0, "no_ads": 0, "errors": 0, "high_confidence": 0, "timeouts": 0}
+    BATCH_SIZE = 10  # Save after every 10 agents
 
-    for idx, agent_name, cities in tqdm(rows_to_process, desc="Checking Meta ads"):
+    for i, (idx, agent_name, cities) in enumerate(tqdm(rows_to_process, desc="Checking Meta ads")):
         try:
             city = cities.split(',')[0].strip() if cities else ''
             meta_data = check_meta_ads_apify(client, agent_name, city)
@@ -668,6 +900,11 @@ def enrich_metaads(df: pd.DataFrame, dry_run: bool = False, delay: float = 1.0) 
         except Exception as e:
             logger.error(f"Error checking Meta ads for {agent_name}: {e}")
             stats["errors"] += 1
+
+        # Incremental save every BATCH_SIZE records
+        if output_path and (i + 1) % BATCH_SIZE == 0:
+            save_incremental(df, output_path, f"metaads_batch_{(i + 1) // BATCH_SIZE}")
+            logger.info(f"Progress: {i + 1}/{len(rows_to_process)} agents checked")
 
     print(f"\nMeta Ads Results:")
     print(f"  Agents with ads: {stats['with_ads']}")
@@ -1152,6 +1389,12 @@ def main():
     parser.add_argument('--instagram-only', action='store_true',
                        help='Only run Step 4: Instagram Handle Discovery')
 
+    # Reset flags for re-enrichment
+    parser.add_argument('--reset-techstack', action='store_true',
+                       help='Reset tech stack data before re-enriching')
+    parser.add_argument('--reset-metaads', action='store_true',
+                       help='Reset Meta ads data before re-enriching')
+
     args = parser.parse_args()
 
     # Determine which steps to run
@@ -1184,6 +1427,33 @@ def main():
     original_count = len(df)
     print(f"Loaded {original_count} agents")
 
+    # Reset data if requested
+    if args.reset_techstack:
+        tech_columns = ["has_crm", "crm_name", "has_marketing_pixel", "pixel_types",
+                       "has_scheduling_tool", "scheduling_tool", "has_chat_widget",
+                       "chat_widget", "has_idx", "idx_provider", "tech_stack_raw", "tech_count"]
+        for col in tech_columns:
+            if col in df.columns:
+                if col.startswith("has_"):
+                    df[col] = False
+                elif col == "tech_count":
+                    df[col] = 0
+                else:
+                    df[col] = ""
+        print(f"Reset tech stack data for {len(df)} agents")
+
+    if args.reset_metaads:
+        meta_columns = ["has_meta_ads", "meta_ad_count", "meta_page_names", "meta_ad_confidence"]
+        for col in meta_columns:
+            if col in df.columns:
+                if col == "has_meta_ads":
+                    df[col] = False
+                elif col == "meta_ad_count":
+                    df[col] = 0
+                else:
+                    df[col] = ""
+        print(f"Reset Meta ads data for {len(df)} agents")
+
     # Apply limit
     if args.limit:
         df = df.head(args.limit)
@@ -1205,18 +1475,29 @@ def main():
             print("\nWARNING: apify-client not installed")
             print("Install with: pip install apify-client")
 
-    # Run enrichment steps
+    # Run enrichment steps (pass output_path for incremental saves)
+    output_path_str = str(output_path)
+
     if run_all_steps or args.websites_only:
         print(f"\n{'='*60}")
         df = enrich_websites(df)
+        # Save after websites step
+        if not args.dry_run:
+            save_incremental(df, output_path_str, "after_websites")
 
     if run_all_steps or args.techstack_only:
         print(f"\n{'='*60}")
-        df = enrich_techstack(df, dry_run=args.dry_run)
+        df = enrich_techstack(df, dry_run=args.dry_run, output_path=output_path_str)
+        # Save after techstack step
+        if not args.dry_run:
+            save_incremental(df, output_path_str, "after_techstack")
 
     if run_all_steps or args.metaads_only:
         print(f"\n{'='*60}")
-        df = enrich_metaads(df, dry_run=args.dry_run, delay=args.delay)
+        df = enrich_metaads(df, dry_run=args.dry_run, delay=args.delay, output_path=output_path_str)
+        # Save after metaads step
+        if not args.dry_run:
+            save_incremental(df, output_path_str, "after_metaads")
 
     if run_all_steps or args.instagram_only:
         print(f"\n{'='*60}")
