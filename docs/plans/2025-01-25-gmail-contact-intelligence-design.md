@@ -22,9 +22,12 @@ Output: entry_paths.csv (with intro chains, connectors, warmth scores, suggested
 | Source | Access Method | Data |
 |--------|---------------|------|
 | Gmail (LaHaus) | IMAP + App Password | Work emails, professional network |
-| Gmail (Personal) | IMAP + App Password | Personal emails, broader network |
+| Gmail (Jaguar Capital) | OAuth 2.0 (Gmail API) | 140k+ messages, personal/business network |
 | LinkedIn | API/Scraping | Connections, mutual connections, degrees |
-| Google Contacts | API | 12k contacts with basic metadata |
+| Google Contacts | OAuth 2.0 (People API) | 12k contacts with basic metadata |
+
+**Note:** Google Workspace accounts with app passwords disabled use OAuth 2.0.
+Credentials stored in `data/contact_intel/{account}_token.json`.
 
 ---
 
@@ -530,10 +533,6 @@ python scripts/contact_intel/deduper.py --execute                 # Run deduplic
 Add to `.env`:
 
 ```bash
-# Personal Gmail
-GMAIL_PERSONAL_ADDRESS=your.personal@gmail.com
-GMAIL_PERSONAL_APP_PASSWORD=xxxx_xxxx_xxxx_xxxx
-
 # Neo4j
 NEO4J_URI=bolt://localhost:7687
 NEO4J_USER=neo4j
@@ -542,6 +541,22 @@ NEO4J_PASSWORD=your_secure_password
 # ChromaDB (optional - defaults to local)
 CHROMA_PERSIST_DIR=data/contact_intel/vectors
 ```
+
+## Authentication Setup
+
+**OAuth 2.0 Accounts (Google Workspace):**
+- Client secrets: `config/{account}_client_secret_*.json`
+- Tokens: `data/contact_intel/{account}_token.json`
+- Auth script: `python scripts/contact_intel/google_auth.py --auth --account {name}`
+
+**IMAP Accounts (Personal Gmail with App Password):**
+- Add to `.env`: `GMAIL_PERSONAL_ADDRESS` and `GMAIL_PERSONAL_APP_PASSWORD`
+
+**Authenticated Accounts:**
+| Account | Method | Email | Messages |
+|---------|--------|-------|----------|
+| tujaguarcapital | OAuth 2.0 | tu@jaguarcapital.co | 140,761 |
+| lahaus | IMAP | tomasuribe@lahaus.com | TBD |
 
 ---
 
