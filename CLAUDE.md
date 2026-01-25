@@ -469,3 +469,11 @@ shutil.copy(output_path, f"{output_path}.backup")
 ```
 
 **Why:** A 2+ hour enrichment that fails or is interrupted loses ALL progress if it only saves at the end. Incremental saves allow resumption and prevent data loss.
+
+### Script Reuse Policy
+
+**Always check existing scripts before creating new ones:**
+- Search `scripts/` for similar functionality before writing new code
+- Existing enrichment scripts: `hubspot_enricher.py`, `apollo_enricher.py`, `exa_enricher.py`, `hunter.py`, `repliers_agent_lookup.py`
+- Prefer extending existing scripts over creating new ones
+- Use `--help` to discover existing script capabilities
