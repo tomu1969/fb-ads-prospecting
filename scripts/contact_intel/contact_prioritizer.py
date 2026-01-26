@@ -100,14 +100,29 @@ def _is_target_industry(email: str) -> Tuple[bool, str]:
 def get_contacts_who_replied(my_emails: Set[str], db_path=None) -> Set[str]:
     """Get contacts who have sent us at least one email."""
     db = db_path or EMAILS_DB
+    logger.info(f"Fetching contacts who replied from {db}")
+
     conn = sqlite3.connect(db)
-    cursor = conn.cursor()
-    cursor.execute("SELECT DISTINCT from_email FROM emails")
-    from_emails = {row[0].lower() for row in cursor.fetchall() if row[0]}
-    conn.close()
+    try:
+        cursor = conn.cursor()
+        # Check if emails table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='emails'")
+        if not cursor.fetchone():
+            logger.warning(f"No 'emails' table found in {db}")
+            return set()
+
+        cursor.execute("SELECT DISTINCT from_email FROM emails")
+        from_emails = {row[0].lower() for row in cursor.fetchall() if row[0]}
+    except sqlite3.Error as e:
+        logger.error(f"Database error in get_contacts_who_replied: {e}")
+        return set()
+    finally:
+        conn.close()
 
     my_emails_lower = {e.lower() for e in my_emails}
-    return from_emails - my_emails_lower
+    replied = from_emails - my_emails_lower
+    logger.info(f"Found {len(replied)} unique contacts who replied")
+    return replied
 
 
 def get_prioritized_contacts(
@@ -116,35 +131,48 @@ def get_prioritized_contacts(
     already_extracted: Set[str] = None,
 ) -> List[Dict]:
     """Get prioritized list of contacts for extraction."""
+    logger.info(f"Getting prioritized contacts (limit={limit})")
     already_extracted = already_extracted or set()
     already_extracted_lower = {e.lower() for e in already_extracted}
     my_emails_lower = {e.lower() for e in my_emails}
 
     conn = sqlite3.connect(EMAILS_DB)
-    cursor = conn.cursor()
+    try:
+        cursor = conn.cursor()
 
-    # Get all contacts who sent us emails
-    cursor.execute("""
-        SELECT from_email, from_name, COUNT(*) as email_count
-        FROM emails
-        GROUP BY from_email
-    """)
-    contacts_from = {}
-    for row in cursor.fetchall():
-        if row[0]:
-            contacts_from[row[0].lower()] = {'name': row[1], 'sent_to_us': row[2]}
+        # Check if emails table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='emails'")
+        if not cursor.fetchone():
+            logger.warning(f"No 'emails' table found in {EMAILS_DB}")
+            return []
 
-    # Get contacts we sent emails to
-    cursor.execute("SELECT to_emails FROM emails")
-    emails_we_sent = {}
-    for row in cursor.fetchall():
-        if row[0]:
-            for email in row[0].split(','):
-                email = email.strip().lower()
-                if email:
-                    emails_we_sent[email] = emails_we_sent.get(email, 0) + 1
+        # Get all contacts who sent us emails
+        cursor.execute("""
+            SELECT from_email, from_name, COUNT(*) as email_count
+            FROM emails
+            GROUP BY from_email
+        """)
+        contacts_from = {}
+        for row in cursor.fetchall():
+            if row[0]:
+                contacts_from[row[0].lower()] = {'name': row[1], 'sent_to_us': row[2]}
 
-    conn.close()
+        # Get contacts we sent emails to
+        cursor.execute("SELECT to_emails FROM emails")
+        emails_we_sent = {}
+        for row in cursor.fetchall():
+            if row[0]:
+                for email in row[0].split(','):
+                    email = email.strip().lower()
+                    if email:
+                        emails_we_sent[email] = emails_we_sent.get(email, 0) + 1
+    except sqlite3.Error as e:
+        logger.error(f"Database error in get_prioritized_contacts: {e}")
+        return []
+    finally:
+        conn.close()
+
+    logger.info(f"Loaded {len(contacts_from)} contacts who sent emails, {len(emails_we_sent)} we sent to")
 
     # Get contacts who replied
     replied_contacts = get_contacts_who_replied(my_emails)
@@ -153,24 +181,37 @@ def get_prioritized_contacts(
     tier1, tier2, tier3 = [], [], []
 
     all_contacts = set(contacts_from.keys()) | set(emails_we_sent.keys())
+    logger.info(f"Total unique contacts to evaluate: {len(all_contacts)}")
+
+    # Track filter statistics
+    skipped_extracted = 0
+    skipped_self = 0
+    skipped_internal = 0
+    skipped_automated = 0
+    skipped_one_way = 0
 
     for email in all_contacts:
         email_lower = email.lower()
 
         # Skip filters
         if email_lower in already_extracted_lower:
+            skipped_extracted += 1
             continue
         if email_lower in my_emails_lower:
+            skipped_self += 1
             continue
         if _is_internal(email_lower):
+            skipped_internal += 1
             continue
         if _is_automated(email_lower):
+            skipped_automated += 1
             continue
 
         has_replied = email_lower in replied_contacts
 
         # Skip one-way outbound
         if not has_replied and email_lower in emails_we_sent and email_lower not in contacts_from:
+            skipped_one_way += 1
             continue
 
         info = contacts_from.get(email_lower, {})
@@ -198,13 +239,17 @@ def get_prioritized_contacts(
             contact['tier'] = 3
             tier3.append(contact)
 
+    # Log filter statistics
+    logger.debug(f"Skipped - already extracted: {skipped_extracted}, self: {skipped_self}, "
+                 f"internal: {skipped_internal}, automated: {skipped_automated}, one-way: {skipped_one_way}")
+
     # Sort by email count
     tier1.sort(key=lambda x: x['email_count'], reverse=True)
     tier2.sort(key=lambda x: x['email_count'], reverse=True)
     tier3.sort(key=lambda x: x['email_count'], reverse=True)
 
     result = tier1 + tier2 + tier3
-    logger.info(f"Prioritized: Tier1={len(tier1)}, Tier2={len(tier2)}, Tier3={len(tier3)}")
+    logger.info(f"Prioritized: Tier1={len(tier1)}, Tier2={len(tier2)}, Tier3={len(tier3)}, Total={len(result)}")
 
     return result[:limit]
 
