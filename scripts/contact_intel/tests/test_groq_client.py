@@ -38,7 +38,7 @@ class TestGroqClient:
         with patch.dict('os.environ', {'GROQ_API_KEY': 'test_key'}):
             client = GroqClient()
 
-        with patch('scripts.contact_intel.groq_client.Groq') as mock_groq:
+        with patch('groq.Groq') as mock_groq:
             mock_groq.return_value.chat.completions.create.return_value = mock_response
 
             result = client.extract_contact_info(
@@ -47,13 +47,13 @@ class TestGroqClient:
                 emails=[{'subject': 'Test', 'date': '2024-01-01', 'body': 'Hello'}],
             )
 
-        assert result.company == 'Acme Corp'
-        assert result.role == 'Engineer'
-        assert result.topics == ['tech']
-        assert result.confidence == 0.9
-        assert result.input_tokens == 500
-        assert result.output_tokens == 50
-        assert result.cost_usd > 0
+            assert result.company == 'Acme Corp'
+            assert result.role == 'Engineer'
+            assert result.topics == ['tech']
+            assert result.confidence == 0.9
+            assert result.input_tokens == 500
+            assert result.output_tokens == 50
+            assert result.cost_usd > 0
 
     def test_extract_contact_info_handles_api_error(self):
         """Should return empty result on API error."""
@@ -62,7 +62,7 @@ class TestGroqClient:
         with patch.dict('os.environ', {'GROQ_API_KEY': 'test_key'}):
             client = GroqClient()
 
-        with patch('scripts.contact_intel.groq_client.Groq') as mock_groq:
+        with patch('groq.Groq') as mock_groq:
             mock_groq.return_value.chat.completions.create.side_effect = Exception("API Error")
 
             result = client.extract_contact_info(
@@ -71,10 +71,10 @@ class TestGroqClient:
                 emails=[{'subject': 'Test', 'date': '2024-01-01', 'body': 'Hello'}],
             )
 
-        assert result.company is None
-        assert result.role is None
-        assert result.topics == []
-        assert result.confidence == 0.0
+            assert result.company is None
+            assert result.role is None
+            assert result.topics == []
+            assert result.confidence == 0.0
 
     def test_extract_contact_info_handles_invalid_json(self):
         """Should handle invalid JSON response."""
@@ -89,7 +89,7 @@ class TestGroqClient:
         with patch.dict('os.environ', {'GROQ_API_KEY': 'test_key'}):
             client = GroqClient()
 
-        with patch('scripts.contact_intel.groq_client.Groq') as mock_groq:
+        with patch('groq.Groq') as mock_groq:
             mock_groq.return_value.chat.completions.create.return_value = mock_response
 
             result = client.extract_contact_info(
@@ -98,9 +98,9 @@ class TestGroqClient:
                 emails=[{'subject': 'Test', 'date': '2024-01-01', 'body': 'Hello'}],
             )
 
-        # Should return empty but not crash
-        assert result.company is None
-        assert result.input_tokens == 500
+            # Should return empty but not crash
+            assert result.company is None
+            assert result.input_tokens == 500
 
     def test_rate_limiting(self):
         """Should enforce rate limiting between requests."""

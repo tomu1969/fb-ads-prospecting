@@ -11,7 +11,6 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 from dotenv import load_dotenv
-from groq import Groq
 
 load_dotenv()
 
@@ -24,6 +23,9 @@ OUTPUT_COST_PER_M = 0.79
 # Rate limiting
 REQUESTS_PER_MINUTE = 30
 REQUEST_DELAY = 60.0 / REQUESTS_PER_MINUTE  # 2 seconds
+
+# Email body truncation limit (chars) to keep prompts within token limits
+MAX_BODY_LENGTH = 3000
 
 
 @dataclass
@@ -93,13 +95,18 @@ class GroqClient:
         emails: List[Dict[str, str]],
     ) -> ExtractionResult:
         """Extract company, role, topics from contact's emails."""
+        try:
+            from groq import Groq
+        except ImportError:
+            raise ImportError("Install groq SDK: pip install groq")
+
         # Format emails for prompt
         emails_text = ""
         for i, e in enumerate(emails, 1):
             emails_text += f"\n--- Email {i} ---\n"
             emails_text += f"Subject: {e.get('subject', 'N/A')}\n"
             emails_text += f"Date: {e.get('date', 'N/A')}\n"
-            emails_text += f"Body:\n{e.get('body', '')[:3000]}\n"
+            emails_text += f"Body:\n{e.get('body', '')[:MAX_BODY_LENGTH]}\n"
 
         user_prompt = USER_PROMPT_TEMPLATE.format(
             name=name,
