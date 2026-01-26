@@ -618,14 +618,16 @@ class GmailSyncer:
         since_date: datetime = None,
         limit: int = None,
         progress_callback: Callable = None,
+        save_batch_size: int = 100,
     ) -> int:
-        """Sync emails from OAuth account.
+        """Sync emails from OAuth account with incremental saves.
 
         Args:
             config: Account configuration.
             since_date: Only fetch emails after this date.
             limit: Maximum number of emails to fetch.
             progress_callback: Optional progress callback.
+            save_batch_size: Save to database every N emails (default 100).
 
         Returns:
             Number of emails synced.
@@ -660,27 +662,86 @@ class GmailSyncer:
         messages = self._fetch_messages_oauth(service, since_date, limit)
         logger.info(f"Found {len(messages)} messages to sync")
 
-        # Fetch full details for each message
-        emails = []
+        # Fetch details and save incrementally
         total = len(messages)
-        for i, msg in enumerate(messages):
-            details = self._get_message_details_oauth(service, msg['id'])
-            if details:
-                details['account'] = config.name
-                emails.append(details)
+        total_saved = 0
+        batch = []
 
-            if (i + 1) % 100 == 0:
-                logger.info(f"[{i + 1}/{total}] Fetched message details")
-                if progress_callback:
-                    progress_callback(i + 1, total, f"Fetching {i + 1}/{total}")
+        conn = sqlite3.connect(self.db_path)
 
-        # Save to database
-        saved = self.save_emails_batch(emails, progress_callback)
+        try:
+            for i, msg in enumerate(messages):
+                details = self._get_message_details_oauth(service, msg['id'])
+                if details:
+                    details['account'] = config.name
+                    batch.append(details)
+
+                # Save batch incrementally
+                if len(batch) >= save_batch_size:
+                    saved = self._save_batch_to_db(conn, batch)
+                    total_saved += saved
+                    batch = []
+                    logger.info(f"[{i + 1}/{total}] Saved {total_saved} emails (fetched {i + 1})")
+                    if progress_callback:
+                        progress_callback(i + 1, total, f"Saved {total_saved}/{i + 1} fetched")
+
+                elif (i + 1) % 100 == 0:
+                    logger.info(f"[{i + 1}/{total}] Fetching... (batch: {len(batch)})")
+                    if progress_callback:
+                        progress_callback(i + 1, total, f"Fetching {i + 1}/{total}")
+
+            # Save remaining batch
+            if batch:
+                saved = self._save_batch_to_db(conn, batch)
+                total_saved += saved
+                logger.info(f"[{total}/{total}] Final save: {saved} emails")
+
+        finally:
+            conn.close()
 
         # Update sync state
         self.state_manager.update_last_sync(config.name, datetime.now())
 
-        logger.info(f"Synced {saved} emails from {config.name}")
+        logger.info(f"Synced {total_saved} emails from {config.name}")
+        return total_saved
+
+    def _save_batch_to_db(self, conn: sqlite3.Connection, emails: List[Dict]) -> int:
+        """Save a batch of emails to the database.
+
+        Args:
+            conn: SQLite connection.
+            emails: List of email data dicts.
+
+        Returns:
+            Number of emails saved (excluding duplicates).
+        """
+        saved = 0
+        for email_data in emails:
+            try:
+                cursor = conn.execute("""
+                    INSERT OR IGNORE INTO emails
+                    (account, message_id, thread_id, from_email, from_name,
+                     to_emails, cc_emails, bcc_emails, subject, date, in_reply_to)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    email_data["account"],
+                    email_data["message_id"],
+                    email_data.get("thread_id"),
+                    email_data["from_email"],
+                    email_data.get("from_name"),
+                    json.dumps(email_data.get("to_emails", [])),
+                    json.dumps(email_data.get("cc_emails", [])),
+                    json.dumps(email_data.get("bcc_emails", [])),
+                    email_data.get("subject"),
+                    email_data.get("date"),
+                    email_data.get("in_reply_to"),
+                ))
+                if cursor.rowcount > 0:
+                    saved += 1
+            except sqlite3.IntegrityError:
+                pass  # Duplicate
+
+        conn.commit()
         return saved
 
     def _sync_imap_account(
@@ -689,14 +750,16 @@ class GmailSyncer:
         since_date: datetime = None,
         limit: int = None,
         progress_callback: Callable = None,
+        save_batch_size: int = 100,
     ) -> int:
-        """Sync emails from IMAP account.
+        """Sync emails from IMAP account with incremental saves.
 
         Args:
             config: Account configuration.
             since_date: Only fetch emails after this date.
             limit: Maximum number of emails to fetch.
             progress_callback: Optional progress callback.
+            save_batch_size: Save to database every N emails (default 100).
 
         Returns:
             Number of emails synced.
@@ -724,34 +787,53 @@ class GmailSyncer:
 
             logger.info(f"Found {len(msg_ids)} messages to sync")
 
-            emails = []
             total = len(msg_ids)
+            total_saved = 0
+            batch = []
 
-            for i, msg_id in enumerate(msg_ids):
-                _, msg_data = mail.fetch(msg_id, '(RFC822)')
-                raw_email = msg_data[0][1]
+            conn = sqlite3.connect(self.db_path)
 
-                headers = parse_email_headers(raw_email)
-                headers['account'] = config.name
-                headers['thread_id'] = None  # IMAP doesn't have thread IDs
+            try:
+                for i, msg_id in enumerate(msg_ids):
+                    _, msg_data = mail.fetch(msg_id, '(RFC822)')
+                    raw_email = msg_data[0][1]
 
-                emails.append(headers)
+                    headers = parse_email_headers(raw_email)
+                    headers['account'] = config.name
+                    headers['thread_id'] = None  # IMAP doesn't have thread IDs
 
-                if (i + 1) % 100 == 0:
-                    logger.info(f"[{i + 1}/{total}] Fetched emails")
-                    if progress_callback:
-                        progress_callback(i + 1, total, f"Fetching {i + 1}/{total}")
+                    batch.append(headers)
+
+                    # Save batch incrementally
+                    if len(batch) >= save_batch_size:
+                        saved = self._save_batch_to_db(conn, batch)
+                        total_saved += saved
+                        batch = []
+                        logger.info(f"[{i + 1}/{total}] Saved {total_saved} emails")
+                        if progress_callback:
+                            progress_callback(i + 1, total, f"Saved {total_saved}/{i + 1}")
+
+                    elif (i + 1) % 100 == 0:
+                        logger.info(f"[{i + 1}/{total}] Fetching... (batch: {len(batch)})")
+                        if progress_callback:
+                            progress_callback(i + 1, total, f"Fetching {i + 1}/{total}")
+
+                # Save remaining batch
+                if batch:
+                    saved = self._save_batch_to_db(conn, batch)
+                    total_saved += saved
+                    logger.info(f"[{total}/{total}] Final save: {saved} emails")
+
+            finally:
+                conn.close()
 
             mail.logout()
-
-            # Save to database
-            saved = self.save_emails_batch(emails, progress_callback)
 
             # Update sync state
             self.state_manager.update_last_sync(config.name, datetime.now())
 
-            logger.info(f"Synced {saved} emails from {config.name}")
-            return saved
+            logger.info(f"Synced {total_saved} emails from {config.name}")
+            return total_saved
 
         except Exception as e:
             logger.error(f"IMAP sync error: {e}")
