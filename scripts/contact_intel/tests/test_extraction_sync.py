@@ -32,16 +32,18 @@ class TestExtractionSync:
         mock_gb = MagicMock()
         mock_gb.driver = mock_driver
 
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchall.return_value = [
+            {'email': 'test@example.com', 'name': 'Test', 'company': 'Acme Corp', 'role': 'Engineer', 'topics': '["tech"]', 'confidence': 0.9}
+        ]
+        mock_conn.cursor.return_value = mock_cursor
+
         with patch('scripts.contact_intel.extraction_sync.neo4j_available', return_value=True):
             with patch('scripts.contact_intel.extraction_sync.GraphBuilder', return_value=mock_gb):
-                with patch('scripts.contact_intel.extraction_sync.sqlite3') as mock_sqlite:
-                    mock_conn = MagicMock()
-                    mock_cursor = MagicMock()
-                    mock_cursor.fetchall.return_value = [
-                        {'email': 'test@example.com', 'name': 'Test', 'company': 'Acme Corp', 'role': 'Engineer', 'topics': '["tech"]', 'confidence': 0.9}
-                    ]
-                    mock_conn.cursor.return_value = mock_cursor
-                    mock_sqlite.connect.return_value = mock_conn
+                with patch('scripts.contact_intel.extraction_sync.get_db_connection') as mock_get_conn:
+                    mock_get_conn.return_value.__enter__ = MagicMock(return_value=mock_conn)
+                    mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
 
                     sync_extractions_to_neo4j()
 
@@ -60,16 +62,18 @@ class TestExtractionSync:
         mock_gb = MagicMock()
         mock_gb.driver = mock_driver
 
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchall.return_value = [
+            {'email': 'test@example.com', 'name': 'Test', 'company': None, 'role': None, 'topics': '["real estate", "investment"]', 'confidence': 0.8}
+        ]
+        mock_conn.cursor.return_value = mock_cursor
+
         with patch('scripts.contact_intel.extraction_sync.neo4j_available', return_value=True):
             with patch('scripts.contact_intel.extraction_sync.GraphBuilder', return_value=mock_gb):
-                with patch('scripts.contact_intel.extraction_sync.sqlite3') as mock_sqlite:
-                    mock_conn = MagicMock()
-                    mock_cursor = MagicMock()
-                    mock_cursor.fetchall.return_value = [
-                        {'email': 'test@example.com', 'name': 'Test', 'company': None, 'role': None, 'topics': '["real estate", "investment"]', 'confidence': 0.8}
-                    ]
-                    mock_conn.cursor.return_value = mock_cursor
-                    mock_sqlite.connect.return_value = mock_conn
+                with patch('scripts.contact_intel.extraction_sync.get_db_connection') as mock_get_conn:
+                    mock_get_conn.return_value.__enter__ = MagicMock(return_value=mock_conn)
+                    mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
 
                     sync_extractions_to_neo4j()
 

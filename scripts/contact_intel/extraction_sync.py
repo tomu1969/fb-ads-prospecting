@@ -9,15 +9,12 @@ Handles:
 
 import json
 import logging
-import sqlite3
 from typing import Dict
 
-from scripts.contact_intel.config import DATA_DIR
+from scripts.contact_intel.extraction_db import get_db_connection
 from scripts.contact_intel.graph_builder import GraphBuilder, neo4j_available
 
 logger = logging.getLogger(__name__)
-
-EXTRACTIONS_DB = DATA_DIR / "extractions.db"
 
 
 def _normalize_company_name(name: str) -> str:
@@ -54,18 +51,14 @@ def sync_extractions_to_neo4j():
         logger.error("Neo4j not available")
         return
 
-    conn = sqlite3.connect(EXTRACTIONS_DB)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT email, name, company, role, topics, confidence
-        FROM contact_extractions
-        WHERE extracted_at IS NOT NULL
-    """)
-
-    extractions = cursor.fetchall()
-    conn.close()
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT email, name, company, role, topics, confidence
+            FROM contact_extractions
+            WHERE extracted_at IS NOT NULL
+        """)
+        extractions = cursor.fetchall()
 
     logger.info(f"Syncing {len(extractions)} extractions to Neo4j")
 
@@ -144,7 +137,9 @@ def get_sync_stats() -> Dict:
         Dict with counts of companies, topics, and relationships.
         Returns {'error': 'Neo4j not available'} if Neo4j is not configured.
     """
+    logger.debug("Fetching sync stats from Neo4j")
     if not neo4j_available():
+        logger.debug("Neo4j not available, returning error dict")
         return {'error': 'Neo4j not available'}
 
     gb = GraphBuilder()
