@@ -156,3 +156,104 @@ class TestExtractionDB:
         complete_run(run_id)
         stats = get_run_stats(run_id)
         assert stats['status'] == 'completed'
+
+    def test_save_extraction_validates_email(self):
+        """Should raise ValueError for empty or invalid email."""
+        from scripts.contact_intel.extraction_db import init_db, save_extraction
+
+        init_db()
+
+        with pytest.raises(ValueError, match="email must be a non-empty string"):
+            save_extraction(
+                email='',
+                name='Test',
+                company='Co',
+                role='Role',
+                topics=[],
+                confidence=0.5,
+                source_emails=[],
+                model='model',
+            )
+
+        with pytest.raises(ValueError, match="email must be a non-empty string"):
+            save_extraction(
+                email=None,
+                name='Test',
+                company='Co',
+                role='Role',
+                topics=[],
+                confidence=0.5,
+                source_emails=[],
+                model='model',
+            )
+
+    def test_save_extraction_validates_confidence(self):
+        """Should raise ValueError for confidence outside 0-1 range."""
+        from scripts.contact_intel.extraction_db import init_db, save_extraction
+
+        init_db()
+
+        with pytest.raises(ValueError, match="confidence must be a number between 0 and 1"):
+            save_extraction(
+                email='test@example.com',
+                name='Test',
+                company='Co',
+                role='Role',
+                topics=[],
+                confidence=1.5,  # > 1
+                source_emails=[],
+                model='model',
+            )
+
+        with pytest.raises(ValueError, match="confidence must be a number between 0 and 1"):
+            save_extraction(
+                email='test@example.com',
+                name='Test',
+                company='Co',
+                role='Role',
+                topics=[],
+                confidence=-0.1,  # < 0
+                source_emails=[],
+                model='model',
+            )
+
+    def test_save_extraction_validates_lists(self):
+        """Should raise ValueError for non-list topics and source_emails."""
+        from scripts.contact_intel.extraction_db import init_db, save_extraction
+
+        init_db()
+
+        with pytest.raises(ValueError, match="topics must be a list"):
+            save_extraction(
+                email='test@example.com',
+                name='Test',
+                company='Co',
+                role='Role',
+                topics='not a list',
+                confidence=0.5,
+                source_emails=[],
+                model='model',
+            )
+
+        with pytest.raises(ValueError, match="source_emails must be a list"):
+            save_extraction(
+                email='test@example.com',
+                name='Test',
+                company='Co',
+                role='Role',
+                topics=[],
+                confidence=0.5,
+                source_emails='not a list',
+                model='model',
+            )
+
+    def test_get_run_stats_returns_empty_for_invalid_id(self):
+        """Should return empty dict for non-existent run_id."""
+        from scripts.contact_intel.extraction_db import init_db, get_run_stats
+
+        init_db()
+
+        # Non-existent run_id should return empty dict
+        stats = get_run_stats(9999)
+        assert stats == {}
+        # This allows callers to check `if stats:` to verify run exists
