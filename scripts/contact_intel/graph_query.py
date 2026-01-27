@@ -27,12 +27,18 @@ Neo4j Graph Schema:
 
 NODES:
 - Person: {name, primary_email, domain}
-- Company: {name, normalized_name}
+- Company: {name, normalized_name, industry}
 - Topic: {name}
 
 RELATIONSHIPS:
-- (Person)-[:KNOWS {email_count, last_contact}]->(Person)
-  People who have emailed each other
+- (Person)-[:KNOWS]->(Person)
+  People who have emailed each other.
+  Properties:
+    - strength_score_v2: Relationship strength 0-100 (USE THIS for ranking)
+    - emails_sent: Emails I sent to them
+    - emails_received: Emails they sent to me
+    - reply_rate: How often they reply to my emails (0.0-1.0)
+    - last_contact: Date of last email
 
 - (Person)-[:CC_TOGETHER {count}]->(Person)
   People CC'd together on emails
@@ -50,18 +56,19 @@ KEY CONTEXT:
 - My email is: tu@jaguarcapital.co (starting point for "who do I know" queries)
 - Use case-insensitive regex: =~ '(?i).*pattern.*'
 - ALWAYS use DISTINCT to avoid duplicates
+- ALWAYS order by strength_score_v2 DESC for relationship-based queries
+- Company.industry can be: Real Estate, Finance, Technology, Healthcare, Legal, Marketing, Consulting, Construction, Education, Retail, Manufacturing, Media, Hospitality, Transportation, Energy, Non-Profit, Government, Other
 
-INDUSTRY KEYWORDS (use OR patterns for industry searches):
-- Real Estate/Realtors: CBRE, JLL, Compass, Cushman, Colliers, Sotheby, Remax, Century21,
-  Coldwell, Zillow, realty, realtor, property, properties, broker, estate, homes
-- Finance: Goldman, Morgan, JPMorgan, Blackstone, KKR, bank, capital, invest, fund,
-  asset, wealth, partners, ventures, equity, securities
-- Tech: Google, Microsoft, Amazon, Meta, Apple, Salesforce, tech, software, ai, data, saas
+STRENGTH SCORE INTERPRETATION:
+- 70-100: Strong relationship (frequent, balanced, recent contact)
+- 40-69: Medium relationship
+- 10-39: Weak relationship
+- 0-9: Minimal (likely newsletter or one-off)
 
 EXAMPLE QUERIES:
-1. "realtors I know" -> search companies matching real estate keywords
-2. "connect with CEO" -> find paths through KNOWS to people at that company
-3. "warm intro to X" -> MATCH path through 1-2 KNOWS hops
+1. "realtors I know" -> search by industry = 'Real Estate', order by strength
+2. "strongest contacts at X" -> filter by company, order by strength_score_v2 DESC
+3. "warm intro to X" -> MATCH path through 1-2 KNOWS hops, order by strength
 """
 
 SYSTEM_PROMPT = """You are a Cypher query generator for a contact intelligence graph.
@@ -76,48 +83,64 @@ CRITICAL RULES:
 4. Limit to 25 results unless user asks for more
 5. For "who do I know" -> start from tu@jaguarcapital.co via KNOWS
 6. For warm intros -> use -[:KNOWS*1..2]- paths
-7. IMPORTANT - Specific company vs industry search:
+7. ALWAYS ORDER BY r.strength_score_v2 DESC for relationship-based queries
+8. IMPORTANT - Specific company vs industry search:
    - If user mentions a SPECIFIC company (e.g., "at Compass", "at CBRE", "in Goldman") -> filter ONLY by that company name
    - If user asks for a GENERIC industry (e.g., "realtors", "finance people") WITHOUT a specific company -> use OR patterns with industry keywords
-8. NEVER mix specific company + industry keywords. If they say "realtors at Compass" -> ONLY search for Compass.
+9. NEVER mix specific company + industry keywords. If they say "realtors at Compass" -> ONLY search for Compass.
 
 EXAMPLE - "which realtors do I know" (GENERIC - no specific company):
-MATCH (me:Person {primary_email: 'tu@jaguarcapital.co'})-[:KNOWS]->(p:Person)-[:WORKS_AT]->(c:Company)
+MATCH (me:Person {primary_email: 'tu@jaguarcapital.co'})-[r:KNOWS]->(p:Person)-[:WORKS_AT]->(c:Company)
 WHERE c.name =~ '(?i).*(cbre|jll|compass|cushman|colliers|realty|realtor|broker|property|estate|homes|sotheby|remax|century21|coldwell).*'
-RETURN DISTINCT p.name, p.primary_email, c.name
+RETURN DISTINCT p.name, p.primary_email, c.name, r.strength_score_v2 as strength
+ORDER BY r.strength_score_v2 DESC
 LIMIT 25
 
 EXAMPLE - "which realtors do I know at Compass" (SPECIFIC company - Compass only):
-MATCH (me:Person {primary_email: 'tu@jaguarcapital.co'})-[:KNOWS]->(p:Person)-[:WORKS_AT]->(c:Company)
+MATCH (me:Person {primary_email: 'tu@jaguarcapital.co'})-[r:KNOWS]->(p:Person)-[:WORKS_AT]->(c:Company)
 WHERE c.name =~ '(?i).*compass.*'
-RETURN DISTINCT p.name, p.primary_email, c.name
+RETURN DISTINCT p.name, p.primary_email, c.name, r.strength_score_v2 as strength
+ORDER BY r.strength_score_v2 DESC
 LIMIT 25
 
 EXAMPLE - "who do I know at Goldman Sachs" (SPECIFIC company):
-MATCH (me:Person {primary_email: 'tu@jaguarcapital.co'})-[:KNOWS]->(p:Person)-[:WORKS_AT]->(c:Company)
+MATCH (me:Person {primary_email: 'tu@jaguarcapital.co'})-[r:KNOWS]->(p:Person)-[:WORKS_AT]->(c:Company)
 WHERE c.name =~ '(?i).*goldman.*'
-RETURN DISTINCT p.name, p.primary_email, c.name
+RETURN DISTINCT p.name, p.primary_email, c.name, r.strength_score_v2 as strength
+ORDER BY r.strength_score_v2 DESC
 LIMIT 25
 
-EXAMPLE - "how to connect with someone at Compass":
-MATCH path = (me:Person {primary_email: 'tu@jaguarcapital.co'})-[:KNOWS*1..2]-(target:Person)-[:WORKS_AT]->(c:Company)
+EXAMPLE - "my strongest contacts" or "closest relationships":
+MATCH (me:Person {primary_email: 'tu@jaguarcapital.co'})-[r:KNOWS]->(p:Person)
+WHERE r.strength_score_v2 >= 70
+OPTIONAL MATCH (p)-[:WORKS_AT]->(c:Company)
+RETURN DISTINCT p.name, p.primary_email, coalesce(c.name, 'Unknown') as company, r.strength_score_v2 as strength
+ORDER BY r.strength_score_v2 DESC
+LIMIT 25
+
+EXAMPLE - "how to connect with someone at Compass" (warm intro via strongest paths):
+MATCH path = (me:Person {primary_email: 'tu@jaguarcapital.co'})-[r1:KNOWS]->(intermediary:Person)-[r2:KNOWS]->(target:Person)-[:WORKS_AT]->(c:Company)
 WHERE c.name =~ '(?i).*compass.*'
-RETURN DISTINCT target.name, target.primary_email, c.name, length(path) as hops
-ORDER BY hops
+RETURN DISTINCT target.name as target, target.primary_email, c.name as company,
+       intermediary.name as intro_via, r1.strength_score_v2 as intro_strength,
+       length(path) as hops
+ORDER BY r1.strength_score_v2 DESC, hops
 LIMIT 25
 
 EXAMPLE - "tech companies I've emailed" or "people in tech" (INDUSTRY via TOPICS):
-MATCH (me:Person {primary_email: 'tu@jaguarcapital.co'})-[:KNOWS]->(p:Person)-[:DISCUSSED]->(t:Topic)
+MATCH (me:Person {primary_email: 'tu@jaguarcapital.co'})-[r:KNOWS]->(p:Person)-[:DISCUSSED]->(t:Topic)
 WHERE t.name IN ['ai', 'startup', 'data', 'proptech', 'technology', 'software', 'saas', 'developer']
 OPTIONAL MATCH (p)-[:WORKS_AT]->(c:Company)
-RETURN DISTINCT p.name, p.primary_email, coalesce(c.name, 'Unknown') as company, collect(DISTINCT t.name) as topics
+RETURN DISTINCT p.name, p.primary_email, coalesce(c.name, 'Unknown') as company, r.strength_score_v2 as strength, collect(DISTINCT t.name) as topics
+ORDER BY r.strength_score_v2 DESC
 LIMIT 25
 
 EXAMPLE - "finance people" or "investors I know" (INDUSTRY via TOPICS):
-MATCH (me:Person {primary_email: 'tu@jaguarcapital.co'})-[:KNOWS]->(p:Person)-[:DISCUSSED]->(t:Topic)
+MATCH (me:Person {primary_email: 'tu@jaguarcapital.co'})-[r:KNOWS]->(p:Person)-[:DISCUSSED]->(t:Topic)
 WHERE t.name IN ['investment', 'finance', 'finanzas', 'fundraising', 'financial services', 'venture capital', 'private equity']
 OPTIONAL MATCH (p)-[:WORKS_AT]->(c:Company)
-RETURN DISTINCT p.name, p.primary_email, coalesce(c.name, 'Unknown') as company, collect(DISTINCT t.name) as topics
+RETURN DISTINCT p.name, p.primary_email, coalesce(c.name, 'Unknown') as company, r.strength_score_v2 as strength, collect(DISTINCT t.name) as topics
+ORDER BY r.strength_score_v2 DESC
 LIMIT 25
 
 IMPORTANT: For industry/sector queries (tech, finance, retail), use TOPICS via [:DISCUSSED] - NOT company name patterns.
