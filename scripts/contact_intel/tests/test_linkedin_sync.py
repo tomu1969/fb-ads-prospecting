@@ -210,3 +210,116 @@ class TestLinkedInSync:
         assert 'MERGE' in first_call_args
         assert 'Person' in first_call_args
         assert 'alice@startup.io' in first_call_args or 'email' in first_call_args
+
+
+class TestFullSync:
+    """Tests for full LinkedIn sync process."""
+
+    def test_sync_linkedin_connections(self):
+        """Should sync all connections and return stats."""
+        from unittest.mock import MagicMock, patch
+        import tempfile
+        from pathlib import Path
+
+        csv_content = """First Name,Last Name,Email Address,Company,Position,Connected On
+John,Smith,john@acme.com,Acme Corp,CEO,15 Jan 2024
+Jane,Doe,jane@startup.io,TechStartup,CTO,20 Feb 2024
+Bob,Wilson,,Big Corp,Manager,01 Mar 2024"""
+
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+            f.write(csv_content)
+            csv_path = Path(f.name)
+
+        mock_session = MagicMock()
+        mock_driver = MagicMock()
+        mock_driver.session.return_value.__enter__ = MagicMock(return_value=mock_session)
+        mock_driver.session.return_value.__exit__ = MagicMock(return_value=False)
+
+        mock_gb = MagicMock()
+        mock_gb.driver = mock_driver
+
+        try:
+            with patch('scripts.contact_intel.linkedin_sync.GraphBuilder', return_value=mock_gb):
+                with patch('scripts.contact_intel.linkedin_sync.neo4j_available', return_value=True):
+                    from scripts.contact_intel.linkedin_sync import sync_linkedin_connections
+
+                    stats = sync_linkedin_connections(
+                        csv_path=csv_path,
+                        my_email='tu@jaguarcapital.co'
+                    )
+
+            assert stats['total'] == 3
+            assert stats['synced'] == 2  # 2 with email
+            assert stats['skipped'] == 1  # 1 without email
+            assert stats['errors'] == 0
+        finally:
+            csv_path.unlink()
+
+    def test_sync_returns_error_when_neo4j_unavailable(self):
+        """Should return error dict when Neo4j is not available."""
+        from unittest.mock import patch
+        from pathlib import Path
+
+        with patch('scripts.contact_intel.linkedin_sync.neo4j_available', return_value=False):
+            from scripts.contact_intel.linkedin_sync import sync_linkedin_connections
+
+            stats = sync_linkedin_connections(
+                csv_path=Path('/fake/path.csv'),
+                my_email='tu@jaguarcapital.co'
+            )
+
+        assert 'error' in stats
+        assert 'Neo4j not available' in stats['error']
+
+    def test_sync_uses_default_csv_path(self):
+        """Should use default CSV path when none provided."""
+        from unittest.mock import MagicMock, patch
+        from scripts.contact_intel.linkedin_sync import DEFAULT_CSV_PATH
+
+        mock_gb = MagicMock()
+
+        with patch('scripts.contact_intel.linkedin_sync.GraphBuilder', return_value=mock_gb):
+            with patch('scripts.contact_intel.linkedin_sync.neo4j_available', return_value=True):
+                with patch('scripts.contact_intel.linkedin_sync.parse_linkedin_csv', return_value=[]) as mock_parse:
+                    from scripts.contact_intel.linkedin_sync import sync_linkedin_connections
+
+                    sync_linkedin_connections(my_email='tu@jaguarcapital.co')
+
+                    # Should have called parse_linkedin_csv with default path
+                    mock_parse.assert_called_once_with(DEFAULT_CSV_PATH)
+
+    def test_sync_handles_errors_gracefully(self):
+        """Should count errors when create_linkedin_connection raises exception."""
+        from unittest.mock import MagicMock, patch
+        import tempfile
+        from pathlib import Path
+
+        csv_content = """First Name,Last Name,Email Address,Company,Position,Connected On
+John,Smith,john@acme.com,Acme Corp,CEO,15 Jan 2024
+Jane,Doe,jane@startup.io,TechStartup,CTO,20 Feb 2024"""
+
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+            f.write(csv_content)
+            csv_path = Path(f.name)
+
+        mock_gb = MagicMock()
+
+        def raise_error(*args, **kwargs):
+            raise Exception("Neo4j connection error")
+
+        try:
+            with patch('scripts.contact_intel.linkedin_sync.GraphBuilder', return_value=mock_gb):
+                with patch('scripts.contact_intel.linkedin_sync.neo4j_available', return_value=True):
+                    with patch('scripts.contact_intel.linkedin_sync.create_linkedin_connection', side_effect=raise_error):
+                        from scripts.contact_intel.linkedin_sync import sync_linkedin_connections
+
+                        stats = sync_linkedin_connections(
+                            csv_path=csv_path,
+                            my_email='tu@jaguarcapital.co'
+                        )
+
+            assert stats['total'] == 2
+            assert stats['errors'] == 2
+            assert stats['synced'] == 0
+        finally:
+            csv_path.unlink()

@@ -8,6 +8,8 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from scripts.contact_intel.graph_builder import GraphBuilder, neo4j_available
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -15,6 +17,9 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S',
 )
 logger = logging.getLogger(__name__)
+
+# Default path for LinkedIn Connections CSV export
+DEFAULT_CSV_PATH = Path('data/contact_intel/linkedin_connections.csv')
 
 
 def parse_linkedin_csv(csv_path: Path) -> List[Dict]:
@@ -102,3 +107,57 @@ def create_linkedin_connection(
 
     logger.debug(f"Created LINKEDIN_CONNECTED: {my_email} -> {email}")
     return True
+
+
+def sync_linkedin_connections(
+    csv_path: Optional[Path] = None,
+    my_email: str = 'tu@jaguarcapital.co',
+) -> Dict:
+    """Sync LinkedIn connections to Neo4j graph.
+
+    Args:
+        csv_path: Path to LinkedIn Connections.csv (default: data/contact_intel/linkedin_connections.csv)
+        my_email: Your email address
+
+    Returns:
+        Stats dict with total, synced, skipped, errors counts
+    """
+    if csv_path is None:
+        csv_path = DEFAULT_CSV_PATH
+
+    if not neo4j_available():
+        logger.error("Neo4j not available")
+        return {'error': 'Neo4j not available'}
+
+    # Parse CSV
+    connections = parse_linkedin_csv(csv_path)
+
+    # Connect to Neo4j
+    gb = GraphBuilder()
+    gb.connect()
+
+    # Ensure schema exists
+    gb.setup_linkedin_schema()
+
+    stats = {
+        'total': len(connections),
+        'synced': 0,
+        'skipped': 0,
+        'errors': 0,
+    }
+
+    try:
+        for conn in connections:
+            try:
+                if create_linkedin_connection(gb, my_email, conn):
+                    stats['synced'] += 1
+                else:
+                    stats['skipped'] += 1
+            except Exception as e:
+                logger.error(f"Error syncing {conn.get('email')}: {e}")
+                stats['errors'] += 1
+    finally:
+        gb.close()
+
+    logger.info(f"LinkedIn sync complete: {stats}")
+    return stats
