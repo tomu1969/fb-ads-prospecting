@@ -3,6 +3,7 @@
 Parses LinkedIn's exported Connections.csv and integrates with the contact graph.
 """
 
+import argparse
 import csv
 import logging
 from pathlib import Path
@@ -161,3 +162,89 @@ def sync_linkedin_connections(
 
     logger.info(f"LinkedIn sync complete: {stats}")
     return stats
+
+
+def show_status():
+    """Show LinkedIn sync status."""
+    if not neo4j_available():
+        print("Neo4j not available")
+        return
+
+    gb = GraphBuilder()
+    gb.connect()
+
+    try:
+        with gb.driver.session() as session:
+            # Count LINKEDIN_CONNECTED edges
+            result = session.run("""
+                MATCH ()-[r:LINKEDIN_CONNECTED]->()
+                RETURN count(r) as count
+            """)
+            linkedin_count = result.single()['count']
+
+            # Count unique LinkedIn connections
+            result = session.run("""
+                MATCH (me:Person {primary_email: 'tu@jaguarcapital.co'})-[:LINKEDIN_CONNECTED]->(p)
+                RETURN count(DISTINCT p) as count
+            """)
+            my_connections = result.single()['count']
+
+        print("\n" + "=" * 50)
+        print("LINKEDIN SYNC STATUS")
+        print("=" * 50)
+        print(f"Total LINKEDIN_CONNECTED edges: {linkedin_count}")
+        print(f"Your LinkedIn connections: {my_connections}")
+
+        # Check if CSV exists
+        if DEFAULT_CSV_PATH.exists():
+            connections = parse_linkedin_csv(DEFAULT_CSV_PATH)
+            print(f"\nLinkedIn CSV: {DEFAULT_CSV_PATH}")
+            print(f"Connections in CSV: {len(connections)}")
+            with_email = sum(1 for c in connections if c.get('email'))
+            print(f"With email address: {with_email}")
+        else:
+            print(f"\nLinkedIn CSV not found: {DEFAULT_CSV_PATH}")
+            print("Export your connections from LinkedIn:")
+            print("  Settings → Data Privacy → Get a copy of your data → Connections")
+
+    finally:
+        gb.close()
+
+
+def main():
+    """CLI entry point."""
+    parser = argparse.ArgumentParser(
+        description='Sync LinkedIn connections to contact graph'
+    )
+    parser.add_argument('--status', action='store_true',
+                        help='Show sync status')
+    parser.add_argument('--sync', action='store_true',
+                        help='Sync LinkedIn connections to Neo4j')
+    parser.add_argument('--csv', type=str,
+                        help='Path to LinkedIn Connections.csv')
+    parser.add_argument('--my-email', type=str, default='tu@jaguarcapital.co',
+                        help='Your email address')
+
+    args = parser.parse_args()
+
+    if args.status:
+        show_status()
+        return
+
+    if args.sync:
+        csv_path = Path(args.csv) if args.csv else None
+        stats = sync_linkedin_connections(csv_path=csv_path, my_email=args.my_email)
+        print("\n" + "=" * 50)
+        print("LINKEDIN SYNC RESULTS")
+        print("=" * 50)
+        print(f"Total connections: {stats.get('total', 0)}")
+        print(f"Synced to graph:   {stats.get('synced', 0)}")
+        print(f"Skipped (no email): {stats.get('skipped', 0)}")
+        print(f"Errors:            {stats.get('errors', 0)}")
+        return
+
+    parser.print_help()
+
+
+if __name__ == '__main__':
+    main()
