@@ -1,8 +1,119 @@
 # Gmail Contact Intelligence System
 
 **Date:** 2025-01-25
-**Status:** Design Approved
+**Status:** Phase 1-4 Complete, V2 Scoring Implemented
 **Goal:** Build a contact intelligence layer from Gmail + LinkedIn to find warm intro paths to prospects
+**Last Updated:** 2026-01-27
+
+---
+
+## Current Status (2026-01-27)
+
+### What's Working
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| **Gmail Sync** | ✅ Done | 140k+ emails synced to SQLite |
+| **Neo4j Graph** | ✅ Done | Running in Docker, 11,766 KNOWS edges |
+| **Basic Graph Build** | ✅ Done | Person nodes, KNOWS relationships |
+| **CC_TOGETHER Edges** | ✅ Done | Detects shared email circles |
+| **WORKS_AT Edges** | ✅ Done | Domain-inferred + industry classified |
+| **Topic Extraction** | ✅ Done | DISCUSSED edges from email subjects |
+| **LinkedIn Integration** | ✅ Done | LINKEDIN_CONNECTED edges from export |
+| **V2 Relationship Scoring** | ✅ Done | Penalizes newsletters/group emails |
+| **Natural Language Query** | ✅ Done | `graph_query.py --interactive` |
+| **Overnight Enrichment** | ✅ Done | Industry classification, domain linking |
+
+### Graph Statistics
+
+```
+Nodes:
+- Person: ~15,000
+- Company: ~5,000 (3,029 domain-inferred)
+- Topic: ~2,000
+
+Edges:
+- KNOWS: 11,766 (with strength_score_v2)
+- WORKS_AT: ~7,000
+- CC_TOGETHER: ~3,000
+- DISCUSSED: ~8,000
+- LINKEDIN_CONNECTED: pending LinkedIn export
+```
+
+### Key Files
+
+```
+scripts/contact_intel/
+├── gmail_sync.py              # ✅ Email sync to SQLite
+├── graph_builder.py           # ✅ Build Neo4j graph
+├── graph_query.py             # ✅ Natural language queries (GPT-4o-mini → Cypher)
+├── linkedin_sync.py           # ✅ Import LinkedIn connections CSV
+├── relationship_strength.py   # ✅ V1 scoring (deprecated)
+├── relationship_strength_v2.py # ✅ V2 scoring (current)
+├── industry_classifier.py     # ✅ GPT-4o-mini industry classification
+├── domain_company_linker.py   # ✅ Free company inference from email domain
+├── contact_gap_filler.py      # ⏸️ Apollo API enrichment (costly, optional)
+├── overnight_enrichment.py    # ✅ Orchestrator for all enrichment tasks
+└── incremental_graph_builder.py # ✅ Build graph incrementally
+
+data/contact_intel/
+├── emails.db                  # SQLite with 140k+ emails
+├── sync_state.json            # Last sync timestamp
+└── tujaguarcapital_token.json # OAuth token
+```
+
+### Quick Commands
+
+```bash
+# Query the graph (natural language)
+python -m scripts.contact_intel.graph_query "who do I know at Google"
+python -m scripts.contact_intel.graph_query "my strongest contacts"
+python -m scripts.contact_intel.graph_query --interactive
+
+# Run overnight enrichment
+python -m scripts.contact_intel.overnight_enrichment --status
+python -m scripts.contact_intel.overnight_enrichment --run
+
+# Check relationship scores
+python -m scripts.contact_intel.relationship_strength_v2 --status
+python -m scripts.contact_intel.relationship_strength_v2 --test "email@example.com"
+```
+
+### V2 Scoring Formula
+
+The new scoring formula (0-100) considers:
+- **Volume** (0-35): Logarithmic scaling of total emails
+- **Recency** (0-25): Exponential decay over 365 days
+- **Reciprocity** (0-25): Balanced send/receive ratio
+- **Reply Rate** (0-15): How often they reply to your emails
+- **Group Penalty** (0.5x-1.0x): Penalizes mass emails (>5 recipients)
+- **Newsletter Penalty** (0.7x): Detects one-way subscriptions
+
+Score interpretation:
+- 70-100: Strong relationship
+- 40-69: Medium relationship
+- 10-39: Weak relationship
+- 0-9: Minimal (newsletter/one-off)
+
+### Next Steps
+
+1. **LinkedIn Integration** - Import LinkedIn connections CSV to add LINKEDIN_CONNECTED edges
+2. **Warm Intro Paths** - Implement `find_paths.py` for batch processing prospects
+3. **Semantic Search** - Add ChromaDB for "who do I know in fintech" queries
+4. **LLM Enrichment** - Use Groq to extract company/role from email signatures
+
+### To Resume Work
+
+```bash
+# Start Neo4j
+docker start neo4j
+
+# Check graph status
+python -m scripts.contact_intel.overnight_enrichment --status
+
+# Interactive query
+python -m scripts.contact_intel.graph_query --interactive
+```
 
 ---
 
@@ -645,8 +756,27 @@ A3: contacts_import ────────────────────
 
 ---
 
-## Next Steps
+## Next Steps (Updated 2026-01-27)
 
-1. Set up personal Gmail app password
-2. Install Neo4j locally (Docker)
-3. Begin Phase 1 implementation with TDD
+### Immediate (Next Session)
+1. **Import LinkedIn connections** - Get CSV export from LinkedIn, run `linkedin_sync.py`
+2. **Test warm intro queries** - Try "how can I connect with someone at [company]"
+
+### Short Term
+3. **Implement `find_paths.py`** - Batch process prospects_master.csv to find intro paths
+4. **Add ChromaDB semantic search** - Enable "who do I know in fintech" queries
+5. **LLM signature extraction** - Extract company/role from email signatures (Groq)
+
+### Medium Term
+6. **Suggested openers** - Generate personalized intro request messages
+7. **Incremental sync** - Daily cron job to keep graph fresh
+8. **Relationship decay** - Reduce strength scores over time
+
+### Completed ✅
+- ~~Set up personal Gmail app password~~ (using OAuth 2.0)
+- ~~Install Neo4j locally (Docker)~~
+- ~~Phase 1: Foundation (gmail_sync, graph_builder)~~
+- ~~Phase 2: Intro Paths (CC_TOGETHER, path queries)~~
+- ~~Phase 3: LLM Enrichment (industry classification, topics)~~
+- ~~Phase 4: LinkedIn Integration (linkedin_sync.py ready)~~
+- ~~V2 Relationship Scoring (penalizes newsletters/group emails)~~
