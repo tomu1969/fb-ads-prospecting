@@ -43,11 +43,22 @@ RELATIONSHIPS:
 - (Person)-[:DISCUSSED]->(Topic)
   Topics a person has discussed in emails
 
-NOTES:
-- My email is: tu@jaguarcapital.co (use this as the starting point for "who do I know" queries)
-- Use case-insensitive regex for name matching: =~ '(?i).*pattern.*'
-- Company names may have variations (e.g., "CBRE", "CBRE Group", "cbre.com")
-- For warm intros, traverse KNOWS relationships 1-2 hops
+KEY CONTEXT:
+- My email is: tu@jaguarcapital.co (starting point for "who do I know" queries)
+- Use case-insensitive regex: =~ '(?i).*pattern.*'
+- ALWAYS use DISTINCT to avoid duplicates
+
+INDUSTRY KEYWORDS (use OR patterns for industry searches):
+- Real Estate/Realtors: CBRE, JLL, Compass, Cushman, Colliers, Sotheby, Remax, Century21,
+  Coldwell, Zillow, realty, realtor, property, properties, broker, estate, homes
+- Finance: Goldman, Morgan, JPMorgan, Blackstone, KKR, bank, capital, invest, fund,
+  asset, wealth, partners, ventures, equity, securities
+- Tech: Google, Microsoft, Amazon, Meta, Apple, Salesforce, tech, software, ai, data, saas
+
+EXAMPLE QUERIES:
+1. "realtors I know" -> search companies matching real estate keywords
+2. "connect with CEO" -> find paths through KNOWS to people at that company
+3. "warm intro to X" -> MATCH path through 1-2 KNOWS hops
 """
 
 SYSTEM_PROMPT = """You are a Cypher query generator for a contact intelligence graph.
@@ -55,12 +66,29 @@ Given a natural language question, generate a valid Neo4j Cypher query.
 
 Return ONLY the Cypher query, no explanation or markdown formatting.
 
-Important rules:
-1. Use case-insensitive regex for text matching: =~ '(?i).*pattern.*'
-2. Always RETURN relevant fields (name, email, company, etc.)
-3. Limit results to 25 unless user asks for more
-4. For "who do I know" questions, start from tu@jaguarcapital.co
-5. For warm intros, use variable-length paths: -[:KNOWS*1..2]-
+CRITICAL RULES:
+1. Use case-insensitive regex: =~ '(?i).*pattern.*'
+2. ALWAYS use DISTINCT to avoid duplicate rows
+3. ALWAYS RETURN name, primary_email, and company/role when relevant
+4. Limit to 25 results unless user asks for more
+5. For "who do I know" -> start from tu@jaguarcapital.co via KNOWS
+6. For warm intros -> use -[:KNOWS*1..2]- paths
+7. For industry searches (realtors, finance, tech) -> use OR patterns with multiple company keywords
+8. If searching for "realtors" or "real estate agents", search for companies matching:
+   CBRE, JLL, Compass, Cushman, Colliers, realty, realtor, broker, property, estate, homes
+
+EXAMPLE - "which realtors do I know":
+MATCH (me:Person {primary_email: 'tu@jaguarcapital.co'})-[:KNOWS]->(p:Person)-[:WORKS_AT]->(c:Company)
+WHERE c.name =~ '(?i).*(cbre|jll|compass|cushman|colliers|realty|realtor|broker|property|estate|homes|sotheby|remax|century21|coldwell).*'
+RETURN DISTINCT p.name, p.primary_email, c.name
+LIMIT 25
+
+EXAMPLE - "how to connect with someone at Compass":
+MATCH path = (me:Person {primary_email: 'tu@jaguarcapital.co'})-[:KNOWS*1..2]-(target:Person)-[:WORKS_AT]->(c:Company)
+WHERE c.name =~ '(?i).*compass.*'
+RETURN DISTINCT target.name, target.primary_email, c.name, length(path) as hops
+ORDER BY hops
+LIMIT 25
 """
 
 
