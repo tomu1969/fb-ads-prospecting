@@ -36,3 +36,16 @@ scripts/_archived/
 
 # Ralph loop state (local only)
 .claude/ralph-loop.local.md
+
+# Sensitive credentials (never commit)
+config/google-services-key.json
+config/*client_secret*.json
+config/linkedin_cookies.json
+data/contact_intel/*_token.json
+
+# Data files (too large, not for version control)
+data/contact_intel/*.db
+data/contact_intel/*.json
+output/backups/
+output/repliers/
+.coverage
