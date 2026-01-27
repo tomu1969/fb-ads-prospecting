@@ -54,6 +54,14 @@ python scripts/instagram_warmup/warmup_orchestrator.py --status             # Ch
 # Send Instagram DMs (only to warmed-up prospects)
 python scripts/apify_dm_sender.py --csv output/prospects_final.csv --message "Hi {contact_name}!" --dry-run
 
+# === CONTACT INTELLIGENCE GRAPH ===
+
+# Query your contact network (natural language → Neo4j)
+python -m scripts.contact_intel.graph_query "who do I know at Google?"
+python -m scripts.contact_intel.graph_query "tech people in my network"
+python -m scripts.contact_intel.graph_query "warm intro path to Compass"
+python -m scripts.contact_intel.graph_query --interactive  # Interactive mode
+
 # Contact Name Resolution (Module 3.8 - runs automatically in pipeline)
 python scripts/contact_name_resolver.py           # Test mode (3 contacts)
 python scripts/contact_name_resolver.py --all     # Process all contacts
@@ -131,6 +139,25 @@ python scripts/icp_discovery/m4_urgency_score.py                                
 # Run tests
 pytest scripts/icp_discovery/tests/ -v
 ```
+
+## Contact Graph Queries (Automatic)
+
+**When the user asks about their network, contacts, connections, or "who do I know" questions, automatically query the Neo4j graph:**
+
+```bash
+python -m scripts.contact_intel.graph_query "user's question here"
+```
+
+Examples of questions that trigger graph queries:
+- "Who do I know at [company]?"
+- "Find contacts in tech/finance/real estate"
+- "How can I get introduced to [person]?"
+- "List people who discuss [topic]"
+
+**Query modes:**
+- Industry questions → Use topics (DISCUSSED relationship)
+- Specific company → Use company name (WORKS_AT relationship)
+- Warm intros → Use path queries (KNOWS*1..2)
 
 ## Claude Code Agents
 
