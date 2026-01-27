@@ -323,3 +323,19 @@ Jane,Doe,jane@startup.io,TechStartup,CTO,20 Feb 2024"""
             assert stats['synced'] == 0
         finally:
             csv_path.unlink()
+
+
+class TestLinkedInQueries:
+    """Tests for LinkedIn-aware graph queries."""
+
+    def test_schema_includes_linkedin_connected(self):
+        """GRAPH_SCHEMA should document LINKEDIN_CONNECTED relationship."""
+        from scripts.contact_intel.graph_query import GRAPH_SCHEMA
+
+        assert 'LINKEDIN_CONNECTED' in GRAPH_SCHEMA
+
+    def test_system_prompt_includes_linkedin_example(self):
+        """SYSTEM_PROMPT should include LinkedIn query examples."""
+        from scripts.contact_intel.graph_query import SYSTEM_PROMPT
+
+        assert 'LINKEDIN_CONNECTED' in SYSTEM_PROMPT

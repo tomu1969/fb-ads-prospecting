@@ -37,6 +37,9 @@ RELATIONSHIPS:
 - (Person)-[:CC_TOGETHER {count}]->(Person)
   People CC'd together on emails
 
+- (Person)-[:LINKEDIN_CONNECTED {degree, connected_on}]->(Person)
+  1st degree LinkedIn connections
+
 - (Person)-[:WORKS_AT {role, confidence}]->(Company)
   Person works at a company (extracted from emails)
 
@@ -119,6 +122,21 @@ LIMIT 25
 
 IMPORTANT: For industry/sector queries (tech, finance, retail), use TOPICS via [:DISCUSSED] - NOT company name patterns.
 Only use company name patterns when user asks about a SPECIFIC company (e.g., "people at Google").
+
+EXAMPLE - "LinkedIn connections at Google" or "who am I LinkedIn-connected to at Google":
+MATCH (me:Person {primary_email: 'tu@jaguarcapital.co'})-[:LINKEDIN_CONNECTED]->(p:Person)-[:WORKS_AT]->(c:Company)
+WHERE c.name =~ '(?i).*google.*'
+RETURN DISTINCT p.name, p.primary_email, c.name
+LIMIT 25
+
+EXAMPLE - "warm intro via LinkedIn" (prefer LinkedIn-connected paths):
+MATCH path = (me:Person {primary_email: 'tu@jaguarcapital.co'})-[:LINKEDIN_CONNECTED|KNOWS*1..2]-(target:Person)-[:WORKS_AT]->(c:Company)
+WHERE c.name =~ '(?i).*target_company.*'
+RETURN DISTINCT target.name, target.primary_email, c.name,
+       [r IN relationships(path) | type(r)] as path_types,
+       length(path) as hops
+ORDER BY hops
+LIMIT 25
 """
 
 
