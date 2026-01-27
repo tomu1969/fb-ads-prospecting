@@ -58,9 +58,14 @@ python scripts/apify_dm_sender.py --csv output/prospects_final.csv --message "Hi
 
 # Query your contact network (natural language → Neo4j)
 python -m scripts.contact_intel.graph_query "who do I know at Google?"
-python -m scripts.contact_intel.graph_query "tech people in my network"
-python -m scripts.contact_intel.graph_query "warm intro path to Compass"
+python -m scripts.contact_intel.graph_query "LinkedIn connections at Compass"
+python -m scripts.contact_intel.graph_query "warm intro path to target via LinkedIn"
 python -m scripts.contact_intel.graph_query --interactive  # Interactive mode
+
+# Sync LinkedIn connections (export from LinkedIn first)
+python -m scripts.contact_intel.linkedin_sync --status
+python -m scripts.contact_intel.linkedin_sync --sync
+python -m scripts.contact_intel.linkedin_sync --sync --csv path/to/Connections.csv
 
 # Contact Name Resolution (Module 3.8 - runs automatically in pipeline)
 python scripts/contact_name_resolver.py           # Test mode (3 contacts)
