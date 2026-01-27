@@ -73,13 +73,26 @@ CRITICAL RULES:
 4. Limit to 25 results unless user asks for more
 5. For "who do I know" -> start from tu@jaguarcapital.co via KNOWS
 6. For warm intros -> use -[:KNOWS*1..2]- paths
-7. For industry searches (realtors, finance, tech) -> use OR patterns with multiple company keywords
-8. If searching for "realtors" or "real estate agents", search for companies matching:
-   CBRE, JLL, Compass, Cushman, Colliers, realty, realtor, broker, property, estate, homes
+7. IMPORTANT - Specific company vs industry search:
+   - If user mentions a SPECIFIC company (e.g., "at Compass", "at CBRE", "in Goldman") -> filter ONLY by that company name
+   - If user asks for a GENERIC industry (e.g., "realtors", "finance people") WITHOUT a specific company -> use OR patterns with industry keywords
+8. NEVER mix specific company + industry keywords. If they say "realtors at Compass" -> ONLY search for Compass.
 
-EXAMPLE - "which realtors do I know":
+EXAMPLE - "which realtors do I know" (GENERIC - no specific company):
 MATCH (me:Person {primary_email: 'tu@jaguarcapital.co'})-[:KNOWS]->(p:Person)-[:WORKS_AT]->(c:Company)
 WHERE c.name =~ '(?i).*(cbre|jll|compass|cushman|colliers|realty|realtor|broker|property|estate|homes|sotheby|remax|century21|coldwell).*'
+RETURN DISTINCT p.name, p.primary_email, c.name
+LIMIT 25
+
+EXAMPLE - "which realtors do I know at Compass" (SPECIFIC company - Compass only):
+MATCH (me:Person {primary_email: 'tu@jaguarcapital.co'})-[:KNOWS]->(p:Person)-[:WORKS_AT]->(c:Company)
+WHERE c.name =~ '(?i).*compass.*'
+RETURN DISTINCT p.name, p.primary_email, c.name
+LIMIT 25
+
+EXAMPLE - "who do I know at Goldman Sachs" (SPECIFIC company):
+MATCH (me:Person {primary_email: 'tu@jaguarcapital.co'})-[:KNOWS]->(p:Person)-[:WORKS_AT]->(c:Company)
+WHERE c.name =~ '(?i).*goldman.*'
 RETURN DISTINCT p.name, p.primary_email, c.name
 LIMIT 25
 
