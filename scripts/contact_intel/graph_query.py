@@ -102,6 +102,23 @@ WHERE c.name =~ '(?i).*compass.*'
 RETURN DISTINCT target.name, target.primary_email, c.name, length(path) as hops
 ORDER BY hops
 LIMIT 25
+
+EXAMPLE - "tech companies I've emailed" or "people in tech" (INDUSTRY via TOPICS):
+MATCH (me:Person {primary_email: 'tu@jaguarcapital.co'})-[:KNOWS]->(p:Person)-[:DISCUSSED]->(t:Topic)
+WHERE t.name IN ['ai', 'startup', 'data', 'proptech', 'technology', 'software', 'saas', 'developer']
+OPTIONAL MATCH (p)-[:WORKS_AT]->(c:Company)
+RETURN DISTINCT p.name, p.primary_email, coalesce(c.name, 'Unknown') as company, collect(DISTINCT t.name) as topics
+LIMIT 25
+
+EXAMPLE - "finance people" or "investors I know" (INDUSTRY via TOPICS):
+MATCH (me:Person {primary_email: 'tu@jaguarcapital.co'})-[:KNOWS]->(p:Person)-[:DISCUSSED]->(t:Topic)
+WHERE t.name IN ['investment', 'finance', 'finanzas', 'fundraising', 'financial services', 'venture capital', 'private equity']
+OPTIONAL MATCH (p)-[:WORKS_AT]->(c:Company)
+RETURN DISTINCT p.name, p.primary_email, coalesce(c.name, 'Unknown') as company, collect(DISTINCT t.name) as topics
+LIMIT 25
+
+IMPORTANT: For industry/sector queries (tech, finance, retail), use TOPICS via [:DISCUSSED] - NOT company name patterns.
+Only use company name patterns when user asks about a SPECIFIC company (e.g., "people at Google").
 """
 
 
