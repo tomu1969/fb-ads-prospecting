@@ -81,3 +81,25 @@ Bob,Wilson,,Big Corp,Manager,01 Mar 2024"""
 
         with pytest.raises(FileNotFoundError):
             parse_linkedin_csv(non_existent_path)
+
+
+class TestLinkedInSchema:
+    """Tests for LinkedIn schema in Neo4j."""
+
+    def test_setup_linkedin_schema(self):
+        """Should create index on linkedin_url."""
+        from unittest.mock import MagicMock
+
+        mock_session = MagicMock()
+        mock_driver = MagicMock()
+        mock_driver.session.return_value.__enter__ = MagicMock(return_value=mock_session)
+        mock_driver.session.return_value.__exit__ = MagicMock(return_value=False)
+
+        from scripts.contact_intel.graph_builder import GraphBuilder
+        gb = GraphBuilder()
+        gb.driver = mock_driver
+        gb.setup_linkedin_schema()
+
+        # Should have created linkedin_url index
+        calls = [str(c) for c in mock_session.run.call_args_list]
+        assert any('linkedin_url' in c for c in calls)

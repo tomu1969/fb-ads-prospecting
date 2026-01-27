@@ -132,6 +132,20 @@ class GraphBuilder:
 
         logger.info("Schema setup complete (constraints and indexes created)")
 
+    def setup_linkedin_schema(self):
+        """Create indexes for LinkedIn integration.
+
+        Creates:
+        - Index on Person.linkedin_url for lookup
+        """
+        with self.driver.session() as session:
+            session.run("""
+                CREATE INDEX person_linkedin_url IF NOT EXISTS
+                FOR (p:Person) ON (p.linkedin_url)
+            """)
+
+        logger.info("LinkedIn schema setup complete")
+
     def create_or_update_person(
         self,
         email: str,
