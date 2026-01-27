@@ -224,16 +224,34 @@ The project uses HubSpot CRM API v3 for sales analytics and marketing automation
 |-------|----|----|
 | Calificado | 1102547555 | Lead qualified |
 | Demo Agendado | 1049659495 | → Pre-demo email |
-| Demo Presentado | 1049659496 | → Proposal email |
+| Demo Presentado | 1049659496 | → Proposal email (BANT required) |
 | Propuesta Aceptada | 1110769786 | - |
 | Suscripción Activa | 1092762538 | Won |
 | Cerrada Perdida | 1102535235 | Lost |
+
+### BANT Qualification Properties
+Custom deal properties for customer qualification (configured as required when moving to "Demo Presentado"):
+
+| Property | Internal Name | Type | Description |
+|----------|---------------|------|-------------|
+| Need (BANT) | `bant_need` | textarea | Customer's need and how our solution helps |
+| Budget (BANT) | `bant_budget` | text | Monthly budget (marketing spend + solution cost) |
+| Authority (BANT) | `bant_authority` | textarea | Decision maker(s) and decision process |
+| Timing (BANT) | `bant_timing` | date | Expected decision date |
+
+```bash
+# Re-create properties if needed (idempotent)
+python scripts/hubspot_bant_properties.py
+```
+
+**Status:** Properties created and configured as required on "Demo Presentado" stage (2025-01-27).
 
 ### Current API Usage
 | Endpoint | Script | Purpose |
 |----------|--------|---------|
 | `POST /crm/v3/objects/deals/search` | `closed_lost_analysis.py` | Deal analytics |
 | `POST /crm/v3/objects/{calls,meetings,emails}/search` | `owner_performance_analysis.py` | Activity metrics |
+| `POST /crm/v3/properties/deals` | `hubspot_bant_properties.py` | Create BANT properties |
 
 ### Email Templates
 Templates in `config/email_templates/` can be:
@@ -299,6 +317,7 @@ python scripts/hubspot_templates.py sync-all
 │   │   ├── template_loader.py   # Load + substitute variables
 │   │   └── template_sender.py   # Send via Gmail
 │   ├── hubspot_templates.py # HubSpot template sync
+│   ├── hubspot_bant_properties.py # Create BANT qualification deal properties
 │   └── _archived/           # Legacy scripts (superseded implementations)
 ├── config/
 │   ├── email_templates/     # Sales pipeline email templates
