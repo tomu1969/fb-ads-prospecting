@@ -51,3 +51,54 @@ def parse_linkedin_csv(csv_path: Path) -> List[Dict]:
 
     logger.info(f"Parsed {len(connections)} LinkedIn connections from {csv_path}")
     return connections
+
+
+def create_linkedin_connection(
+    gb,  # GraphBuilder instance
+    my_email: str,
+    connection: Dict,
+) -> bool:
+    """Create LINKEDIN_CONNECTED edge between me and a connection.
+
+    Args:
+        gb: GraphBuilder instance with active connection
+        my_email: Your email address
+        connection: Dict with first_name, last_name, email, company, position, connected_on
+
+    Returns:
+        True if edge created, False if skipped (no email)
+    """
+    email = connection.get('email')
+    if not email:
+        logger.debug(f"Skipping connection without email: {connection.get('first_name')} {connection.get('last_name')}")
+        return False
+
+    first_name = connection.get('first_name', '')
+    last_name = connection.get('last_name', '')
+    full_name = f"{first_name} {last_name}".strip()
+    company = connection.get('company')
+    position = connection.get('position')
+    connected_on = connection.get('connected_on')
+
+    with gb.driver.session() as session:
+        # Create/update Person node for the connection
+        session.run("""
+            MERGE (p:Person {primary_email: $email})
+            SET p.name = COALESCE(p.name, $name),
+                p.linkedin_company = $company,
+                p.linkedin_position = $position,
+                p.updated_at = datetime()
+        """, email=email, name=full_name, company=company, position=position)
+
+        # Create LINKEDIN_CONNECTED edge
+        session.run("""
+            MATCH (me:Person {primary_email: $my_email})
+            MATCH (them:Person {primary_email: $email})
+            MERGE (me)-[r:LINKEDIN_CONNECTED]->(them)
+            SET r.degree = 1,
+                r.connected_on = $connected_on,
+                r.created_at = datetime()
+        """, my_email=my_email, email=email, connected_on=connected_on)
+
+    logger.debug(f"Created LINKEDIN_CONNECTED: {my_email} -> {email}")
+    return True

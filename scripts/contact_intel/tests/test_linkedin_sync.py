@@ -103,3 +103,110 @@ class TestLinkedInSchema:
         # Should have created linkedin_url index
         calls = [str(c) for c in mock_session.run.call_args_list]
         assert any('linkedin_url' in c for c in calls)
+
+
+class TestLinkedInSync:
+    """Tests for syncing LinkedIn connections to Neo4j."""
+
+    def test_create_linkedin_connected_edge(self):
+        """Should create LINKEDIN_CONNECTED relationship."""
+        from unittest.mock import MagicMock
+
+        mock_session = MagicMock()
+        mock_driver = MagicMock()
+        mock_driver.session.return_value.__enter__ = MagicMock(return_value=mock_session)
+        mock_driver.session.return_value.__exit__ = MagicMock(return_value=False)
+
+        mock_gb = MagicMock()
+        mock_gb.driver = mock_driver
+
+        connection = {
+            'first_name': 'John',
+            'last_name': 'Smith',
+            'email': 'john@acme.com',
+            'company': 'Acme Corp',
+            'position': 'CEO',
+            'connected_on': '15 Jan 2024',
+        }
+
+        from scripts.contact_intel.linkedin_sync import create_linkedin_connection
+        result = create_linkedin_connection(mock_gb, 'tu@jaguarcapital.co', connection)
+
+        assert result is True
+        # Should have run MERGE for LINKEDIN_CONNECTED
+        calls = [str(c) for c in mock_session.run.call_args_list]
+        assert any('LINKEDIN_CONNECTED' in c for c in calls)
+
+    def test_skip_connection_without_email(self):
+        """Should skip connections without email address."""
+        from unittest.mock import MagicMock
+
+        mock_gb = MagicMock()
+
+        connection = {
+            'first_name': 'John',
+            'last_name': 'Smith',
+            'email': None,  # No email
+            'company': 'Acme Corp',
+            'position': 'CEO',
+            'connected_on': '15 Jan 2024',
+        }
+
+        from scripts.contact_intel.linkedin_sync import create_linkedin_connection
+        result = create_linkedin_connection(mock_gb, 'tu@jaguarcapital.co', connection)
+
+        assert result is False
+        mock_gb.driver.session.assert_not_called()
+
+    def test_skip_connection_with_empty_email(self):
+        """Should skip connections with empty string email."""
+        from unittest.mock import MagicMock
+
+        mock_gb = MagicMock()
+
+        connection = {
+            'first_name': 'Jane',
+            'last_name': 'Doe',
+            'email': '',  # Empty string email
+            'company': 'TechCo',
+            'position': 'CTO',
+            'connected_on': '20 Feb 2024',
+        }
+
+        from scripts.contact_intel.linkedin_sync import create_linkedin_connection
+        result = create_linkedin_connection(mock_gb, 'tu@jaguarcapital.co', connection)
+
+        assert result is False
+        mock_gb.driver.session.assert_not_called()
+
+    def test_creates_person_node_with_linkedin_properties(self):
+        """Should create Person node with company and position from LinkedIn."""
+        from unittest.mock import MagicMock
+
+        mock_session = MagicMock()
+        mock_driver = MagicMock()
+        mock_driver.session.return_value.__enter__ = MagicMock(return_value=mock_session)
+        mock_driver.session.return_value.__exit__ = MagicMock(return_value=False)
+
+        mock_gb = MagicMock()
+        mock_gb.driver = mock_driver
+
+        connection = {
+            'first_name': 'Alice',
+            'last_name': 'Johnson',
+            'email': 'alice@startup.io',
+            'company': 'StartupCo',
+            'position': 'VP Engineering',
+            'connected_on': '10 Mar 2024',
+        }
+
+        from scripts.contact_intel.linkedin_sync import create_linkedin_connection
+        create_linkedin_connection(mock_gb, 'tu@jaguarcapital.co', connection)
+
+        # Check that Person MERGE was called with correct parameters
+        calls = mock_session.run.call_args_list
+        # First call should be for creating/updating the Person node
+        first_call_args = str(calls[0])
+        assert 'MERGE' in first_call_args
+        assert 'Person' in first_call_args
+        assert 'alice@startup.io' in first_call_args or 'email' in first_call_args
