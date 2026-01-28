@@ -26,7 +26,12 @@ GRAPH_SCHEMA = """
 Neo4j Graph Schema:
 
 NODES:
-- Person: {name, primary_email, domain}
+- Person: {name, primary_email, domain, city, state, country, location_source}
+  Location properties:
+    - city: Person's city (e.g., "Miami", "Bogotá")
+    - state: State/province (e.g., "Florida", "Antioquia")
+    - country: Country (e.g., "United States", "Colombia")
+    - location_source: How location was determined ('cctld', 'company_geo', 'apollo')
 - Company: {name, normalized_name, industry}
 - Topic: {name}
 
@@ -45,6 +50,19 @@ RELATIONSHIPS:
 
 - (Person)-[:LINKEDIN_CONNECTED {degree, connected_on}]->(Person)
   1st degree LinkedIn connections
+
+- (Person)-[:LINKEDIN_MESSAGED]->(Person)
+  People who have exchanged LinkedIn messages.
+  Properties:
+    - total_messages: Total messages in conversation
+    - my_messages: Messages I sent
+    - their_messages: Messages they sent
+    - first_message: Date of first message
+    - last_message: Date of last message
+    - conversation_count: Number of separate conversations
+
+- (Person)-[:ENDORSED {skill, date}]->(Person)
+  LinkedIn skill endorsements
 
 - (Person)-[:WORKS_AT {role, confidence}]->(Company)
   Person works at a company (extracted from emails)
@@ -160,6 +178,47 @@ RETURN DISTINCT target.name, target.primary_email, c.name,
        length(path) as hops
 ORDER BY hops
 LIMIT 25
+
+EXAMPLE - "LinkedIn connections I've messaged" or "warm LinkedIn contacts":
+MATCH (me:Person {primary_email: 'tu@jaguarcapital.co'})-[r:LINKEDIN_MESSAGED]->(p:Person)
+OPTIONAL MATCH (p)-[:WORKS_AT]->(c:Company)
+RETURN DISTINCT p.name, p.primary_email, coalesce(c.name, p.linkedin_company, 'Unknown') as company,
+       r.total_messages, r.my_messages, r.their_messages, r.last_message
+ORDER BY r.total_messages DESC
+LIMIT 25
+
+EXAMPLE - "warm intro path via LinkedIn messages" (strongest path = messaged + connected):
+MATCH (me:Person {primary_email: 'tu@jaguarcapital.co'})-[:LINKEDIN_MESSAGED]->(intermediary:Person)-[:LINKEDIN_CONNECTED]->(target:Person)-[:WORKS_AT]->(c:Company)
+WHERE c.name =~ '(?i).*target_company.*'
+RETURN DISTINCT target.name as target, target.primary_email, c.name as company,
+       intermediary.name as intro_via
+LIMIT 25
+
+EXAMPLE - "realtors in Miami" or "real estate contacts in Miami" (LOCATION + INDUSTRY):
+MATCH (me:Person {primary_email: 'tu@jaguarcapital.co'})-[r:KNOWS]->(p:Person)
+WHERE p.city =~ '(?i)miami'
+OPTIONAL MATCH (p)-[:WORKS_AT]->(c:Company)
+WHERE c.industry = 'Real Estate'
+RETURN DISTINCT p.name, p.primary_email, c.name, p.city, r.strength_score_v2 as strength
+ORDER BY r.strength_score_v2 DESC
+LIMIT 25
+
+EXAMPLE - "contacts in Colombia" or "people from Colombia" (LOCATION filter):
+MATCH (me:Person {primary_email: 'tu@jaguarcapital.co'})-[r:KNOWS]->(p:Person)
+WHERE p.country = 'Colombia'
+RETURN DISTINCT p.name, p.primary_email, p.city, r.strength_score_v2 as strength
+ORDER BY r.strength_score_v2 DESC
+LIMIT 25
+
+EXAMPLE - "contacts in Florida" or "people in Florida" (STATE filter):
+MATCH (me:Person {primary_email: 'tu@jaguarcapital.co'})-[r:KNOWS]->(p:Person)
+WHERE p.state =~ '(?i)florida'
+RETURN DISTINCT p.name, p.primary_email, p.city, r.strength_score_v2 as strength
+ORDER BY r.strength_score_v2 DESC
+LIMIT 25
+
+IMPORTANT: For location queries (city, state, country), use Person node properties (p.city, p.state, p.country).
+Use case-insensitive regex for city/state matching: =~ '(?i)pattern'
 """
 
 

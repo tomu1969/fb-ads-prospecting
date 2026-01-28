@@ -130,6 +130,20 @@ class GraphBuilder:
                 FOR (p:Person) ON (p.alternate_emails)
             """)
 
+            # Location indexes for geographic queries
+            session.run("""
+                CREATE INDEX person_city IF NOT EXISTS
+                FOR (p:Person) ON (p.city)
+            """)
+            session.run("""
+                CREATE INDEX person_country IF NOT EXISTS
+                FOR (p:Person) ON (p.country)
+            """)
+            session.run("""
+                CREATE INDEX person_state IF NOT EXISTS
+                FOR (p:Person) ON (p.state)
+            """)
+
         logger.info("Schema setup complete (constraints and indexes created)")
 
     def setup_linkedin_schema(self):
