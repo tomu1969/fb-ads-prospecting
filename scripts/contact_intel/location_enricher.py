@@ -4,15 +4,18 @@ Layered enrichment pipeline:
   Layer 1 (ccTLD):       Infer country from email domain TLD (~4,300 nodes, free)
   Layer 2 (Company Geo): Extract city/country from company name patterns (~130 nodes, free)
   Layer 3 (Apollo API):  Full city/state/country via Apollo people/match (~$0.02/call)
+  Layer 4 (Company HQ):  Propagate Company HQ → Person city via WORKS_AT (free)
 
 Usage:
     python -m scripts.contact_intel.location_enricher --status
     python -m scripts.contact_intel.location_enricher --all --dry-run
     python -m scripts.contact_intel.location_enricher --all
+    python -m scripts.contact_intel.location_enricher --company-hq
     python -m scripts.contact_intel.location_enricher --apollo --target-industry "Real Estate" --dry-run
 """
 
 import argparse
+import csv
 import logging
 import os
 import re
@@ -425,6 +428,95 @@ def enrich_apollo(session, industry_filter: str = None,
 
 
 # ============================================================
+# Slice 4: Company HQ → Person City propagation
+# ============================================================
+
+DEFAULT_COMPANY_HQ_CSV = 'config/company_hq.csv'
+
+
+def load_company_hq_mapping(csv_path: str = DEFAULT_COMPANY_HQ_CSV) -> Dict[str, Dict]:
+    """Load company domain → HQ location mapping from CSV.
+
+    Args:
+        csv_path: Path to CSV file with columns: domain, hq_city, hq_state, hq_country.
+
+    Returns:
+        Dict mapping domain (lowercased) to {hq_city, hq_state, hq_country}.
+    """
+    mapping = {}
+    with open(csv_path, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            domain = row['domain'].lower().strip()
+            mapping[domain] = {
+                'hq_city': row.get('hq_city', '').strip() or None,
+                'hq_state': row.get('hq_state', '').strip() or None,
+                'hq_country': row.get('hq_country', '').strip() or None,
+            }
+    return mapping
+
+
+SET_COMPANY_HQ_QUERY = """
+MATCH (c:Company {domain: $domain})
+SET c.hq_city = $hq_city,
+    c.hq_state = $hq_state,
+    c.hq_country = $hq_country
+"""
+
+PROPAGATE_HQ_TO_PERSON_QUERY = """
+MATCH (p:Person)-[:WORKS_AT]->(c:Company)
+WHERE p.city IS NULL
+  AND c.hq_city IS NOT NULL
+SET p.city = c.hq_city,
+    p.state = CASE WHEN p.state IS NULL THEN c.hq_state ELSE p.state END,
+    p.country = CASE WHEN p.country IS NULL THEN c.hq_country ELSE p.country END,
+    p.location_source = 'company_hq'
+RETURN count(p) as updated
+"""
+
+
+def enrich_company_hq(session, csv_path: str = DEFAULT_COMPANY_HQ_CSV) -> Dict:
+    """Layer 4: Set Company HQ and propagate to Person nodes.
+
+    1. Load CSV mapping of company domains → HQ locations
+    2. SET hq_city/hq_state/hq_country on Company nodes
+    3. Propagate to Person nodes via WORKS_AT (only where city IS NULL)
+
+    Args:
+        session: Neo4j session object.
+        csv_path: Path to CSV file with company HQ mapping.
+
+    Returns:
+        Dict with: companies_updated, persons_updated.
+    """
+    mapping = load_company_hq_mapping(csv_path)
+
+    # Step 1: Update Company nodes
+    companies_updated = 0
+    for domain, hq in mapping.items():
+        # Skip if no HQ location data
+        if not hq['hq_city'] and not hq['hq_country']:
+            continue
+
+        session.run(
+            SET_COMPANY_HQ_QUERY,
+            domain=domain,
+            hq_city=hq['hq_city'],
+            hq_state=hq['hq_state'],
+            hq_country=hq['hq_country'],
+        )
+        companies_updated += 1
+        logger.debug(f"  SET {domain} → {hq['hq_city']}, {hq['hq_country']}")
+
+    # Step 2: Propagate to Person nodes via WORKS_AT
+    result = session.run(PROPAGATE_HQ_TO_PERSON_QUERY)
+    persons_updated = result.single()['updated']
+
+    logger.info(f"Company HQ: {companies_updated} companies updated, {persons_updated} persons enriched")
+    return {'companies_updated': companies_updated, 'persons_updated': persons_updated}
+
+
+# ============================================================
 # CLI Orchestration
 # ============================================================
 
@@ -503,7 +595,7 @@ def show_status(session):
 
 
 def run_enrichment(session, cctld=False, company_geo=False, apollo=False,
-                   all_layers=False, industry_filter=None,
+                   company_hq=False, all_layers=False, industry_filter=None,
                    limit=None, dry_run=True):
     """Run location enrichment pipeline.
 
@@ -512,7 +604,8 @@ def run_enrichment(session, cctld=False, company_geo=False, apollo=False,
         cctld: Run ccTLD layer
         company_geo: Run company geo layer
         apollo: Run Apollo API layer
-        all_layers: Run all free layers (ccTLD + company geo)
+        company_hq: Run company HQ propagation layer
+        all_layers: Run all free layers (ccTLD + company geo + company HQ)
         industry_filter: Filter Apollo by industry
         limit: Max nodes to enrich (Apollo only)
         dry_run: Preview only
@@ -529,6 +622,11 @@ def run_enrichment(session, cctld=False, company_geo=False, apollo=False,
         count = enrich_company_geo(session)
         results['company_geo'] = count
 
+    if company_hq or all_layers:
+        logger.info("\n--- Layer 4: Company HQ → Person City ---")
+        stats = enrich_company_hq(session)
+        results['company_hq'] = stats
+
     if apollo:
         logger.info("\n--- Layer 3: Apollo API → Full Location ---")
         stats = enrich_apollo(
@@ -542,7 +640,10 @@ def run_enrichment(session, cctld=False, company_geo=False, apollo=False,
     logger.info("\n=== Enrichment Summary ===")
     for layer, result in results.items():
         if isinstance(result, dict):
-            logger.info(f"  {layer}: {result['enriched']} enriched, {result['api_calls']} API calls (${result['estimated_cost']:.2f})")
+            if 'enriched' in result:
+                logger.info(f"  {layer}: {result['enriched']} enriched, {result['api_calls']} API calls (${result['estimated_cost']:.2f})")
+            elif 'persons_updated' in result:
+                logger.info(f"  {layer}: {result['companies_updated']} companies, {result['persons_updated']} persons enriched")
         else:
             logger.info(f"  {layer}: {result} nodes enriched")
 
@@ -563,6 +664,8 @@ def main():
                         help='Layer 2: Company name geo patterns')
     parser.add_argument('--apollo', action='store_true',
                         help='Layer 3: Apollo API lookup')
+    parser.add_argument('--company-hq', action='store_true',
+                        help='Layer 4: Company HQ propagation')
     parser.add_argument('--target-industry', type=str, default=None,
                         help='Filter Apollo by company industry (e.g., "Real Estate")')
     parser.add_argument('--limit', type=int, default=None,
@@ -582,7 +685,7 @@ def main():
         ]
     )
 
-    if not any([args.status, args.all, args.cctld, args.company_geo, args.apollo]):
+    if not any([args.status, args.all, args.cctld, args.company_geo, args.apollo, args.company_hq]):
         parser.print_help()
         return
 
@@ -596,12 +699,13 @@ def main():
             if args.status:
                 show_status(session)
 
-            if args.all or args.cctld or args.company_geo or args.apollo:
+            if args.all or args.cctld or args.company_geo or args.apollo or args.company_hq:
                 run_enrichment(
                     session,
                     cctld=args.cctld,
                     company_geo=args.company_geo,
                     apollo=args.apollo,
+                    company_hq=args.company_hq,
                     all_layers=args.all,
                     industry_filter=args.target_industry,
                     limit=args.limit,

@@ -685,3 +685,168 @@ class TestEnrichApollo:
         assert stats['enriched'] == 2
         assert stats['api_calls'] == 2
         assert stats['estimated_cost'] == pytest.approx(0.04)  # 2 * $0.02
+
+
+# ============================================================
+# Slice 4: Company HQ → Person City propagation
+# ============================================================
+
+
+class TestLoadCompanyHqMapping:
+    """Tests for load_company_hq_mapping function."""
+
+    def test_load_company_hq_mapping(self, tmp_path):
+        """Load CSV and return dict[domain] -> {hq_city, hq_state, hq_country}."""
+        from scripts.contact_intel.location_enricher import load_company_hq_mapping
+
+        # Create a temp CSV
+        csv_content = """domain,hq_city,hq_state,hq_country
+lahaus.com,Bogotá,,Colombia
+wework.com,New York,New York,United States
+"""
+        csv_path = tmp_path / "company_hq.csv"
+        csv_path.write_text(csv_content)
+
+        mapping = load_company_hq_mapping(str(csv_path))
+
+        assert 'lahaus.com' in mapping
+        assert mapping['lahaus.com']['hq_city'] == 'Bogotá'
+        assert mapping['lahaus.com']['hq_state'] is None
+        assert mapping['lahaus.com']['hq_country'] == 'Colombia'
+
+        assert 'wework.com' in mapping
+        assert mapping['wework.com']['hq_city'] == 'New York'
+        assert mapping['wework.com']['hq_state'] == 'New York'
+        assert mapping['wework.com']['hq_country'] == 'United States'
+
+    def test_load_company_hq_mapping_case_insensitive(self, tmp_path):
+        """Domain keys should be lowercased."""
+        from scripts.contact_intel.location_enricher import load_company_hq_mapping
+
+        csv_content = """domain,hq_city,hq_state,hq_country
+LaHaus.COM,Bogotá,,Colombia
+"""
+        csv_path = tmp_path / "company_hq.csv"
+        csv_path.write_text(csv_content)
+
+        mapping = load_company_hq_mapping(str(csv_path))
+
+        assert 'lahaus.com' in mapping
+        assert 'LaHaus.COM' not in mapping
+
+
+class TestSetCompanyHq:
+    """Tests for setting HQ on Company nodes."""
+
+    def test_set_company_hq_query_structure(self):
+        """SET_COMPANY_HQ_QUERY should SET hq_city/hq_state/hq_country on Company."""
+        from scripts.contact_intel.location_enricher import SET_COMPANY_HQ_QUERY
+
+        assert 'Company' in SET_COMPANY_HQ_QUERY
+        assert 'domain' in SET_COMPANY_HQ_QUERY
+        assert 'hq_city' in SET_COMPANY_HQ_QUERY
+        assert 'hq_state' in SET_COMPANY_HQ_QUERY
+        assert 'hq_country' in SET_COMPANY_HQ_QUERY
+        assert 'SET' in SET_COMPANY_HQ_QUERY
+
+
+class TestPropagateCompanyHqToPerson:
+    """Tests for propagating Company HQ to Person via WORKS_AT."""
+
+    def test_propagate_query_structure(self):
+        """PROPAGATE_HQ_TO_PERSON_QUERY should SET Person city from Company HQ."""
+        from scripts.contact_intel.location_enricher import PROPAGATE_HQ_TO_PERSON_QUERY
+
+        assert 'Person' in PROPAGATE_HQ_TO_PERSON_QUERY
+        assert 'Company' in PROPAGATE_HQ_TO_PERSON_QUERY
+        assert 'WORKS_AT' in PROPAGATE_HQ_TO_PERSON_QUERY
+        assert 'p.city IS NULL' in PROPAGATE_HQ_TO_PERSON_QUERY
+        assert 'c.hq_city' in PROPAGATE_HQ_TO_PERSON_QUERY
+        assert 'location_source' in PROPAGATE_HQ_TO_PERSON_QUERY
+
+    def test_no_overwrite_person_city(self):
+        """The query should only update Persons where city IS NULL."""
+        from scripts.contact_intel.location_enricher import PROPAGATE_HQ_TO_PERSON_QUERY
+
+        # The WHERE clause should filter to only update persons without city
+        assert 'p.city IS NULL' in PROPAGATE_HQ_TO_PERSON_QUERY
+
+
+class TestEnrichCompanyHq:
+    """Tests for enrich_company_hq function — mock Neo4j session."""
+
+    def test_enrich_company_hq_returns_stats(self, tmp_path):
+        """Returns {companies_updated, persons_updated}."""
+        from scripts.contact_intel.location_enricher import enrich_company_hq
+
+        # Create a temp CSV
+        csv_content = """domain,hq_city,hq_state,hq_country
+lahaus.com,Bogotá,,Colombia
+"""
+        csv_path = tmp_path / "company_hq.csv"
+        csv_path.write_text(csv_content)
+
+        mock_session = MagicMock()
+
+        # Mock the propagation query result
+        mock_result = MagicMock()
+        mock_single = MagicMock()
+        mock_single.__getitem__ = MagicMock(return_value=5)
+        mock_result.single.return_value = mock_single
+        mock_session.run.return_value = mock_result
+
+        stats = enrich_company_hq(mock_session, csv_path=str(csv_path))
+
+        assert 'companies_updated' in stats
+        assert 'persons_updated' in stats
+        assert stats['companies_updated'] == 1  # 1 company in CSV
+
+    def test_enrich_company_hq_sets_company_nodes(self, tmp_path):
+        """Should run SET query for each company in mapping."""
+        from scripts.contact_intel.location_enricher import enrich_company_hq
+
+        csv_content = """domain,hq_city,hq_state,hq_country
+lahaus.com,Bogotá,,Colombia
+wework.com,New York,New York,United States
+"""
+        csv_path = tmp_path / "company_hq.csv"
+        csv_path.write_text(csv_content)
+
+        mock_session = MagicMock()
+
+        # Mock the propagation query result
+        mock_result = MagicMock()
+        mock_single = MagicMock()
+        mock_single.__getitem__ = MagicMock(return_value=3)
+        mock_result.single.return_value = mock_single
+        mock_session.run.return_value = mock_result
+
+        stats = enrich_company_hq(mock_session, csv_path=str(csv_path))
+
+        # Should have called run at least 3 times: 2 SET company + 1 propagate
+        assert mock_session.run.call_count >= 3
+        assert stats['companies_updated'] == 2
+
+    def test_enrich_company_hq_skips_empty_hq(self, tmp_path):
+        """Should skip companies without hq_city and hq_country."""
+        from scripts.contact_intel.location_enricher import enrich_company_hq
+
+        csv_content = """domain,hq_city,hq_state,hq_country
+lahaus.com,Bogotá,,Colombia
+empty.com,,,
+"""
+        csv_path = tmp_path / "company_hq.csv"
+        csv_path.write_text(csv_content)
+
+        mock_session = MagicMock()
+
+        mock_result = MagicMock()
+        mock_single = MagicMock()
+        mock_single.__getitem__ = MagicMock(return_value=0)
+        mock_result.single.return_value = mock_single
+        mock_session.run.return_value = mock_result
+
+        stats = enrich_company_hq(mock_session, csv_path=str(csv_path))
+
+        # Only 1 company has valid HQ (empty.com has no hq_city or hq_country)
+        assert stats['companies_updated'] == 1
