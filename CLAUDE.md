@@ -470,17 +470,23 @@ python scripts/hubspot_templates.py sync-all
 ├── processed/               # Intermediate pipeline outputs
 │   └── legacy/              # Archived intermediate files
 └── output/                  # Final exports (organized by type)
-    ├── prospects_master.csv     # Primary contact database
+    ├── prospects_master.csv     # PRIMARY - Single source of truth
     ├── prospects_master.xlsx    # Excel version
-    ├── prospects_final.csv      # Symlink → master
+    ├── prospects_final.csv      # Symlink → dated export
+    ├── prospects_final.xlsx     # Symlink → dated export
+    ├── 20260116_*_prospects_final.*  # Timestamped exports (symlink targets)
+    │
+    ├── backups/                 # Incremental enrichment batches
     ├── email_campaign/          # Email drafts & campaign files
     │   ├── drafts.csv           # Generated email drafts
     │   ├── campaign_log.md      # Campaign tracking
     │   ├── warmup/              # Daily warmup checklists
     │   └── legacy/              # Archived campaign files
+    ├── fb_ads_raw/              # Raw FB Ads Library scrapes (large files)
     ├── gmail_logs/              # Gmail inbox snapshots
-    ├── hubspot/                 # HubSpot CRM exports
-    │   └── contacts.csv         # HubSpot-compatible format
+    ├── hubspot/                 # HubSpot CRM exports & imports
+    │   ├── contacts.csv         # HubSpot-compatible format
+    │   └── hubspot_import_*.csv # Import batch files
     ├── icp_discovery/           # ICP Discovery intermediate outputs
     │   ├── 00_ads_normalized.csv    # Normalized ad-level data
     │   ├── 01_pages_aggregated.csv  # Page-level aggregated
@@ -494,8 +500,14 @@ python scripts/hubspot_templates.py sync-all
     │   ├── icp_analysis_report.md      # Analysis summary
     │   ├── sector_classifications.csv  # Sector assignments
     │   └── vertical_deep_dive.md       # Vertical-specific insights
-    └── legacy/                  # Archived output files
-        └── backups/             # Auto-generated backups
+    ├── la_advertisers/          # LA advertiser project outputs
+    ├── legacy/                  # Archived output files
+    ├── logs/                    # Archived log files
+    ├── pipeline_temp/           # Pipeline intermediate files
+    ├── proposals/               # One-off proposals and reports
+    ├── realtor/                 # Realtor pipeline outputs
+    ├── repliers/                # MLS agent data
+    └── waitlist/                # Waitlist reengagement data
 ```
 
 ## Pipeline Stages

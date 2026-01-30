@@ -49,3 +49,5 @@ data/contact_intel/*.json
 output/backups/
 output/repliers/
 .coverage
+# Large raw scrape files (exceed GitHub 100MB limit)
+output/fb_ads_raw/*.csv

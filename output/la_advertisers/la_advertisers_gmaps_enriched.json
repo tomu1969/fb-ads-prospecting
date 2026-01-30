@@ -1,0 +1,498 @@
+{
+  "Car Dealerships": [
+    {
+      "name": "Quill",
+      "phone": "(800) 982-3400",
+      "website": "https://quill.com/",
+      "address": "300 Tri State, International Drive Ste 300, Lincolnshire, IL 60069"
+    },
+    {
+      "name": "Toyota of Downtown L.A.",
+      "phone": "(213) 986-2011",
+      "website": "https://www.toyotaofdowntownla.com/?utm_source=google&utm_medium=organic&utm_campaign=google_my_business&utm_content=sales",
+      "address": "1901 S Figueroa St, Los Angeles, CA 90007"
+    },
+    {
+      "name": "Los Angeles",
+      "phone": "",
+      "website": "http://www.lacity.org/",
+      "address": "California"
+    },
+    {
+      "name": "CardinaleWay Hyundai - Glendora",
+      "phone": "(909) 600-0610",
+      "website": "https://www.cardinalewayhyundaiglendora.com/",
+      "address": "1253 S Lone Hill Ave, Glendora, CA 91740"
+    },
+    {
+      "name": "Modesti's Car Care Center - Best Auto Repair Shop in Culver City Ca",
+      "phone": "(310) 827-2400",
+      "website": "http://www.modestis.com/",
+      "address": "12121 Jefferson Blvd, Culver City, CA 90230"
+    },
+    {
+      "name": "CardinaleWay Hyundai of El Monte",
+      "phone": "(626) 686-3910",
+      "website": "https://www.cardinalewayhyundaiofelmonte.com/",
+      "address": "3462 Peck Rd, El Monte, CA 91731"
+    },
+    {
+      "name": "Nissan Of Mission Hills",
+      "phone": "(818) 838-4444",
+      "website": "http://www.nissanofmissionhills.com/?utm_source=google&utm_medium=organic&utm_campaign=gbp",
+      "address": "11000 Sepulveda Blvd, Mission Hills, CA 91345"
+    },
+    {
+      "name": "Los Angeles Lemon Law Attorneys",
+      "phone": "(310) 910-9266",
+      "website": "https://lemonlawexperts.com/",
+      "address": "453 S Spring St Suite 931, Los Angeles, CA 90013"
+    },
+    {
+      "name": "Mobile Mechanic Los Angeles",
+      "phone": "(213) 814-4495",
+      "website": "http://mobilemechaniclosangelesca.com/",
+      "address": "515 Flower St, Los Angeles, CA 90071"
+    },
+    {
+      "name": "SPADA AUTO SERVICES",
+      "phone": "(562) 435-4837",
+      "website": "http://spadaauto.com/",
+      "address": "607 W 14th St, Long Beach, CA 90813"
+    }
+  ],
+  "Real Estate": [
+    {
+      "name": "Justin Borges - The Borges Real Estate Team",
+      "phone": "(213) 262-5092",
+      "website": "http://lametrohomefinder.com/",
+      "address": "680 E Colorado Blvd Suite 180, Pasadena, CA 91101"
+    },
+    {
+      "name": "Heyler Realty",
+      "phone": "(310) 721-0000",
+      "website": "https://heylerrealty.com/?utm_source=gbp&utm_medium=organic",
+      "address": "10659 W Pico Blvd, Los Angeles, CA 90064"
+    },
+    {
+      "name": "Kevin DaSilva Realtor",
+      "phone": "(424) 392-4213",
+      "website": "http://www.kevindasilvagroup.com/",
+      "address": "1500 Rosecrans Ave #500, Manhattan Beach, CA 90266"
+    },
+    {
+      "name": "Blayne Pacelli Realtor - Rodeo Realty",
+      "phone": "(310) 383-6281",
+      "website": "https://www.blaynepacelli.com/",
+      "address": "15300 Ventura Blvd #101, Sherman Oaks, CA 91403"
+    },
+    {
+      "name": "dot. Cards",
+      "phone": "",
+      "website": "https://dotcards.net/",
+      "address": null
+    },
+    {
+      "name": "Elite Moving & Storage - Los Angeles Movers",
+      "phone": "(818) 924-3777",
+      "website": "https://www.elitemovingandstorage.com/?utm_source=Google&utm_campaign=GMB",
+      "address": "9000 Glenoaks Blvd, Sun Valley, CA 91352"
+    },
+    {
+      "name": "Ken Sisson - Coldwell Banker",
+      "phone": "(310) 308-8672",
+      "website": "https://kensisson.com/",
+      "address": "12930 Ventura Blvd #202, Studio City, CA 91604"
+    },
+    {
+      "name": "Mila Walker Estates",
+      "phone": "(310) 962-3442",
+      "website": "http://www.milaestates.com/",
+      "address": "9320 Wilshire Blvd, Beverly Hills, CA 90212"
+    },
+    {
+      "name": "Keri White",
+      "phone": "(310) 804-4011",
+      "website": "https://keriwhite.com/",
+      "address": "1207 Montana Ave, Santa Monica, CA 90403"
+    },
+    {
+      "name": "ELA Advertising",
+      "phone": "(310) 849-5100",
+      "website": "http://www.ela1.com/",
+      "address": "1040 N Sycamore Ave, Los Angeles, CA 90038"
+    }
+  ],
+  "Mortgage/Lending": [
+    {
+      "name": "Law Offices of Brian A. Newman",
+      "phone": "(424) 275-4014",
+      "website": "https://defencefirm.com/",
+      "address": "3838 W Carson St Suite 310, Torrance, CA 90503"
+    },
+    {
+      "name": "Class",
+      "phone": "",
+      "website": "",
+      "address": "3650 W Martin Luther King Jr Blvd, Los Angeles, CA 90008"
+    },
+    {
+      "name": "Art Home Interiors, Inc.",
+      "phone": "(323) 263-9755",
+      "website": "https://www.arthomeinteriors.net/",
+      "address": "3508 1st St, Los Angeles, CA 90063"
+    },
+    {
+      "name": "Entrepreneurs' Organization - Los Angeles Chapter",
+      "phone": "(310) 447-1234",
+      "website": "https://www.eonetwork.org/losangeles",
+      "address": "861 Parkview Dr N #200, El Segundo, CA 90245"
+    },
+    {
+      "name": "Cash It Here Inc",
+      "phone": "(323) 464-2722",
+      "website": "",
+      "address": "6565 Hollywood Blvd, Hollywood, CA 90028"
+    },
+    {
+      "name": "Eric Avila",
+      "phone": "(619) 822-7802",
+      "website": "https://ericavilarealtor.com/",
+      "address": "73301 Fred Waring Dr, Palm Desert, CA 92260"
+    },
+    {
+      "name": "Fidelity Funding | Hard Money Loans Lender Los Angeles California",
+      "phone": "(877) 300-3007",
+      "website": "https://www.fidelityfundingcorp.com/",
+      "address": "1100 Wilshire Blvd APT 2606, Los Angeles, CA 90017"
+    },
+    {
+      "name": "Prime Corporate Services",
+      "phone": "(855) 577-4639",
+      "website": "https://www.primecorporateservices.com/",
+      "address": "5250 S Commerce Dr #200, Murray, UT 84107"
+    },
+    {
+      "name": "Cohen Financial Group - Mortgage Broker",
+      "phone": "(310) 777-5401",
+      "website": "https://www.cohenfinancialgroup.com/",
+      "address": "9665 Wilshire Blvd Suite 260, Beverly Hills, CA 90212"
+    },
+    {
+      "name": "Los Angeles",
+      "phone": "",
+      "website": "http://www.lacity.org/",
+      "address": "California"
+    }
+  ],
+  "Home Services": [
+    {
+      "name": "Running Plumbing Services Inc.",
+      "phone": "(714) 600-7429",
+      "website": "https://runningplumbingservices.com/",
+      "address": null
+    },
+    {
+      "name": "Tub N' Crete Coatings",
+      "phone": "(949) 775-0354",
+      "website": "https://tubncretecoatings.com/",
+      "address": "3962 Seneca Ave, Los Angeles, CA 90039"
+    },
+    {
+      "name": "Most Valuable Plumber",
+      "phone": "(818) 390-9944",
+      "website": "https://mvp-plumbing.com/?utm_source=GBP&utm_medium=organic",
+      "address": "20338 Corisco St, Chatsworth, CA 91311"
+    },
+    {
+      "name": "Los Angeles",
+      "phone": "",
+      "website": "http://www.lacity.org/",
+      "address": "California"
+    },
+    {
+      "name": "Top Cleaning Janitorial Services",
+      "phone": "(424) 269-4686",
+      "website": "http://www.tc-janitorial.com/",
+      "address": "7135 Hollywood Blvd, Los Angeles, CA 90046"
+    },
+    {
+      "name": "JPL Plumbing",
+      "phone": "(818) 716-6910",
+      "website": "https://www.jplplumbingcanogapark.com/",
+      "address": null
+    },
+    {
+      "name": "Jordan Flagship Store",
+      "phone": "(213) 629-8379",
+      "website": "",
+      "address": "622 S Broadway, Los Angeles, CA 90014"
+    },
+    {
+      "name": "Soda Creative",
+      "phone": "(213) 863-9920",
+      "website": "http://www.sodacreative.tv/",
+      "address": "953 E 3rd St STE 200, Los Angeles, CA 90013"
+    },
+    {
+      "name": "The Brothers That Just Do Gutters",
+      "phone": "(213) 205-6598",
+      "website": "https://los-angeles.brothersgutters.com/",
+      "address": "1940 Highland Ave, Hollywood, CA 90068"
+    },
+    {
+      "name": "Luis Lopez for Assembly",
+      "phone": "(323) 739-0094",
+      "website": "",
+      "address": "1737 Colorado Blvd, Los Angeles, CA 90041"
+    }
+  ],
+  "Insurance": [
+    {
+      "name": "Torrance Bariatric Institute",
+      "phone": "(310) 326-3066",
+      "website": "https://torrancebariatrics.com/",
+      "address": "21250 Hawthorne Blvd #430, Torrance, CA 90503"
+    },
+    {
+      "name": "CalNeuro Research Group",
+      "phone": "(310) 208-7144",
+      "website": "https://www.calneuroresearch.com/",
+      "address": "10780 Santa Monica Blvd #470, Los Angeles, CA 90025"
+    },
+    {
+      "name": "Los Angeles",
+      "phone": "",
+      "website": "http://www.lacity.org/",
+      "address": "California"
+    },
+    {
+      "name": "Service Pro Restoration, Inc.",
+      "phone": "(323) 872-8492",
+      "website": "https://www.servicepro.la/",
+      "address": "355 S Grand Ave #2450, Los Angeles, CA 90071"
+    },
+    {
+      "name": "Modesti's Car Care Center - Best Auto Repair Shop in Culver City Ca",
+      "phone": "(310) 827-2400",
+      "website": "http://www.modestis.com/",
+      "address": "12121 Jefferson Blvd, Culver City, CA 90230"
+    },
+    {
+      "name": "Purposeful Strategic Partners",
+      "phone": "(213) 267-7840",
+      "website": "https://purposefulsp.com/",
+      "address": null
+    },
+    {
+      "name": "Los Angeles Regional Food Bank",
+      "phone": "(323) 234-3030",
+      "website": "http://www.lafoodbank.org/",
+      "address": "1734 E 41st St, Los Angeles, CA 90058"
+    },
+    {
+      "name": "i Accident Lawyer",
+      "phone": "(213) 689-7777",
+      "website": "https://iaccidentlawyer.com/los-angeles-car-accident-lawyer/",
+      "address": "155 W Washington Blvd Ste Mezz #102, Los Angeles, CA 90015"
+    },
+    {
+      "name": "Globe Life American Income Division: Olusegun Organization",
+      "phone": "(301) 664-2103",
+      "website": "https://agency.ailife.com/united-states/maryland/bowie/duni-olusegun?utm_source=google&utm_medium=organic&utm_campaign=GMB&utm_content=152312145284049",
+      "address": "7401 Forbes Blvd Suite B-1, Lanham, MD 20706"
+    },
+    {
+      "name": "Beverly Hills Orthodontics Downtown LA",
+      "phone": "(310) 785-0770",
+      "website": "https://www.beverlyhillsortho.com/locations/dtla",
+      "address": "740 S Olive St #105, Los Angeles, CA 90014"
+    }
+  ],
+  "Legal Services": [
+    {
+      "name": "Edelson PC",
+      "phone": "(626) 460-0769",
+      "website": "https://edelson.com/",
+      "address": "385 E Colorado Blvd Suite 206, Pasadena, CA 91101"
+    },
+    {
+      "name": "California United Law Group",
+      "phone": "(310) 744-1449",
+      "website": "https://calunitedlaw.com/",
+      "address": "453 S Spring St suite 321, Los Angeles, CA 90013"
+    },
+    {
+      "name": "Lynch Carpenter, LLP",
+      "phone": "(412) 322-9243",
+      "website": "https://lynchcarpenter.com/",
+      "address": "1133 Penn Ave, Pittsburgh, PA 15222"
+    },
+    {
+      "name": "Quill Corporation",
+      "phone": "(972) 462-7762",
+      "website": "http://quill.com/",
+      "address": "440 S Royal Ln, Coppell, TX 75019"
+    },
+    {
+      "name": "Columbia West College",
+      "phone": "(213) 368-3900",
+      "website": "http://www.columbiawestcollege.edu/",
+      "address": "311 S Spring St Suite 300, Los Angeles, CA 90013"
+    },
+    {
+      "name": "Seven Law Group, APC | Lemon Law Attorney",
+      "phone": "(213) 786-2875",
+      "website": "https://sevenlaw.com/?utm_campaign=gmb",
+      "address": "10940 Wilshire Blvd #1400, Los Angeles, CA 90024"
+    },
+    {
+      "name": "Santa Clara County Justice Training Center",
+      "phone": "(408) 201-7630",
+      "website": "https://sheriff.santaclaracounty.gov/bureaus/support-services/training-and-professional-development-division",
+      "address": "701 S Abel St, Milpitas, CA 95035"
+    },
+    {
+      "name": "The Injury Law Group, PC",
+      "phone": "(877) 317-3117",
+      "website": "http://accidentdefense.com/",
+      "address": "1901 Ave of the Stars #200, Los Angeles, CA 90067"
+    },
+    {
+      "name": "Hennessey + Ingalls",
+      "phone": "(213) 437-2130",
+      "website": "http://www.hennesseyingalls.com/",
+      "address": "300 S Santa Fe Ave M, Los Angeles, CA 90013"
+    },
+    {
+      "name": "SHINE Church LA",
+      "phone": "(323) 255-7919",
+      "website": "https://www.shinela.church/",
+      "address": "6051 Meridian St, Los Angeles, CA 90042"
+    }
+  ],
+  "Healthcare/Dental": [
+    {
+      "name": "Jack N' Jill Kids US - Natural Toothpaste and Toothbrushes",
+      "phone": "",
+      "website": "https://wellbeingisland.com/collections/jack-n-jill-kids?utm_source=GMB-Jack-n-Jill-USA&utm_medium=organic",
+      "address": "859 E Sepulveda Blvd, Carson, CA 90745"
+    },
+    {
+      "name": "Dream Team Dental - Eagle Rock",
+      "phone": "(323) 255-1708",
+      "website": "http://www.dreamteamdental.com/",
+      "address": "1447 Colorado Blvd, Los Angeles, CA 90041"
+    },
+    {
+      "name": "5D Smiles Dental Implant Center",
+      "phone": "(562) 586-4110",
+      "website": "https://www.5dsmiles.com/?utm_campaign=gmb",
+      "address": "8500 Florence Ave #100, Downey, CA 90240"
+    },
+    {
+      "name": "Dr. Jon Marashi DDS",
+      "phone": "(310) 820-0300",
+      "website": "http://drmarashi.com/",
+      "address": "11777 San Vicente Blvd #521, Los Angeles, CA 90049"
+    },
+    {
+      "name": "123 Kids Dentistry of East LA",
+      "phone": "(323) 433-0123",
+      "website": "https://eastlapediatricdentist.com/",
+      "address": "3845 E 3rd St Suite A, Los Angeles, CA 90063"
+    },
+    {
+      "name": "Kingswell Dentist",
+      "phone": "(323) 245-4592",
+      "website": "https://www.kingswelldentist.net/",
+      "address": "4655 Kingswell Ave, Los Angeles, CA 90027"
+    },
+    {
+      "name": "Selfie Smiles Dental Group",
+      "phone": "(818) 650-8040",
+      "website": "https://selfiesmiledental.com/",
+      "address": "15355 Sherman Way P, Van Nuys, CA 91406"
+    },
+    {
+      "name": "Wilshire Medical Dr. Kristy",
+      "phone": "",
+      "website": "",
+      "address": "4322 Wilshire Blvd #203, Los Angeles, CA 90010"
+    },
+    {
+      "name": "JPL Plumbing",
+      "phone": "(818) 716-6910",
+      "website": "https://www.jplplumbingcanogapark.com/",
+      "address": null
+    },
+    {
+      "name": "SoCal Dental Academy",
+      "phone": "(626) 257-5868",
+      "website": "https://socaldentalassistantacademy.com/",
+      "address": "2270 E Colorado Blvd, Pasadena, CA 91107"
+    }
+  ],
+  "Education": [
+    {
+      "name": "Transcendental Meditation",
+      "phone": "(323) 375-4108",
+      "website": "https://www.tm.org/en-us/centers/la",
+      "address": "1655 Hillhurst Ave #102, Los Angeles, CA 90027"
+    },
+    {
+      "name": "NYFA Los Angeles | Main Building",
+      "phone": "(818) 333-3558",
+      "website": "https://www.nyfa.edu/los-angeles/",
+      "address": "3300 W Riverside Dr, Burbank, CA 91505"
+    },
+    {
+      "name": "Purposeful Strategic Partners",
+      "phone": "(213) 267-7840",
+      "website": "https://purposefulsp.com/",
+      "address": null
+    },
+    {
+      "name": "Mindvibe",
+      "phone": "(805) 295-4292",
+      "website": "https://www.mindvibe.com/contact/",
+      "address": "1601 Vermont Ave #106, Los Angeles, CA 90006"
+    },
+    {
+      "name": "Activator Methods International Ltd",
+      "phone": "(602) 224-0220",
+      "website": "https://www.activator.com/",
+      "address": "3822 E University Dr #5, Phoenix, AZ 85034"
+    },
+    {
+      "name": "International College of Beauty Arts and Sciences",
+      "phone": "(818) 280-4898",
+      "website": "https://www.icbas.edu/",
+      "address": "5225 W San Fernando Rd, Los Angeles, CA 90039"
+    },
+    {
+      "name": "King Creative Co.",
+      "phone": "(901) 251-0053",
+      "website": "https://www.kingcreative.co/",
+      "address": null
+    },
+    {
+      "name": "Los Angeles Stretch Therapy",
+      "phone": "(424) 501-5928",
+      "website": "",
+      "address": null
+    },
+    {
+      "name": "Academy of Motion Picture Arts and Sciences",
+      "phone": "(310) 247-3000",
+      "website": "http://www.oscars.org/",
+      "address": "PICKFORD CENTER, 1313 Vine St, Los Angeles, CA 90028"
+    },
+    {
+      "name": "Jerusalem Seminary",
+      "phone": "+972 2-567-6500",
+      "website": "http://www.jerusalemseminary.org/",
+      "address": "Ha-Nevi'im St 55, Jerusalem, Israel"
+    }
+  ]
+}
