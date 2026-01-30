@@ -145,6 +145,115 @@ python scripts/icp_discovery/m4_urgency_score.py                                
 pytest scripts/icp_discovery/tests/ -v
 ```
 
+## Script Index
+
+Comprehensive index of all scripts organized by function. **Check here before building new scripts.**
+
+### Core Pipeline Modules
+| Script | Purpose | CLI Example |
+|--------|---------|-------------|
+| `loader.py` | Smart input adapter (any format → pipeline schema) | `--input FILE --mapping` |
+| `enricher.py` | Website discovery via DuckDuckGo | Core module |
+| `scraper.py` | Extract contacts from websites | Core module |
+| `hunter.py` | Email verification via Hunter.io | Core module |
+| `contact_enricher_pipeline.py` | Multi-source enrichment (Exa→Apollo→Agents) | Core module |
+| `instagram_enricher.py` | Find Instagram handles | `--all --verify` |
+| `contact_name_resolver.py` | Multi-source name finder | `--all --use-exa` |
+| `linkedin_enricher.py` | Find personal LinkedIn profiles | `--all --apify-only` |
+| `google_maps_enricher.py` | Google Business data (reviews, rating) | `--all` |
+| `tech_stack_enricher.py` | Detect CRM, pixels, scheduling tools | `--all` |
+| `lead_scorer.py` | Composite 0-15 score with tier | `--all` |
+| `exporter.py` | Export to HubSpot/Excel format | Core module |
+| `validator.py` | Quality validation | Core module |
+
+### Secondary Enrichment Sources
+| Script | Purpose | CLI Example |
+|--------|---------|-------------|
+| `exa_enricher.py` | Fast contact discovery via Exa API | `--csv FILE --all` |
+| `apollo_enricher.py` | B2B contacts via Apollo.io | Config-based |
+| `hunter_email_finder.py` | Find email by name+company (Hunter) | `--input FILE --all` |
+| `linkedin_contact_scraper.py` | Extract emails from LinkedIn URLs | `--input FILE --all` |
+| `realtor_enricher.py` | 3-stage realtor enrichment | `--input FILE --all` |
+| `la_gmaps_enrich.py` | Quick Google Maps for LA advertisers | Direct run |
+
+### Email Campaign
+| Script | Purpose | CLI Example |
+|--------|---------|-------------|
+| `email_pipeline.py` | End-to-end orchestrator | `--input FILE --all` |
+| `email_drafter/drafter.py` | Hyper-personalized cold emails | `--csv FILE --limit N` |
+| `email_verifier/verifier.py` | Validate email quality | `--drafts FILE` |
+| `email_verifier/fixer.py` | Auto-fix email issues | `--drafts FILE` |
+| `gmail_sender/gmail_sender.py` | Send via Gmail SMTP | `--csv FILE --dry-run` |
+| `gmail_sender/inbox_checker.py` | Check bounces/replies | `--hours N` |
+| `smtp_verifier/smtp_verifier.py` | SMTP email verification (no API) | `--csv FILE` |
+| `bounce_recovery/bounce_recovery.py` | Find alt emails for bounces | `--input FILE` |
+
+### Instagram & Social
+| Script | Purpose | CLI Example |
+|--------|---------|-------------|
+| `apify_dm_sender.py` | Send Instagram DMs via Apify | `--csv FILE --message "..."` |
+| `manychat_sender.py` | Bulk Instagram DMs via ManyChat | `--csv FILE --message "..."` |
+| `instagram_warmup/warmup_orchestrator.py` | 7-day warmup automation | `--init --csv FILE` |
+
+### HubSpot Integration
+| Script | Purpose | CLI Example |
+|--------|---------|-------------|
+| `hubspot_enricher.py` | Enrich contacts for HubSpot import | `--input FILE --all` |
+| `hubspot_local_enricher.py` | Local DB matching (no API) | Direct run |
+| `hubspot_templates.py` | Sync templates to HubSpot | `push --template ID` |
+| `hubspot_bant_properties.py` | Create BANT deal properties | Direct run |
+
+### ICP Discovery Pipeline
+| Script | Purpose | CLI Example |
+|--------|---------|-------------|
+| `icp_discovery/run_icp_pipeline.py` | Full pipeline orchestrator | `--input FILE` |
+| `icp_discovery/m0_normalizer.py` | Normalize + classify destinations | `--csv FILE` |
+| `icp_discovery/m1_aggregator.py` | Page-level aggregation | Direct run |
+| `icp_discovery/m2_conv_gate.py` | Conversational necessity filter | Direct run |
+| `icp_discovery/m3_money_score.py` | Money score (0-50) | Direct run |
+| `icp_discovery/m4_urgency_score.py` | Urgency score (0-50) | Direct run |
+| `icp_discovery/m5_fit_score.py` | Fit score (0-50) | Direct run |
+| `icp_discovery/m6_clusterer.py` | Behavioral clustering | Direct run |
+| `icp_discovery/m7_report.py` | Final report generation | Direct run |
+| `icp_discovery/sector_classifier.py` | Classify into sectors | `--all` |
+
+### Contact Intelligence (Neo4j Graph)
+| Script | Purpose | CLI Example |
+|--------|---------|-------------|
+| `contact_intel/graph_query.py` | Natural language → Cypher | `python -m scripts.contact_intel.graph_query "query"` |
+| `contact_intel/graph_builder.py` | Build contact graph | `--setup` |
+| `contact_intel/linkedin_sync.py` | Sync LinkedIn export | `--sync --csv FILE` |
+| `contact_intel/entity_extractor.py` | Extract company/role from emails | `--sync --budget N` |
+| `contact_intel/path_finder.py` | Find entry paths to prospects | `--company NAME` |
+| `contact_intel/location_enricher.py` | Location enrichment (3 layers) | `--all` |
+| `contact_intel/relationship_strength_v2.py` | Score relationship strength | `--run` |
+| `contact_intel/overnight_enrichment.py` | Batch overnight enrichment | `--run` |
+
+### Repliers Pipeline (Real Estate MLS)
+| Script | Purpose | CLI Example |
+|--------|---------|-------------|
+| `repliers_mls_scraper.py` | Scrape MLS transactions | `--city NAME --sold` |
+| `repliers_agent_aggregator.py` | Aggregate by agent | `--input FILE` |
+| `repliers_agent_lookup.py` | Find agent contact info | `--input FILE --all` |
+| `repliers_enricher.py` | Multi-source enrichment | `--input FILE --all` |
+| `repliers_linkedin_enricher.py` | LinkedIn profiles for agents | `--input FILE --all` |
+| `repliers_mutual_connections.py` | Find mutual LinkedIn connections | `--input FILE --all` |
+| `repliers_entry_path_ranker.py` | Rank outreach paths | `--input FILE` |
+| `repliers_to_master.py` | Convert to master format | `--input FILE` |
+
+### Scraping
+| Script | Purpose | CLI Example |
+|--------|---------|-------------|
+| `fb_ads_scraper.py` | Scrape Facebook Ads Library | `--query "search" --count N` |
+| `agent_fb_ads_checker.py` | Check if agents run FB ads | `--csv FILE --limit N` |
+
+### Utilities
+| Script | Purpose | CLI Example |
+|--------|---------|-------------|
+| `master_manager.py` | Merge/dedupe/enrich master CSV | `merge --input FILE` |
+| `google_sheets_sync.py` | Sync master to Google Sheets | `--input FILE` |
+| `waitlist_hubspot_xref.py` | Cross-ref waitlist vs HubSpot | `--csv FILE` |
+
 ## Contact Graph Queries (Automatic)
 
 **When the user asks about their network, contacts, connections, or "who do I know" questions, automatically query the Neo4j graph:**
